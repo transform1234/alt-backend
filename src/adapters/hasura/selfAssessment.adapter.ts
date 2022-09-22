@@ -6,15 +6,13 @@ import { FBMGStoProgramDto } from "src/selfAssessment/dto/fbmgstoProgram.dto";
 import { ISelfAssessServicelocator } from "../selfAssessmentservicelocator";
 
 @Injectable()
-export class SelfAssessmentService {// implements ISelfAssessServicelocator{
+export class SelfAssessmentService implements ISelfAssessServicelocator{
     axios = require("axios");
 
     constructor(private httpService: HttpService){}
 
     public async createProgram(request: any, programdto: ProgramDto){
   
-      //  console.log(programdto);
-
         const programSchema = new ProgramDto(programdto);
         let newProgramData = "";
         Object.keys(programdto).forEach((key) => {
@@ -27,10 +25,8 @@ export class SelfAssessmentService {// implements ISelfAssessServicelocator{
                 }
         });
 
-      //  console.log(newProgramData , "newPgdta");
-
         const programData = {
-            query: `mutation CreateProgram ($params:String,$program_name:String){
+            query: `mutation CreateProgram ($rules:String,$program_name:String){
               insert_AssessProgram_one(object: {${newProgramData}}) {
                   programId
             }
@@ -50,9 +46,6 @@ export class SelfAssessmentService {// implements ISelfAssessServicelocator{
         
         const response = await this.axios(configData);
 
-      //  console.log(response.data);
-        
-
         const result =  response.data.data.insert_AssessProgram_one;
     
         return new SuccessResponse({
@@ -63,23 +56,18 @@ export class SelfAssessmentService {// implements ISelfAssessServicelocator{
     }
 
     public async getProgramById(request: any,programId:string){
-      // console.log(programId);
-      
 
         const programData = {
             query: `query GetProgramById ($programId:uuid!) {
               AssessProgram_by_pk(programId:$programId) {
-                params
+                rules
                 programName
               }
               }`,
           variables: {
             programId: programId
           },
-        }
-
-        // console.log(programData);
-        
+        }        
 
         const configData = {
             method: "post",
@@ -93,13 +81,8 @@ export class SelfAssessmentService {// implements ISelfAssessServicelocator{
 
         const response = await this.axios(configData);
 
-        // console.log(response.data);
-        // console.log(response.data.errors);
-
         const result =  [response.data.data.AssessProgram_by_pk];
     
-        // console.log(result);
-
         const data = await this.mappedResponse(result);
 
         return new SuccessResponse({
@@ -116,7 +99,7 @@ export class SelfAssessmentService {// implements ISelfAssessServicelocator{
 
           programId : item?.programId ? `${item.programId}` : "",
           programName : item?.programName ? `${item.programName}` : "",
-          params : item?.params ? `${item.params}`: ""
+          rules : item?.rules ? `${item.rules}`: ""
         };
         return new ProgramDto(programMapping);
       });
@@ -130,21 +113,21 @@ export class SelfAssessmentService {// implements ISelfAssessServicelocator{
           query: `query GetProgramData ($framework:String,$board:String,$medium:String,$grade:String,$subject:String){
             ProgramTermAssoc(where: 
             {
-              framework: {_eq: $framework}
-              board: {_eq: $board},
-              medium: {_eq: $medium}
-              grade: {_eq: $grade},
-              subject: {_eq: $subject},    
+              framework_code: {_eq: $framework}
+              board_code: {_eq: $board},
+              medium_code: {_eq: $medium}
+              grade_code: {_eq: $grade},
+              subject_code: {_eq: $subject},    
             }) {
-              board
-              framework
-              grade
-              medium
+              board_code
+              framework_code
+              grade_code
+              medium_code
               progAssocNo
               programId
-              subject
+              subject_code
            AssessProgram {
-             params
+             rules
              programId
              programName
            }
@@ -171,19 +154,12 @@ export class SelfAssessmentService {// implements ISelfAssessServicelocator{
 
       const response = await this.axios(configData);
 
-      // console.log(response);
-      // console.log(response.data.errors);
-
       const result =  response.data.data.ProgramTermAssoc;
-  
-      // console.log(typeof result[0]);
-      // console.log(result[0].AssessProgram.params);
-      
       
       return new SuccessResponse({
           statusCode: 200,
           message: "Ok.",
-          data: result//JSON.parse(result[0]),
+          data: result,
       });
       
   }

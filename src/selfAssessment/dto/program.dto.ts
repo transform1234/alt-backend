@@ -4,7 +4,7 @@ import {
     IsString,
     IsNotEmpty
 } from "class-validator";
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger"; // what is this for?
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class ProgramDto {
     
@@ -31,9 +31,9 @@ export class ProgramDto {
     @IsNotEmpty()
     @ApiProperty({
         type: String,
-        description: "Params are actual data needed for ordering",
+        description: "Rules are actual data needed for ordering",
     })
-    params: string;
+    rules: string;
 
     constructor(obj:any){
         Object.assign(this,obj);
