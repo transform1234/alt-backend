@@ -29,6 +29,7 @@ import { AnnouncementsModule } from "./announcements/announcements.module";
 import { RoleModule } from "./role/role.module";
 import { WorkHistoryModule } from "./workHistory/workHistory.module";
 import { GroupMembershipModule } from "./groupMembership/groupMembership.module";
+import { SelfAssessmentModule } from './selfAssessment/selfAssessment.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { GroupMembershipModule } from "./groupMembership/groupMembership.module"
     AnnouncementsModule,
     WorkHistoryModule,
     GroupMembershipModule,
+    SelfAssessmentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
