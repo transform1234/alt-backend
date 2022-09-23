@@ -113,19 +113,19 @@ export class SelfAssessmentService implements ISelfAssessServicelocator{
           query: `query GetProgramData ($framework:String,$board:String,$medium:String,$grade:String,$subject:String){
             ProgramTermAssoc(where: 
             {
-              framework_code: {_eq: $framework}
-              board_code: {_eq: $board},
-              medium_code: {_eq: $medium}
-              grade_code: {_eq: $grade},
-              subject_code: {_eq: $subject},    
+              frameworkCode: {_eq: $framework}
+              boardCode: {_eq: $board},
+              mediumCode: {_eq: $medium}
+              gradeCode: {_eq: $grade},
+              subjectCode: {_eq: $subject},    
             }) {
-              board_code
-              framework_code
-              grade_code
-              medium_code
+              boardCode
+              frameworkCode
+              gradeCode
+              mediumCode
               progAssocNo
               programId
-              subject_code
+              subjectCode
            AssessProgram {
              rules
              programId
