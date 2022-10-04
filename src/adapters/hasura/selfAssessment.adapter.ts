@@ -21,7 +21,7 @@ export class SelfAssessmentService implements ISelfAssessServicelocator{
                 programdto[key] != "" &&
                 Object.keys(programSchema).includes(key)
                 ){
-                    newProgramData += `${key}: "${programdto[key]}" ,`;
+                    newProgramData += `${key}: ${JSON.stringify(programdto[key])}, `;
                 }
         });
 
@@ -156,6 +156,10 @@ export class SelfAssessmentService implements ISelfAssessServicelocator{
 
       const result =  response.data.data.ProgramTermAssoc;
       
+      console.log((result[0].AssessProgram.rules));
+
+      console.log(JSON.parse(result[0].AssessProgram.rules));
+
       return new SuccessResponse({
           statusCode: 200,
           message: "Ok.",
