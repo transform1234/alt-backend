@@ -156,10 +156,6 @@ export class SelfAssessmentService implements ISelfAssessServicelocator{
 
       const result =  response.data.data.ProgramTermAssoc;
       
-      console.log((result[0].AssessProgram.rules));
-
-      console.log(JSON.parse(result[0].AssessProgram.rules));
-
       return new SuccessResponse({
           statusCode: 200,
           message: "Ok.",
