@@ -82,7 +82,6 @@ export class DikshaCourseService implements IServicelocator {
     };
 
     const response = await axios(config);
-    console.log("here", response);
     const data = response?.data;
 
     const final = data.result.content;
