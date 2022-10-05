@@ -21,7 +21,7 @@ export class SelfAssessmentService implements ISelfAssessServicelocator{
                 programdto[key] != "" &&
                 Object.keys(programSchema).includes(key)
                 ){
-                    newProgramData += `${key}: "${programdto[key]}" ,`;
+                    newProgramData += `${key}: ${JSON.stringify(programdto[key])}, `;
                 }
         });
 
