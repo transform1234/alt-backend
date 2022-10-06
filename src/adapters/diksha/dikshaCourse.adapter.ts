@@ -9,7 +9,7 @@ export const DikshaCourseToken = "DikshaCourse";
 export class DikshaCourseService implements IServicelocator {
   constructor(private httpService: HttpService) {}
   url = process.env.DIKSHADEVBASEAPIURL;
-  currentUrl = process.env.SAASURL;
+  currentUrl = process.env.SUNBIRDURL;
   public async getAllCourse(
     subject: [string],
     audience: [string],
