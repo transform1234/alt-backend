@@ -92,7 +92,7 @@ export class DikshaCourseService implements IServicelocator {
   public async getCoursesByIds(courseIds: [string], request: any) {
     let courseArray = [];
     for (let value of courseIds) {
-      let courseData = this.getCourseHierarchy(value);
+      let courseData = this.getCourseContent(value);
       courseArray.push(await courseData);
     }
     return new SuccessResponse({
@@ -104,7 +104,7 @@ export class DikshaCourseService implements IServicelocator {
 
   public async getCourseDetail(courseId: string, request: any) {
     let value = courseId;
-    let courseData = await this.getCourseHierarchy(value);
+    let courseData = await this.getCourseContent(value);
     return new SuccessResponse({
       statusCode: 200,
       message: "ok",
