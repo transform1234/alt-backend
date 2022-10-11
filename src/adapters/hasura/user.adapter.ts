@@ -3,6 +3,7 @@ import { HttpService } from "@nestjs/axios";
 import { SuccessResponse } from "src/success-response";
 import { IServicelocator } from "../userservicelocator";
 import { UserDto } from "src/user/dto/user.dto";
+import jwt_decode from "jwt-decode";
 import { UserSearchDto } from "src/user/dto/user-search.dto";
 import { ErrorResponse } from "src/error-response";
 
@@ -39,7 +40,6 @@ export class HasuraUserService implements IServicelocator {
       `,
       variables: { userId: userId },
     };
-    console.log(data);
 
     var config = {
       method: "post",
@@ -320,5 +320,66 @@ export class HasuraUserService implements IServicelocator {
     templateId: string,
     request: any
   ) {}
-  public async getUserByAuth(request) {}
+
+  public async getUserByAuth(request: any) {
+    const authToken = request.headers.authorization;
+    const decoded: any = jwt_decode(authToken);
+    let email = decoded.email;
+
+    let axios = require("axios");
+
+    var data = {
+      query: `query searchUser($email:String) {
+        Users(where: {email: {_eq: $email}}) {
+          birthDate
+          block
+          bloodGroup
+          board
+          created_at
+          created_by
+          district
+          email
+          gender
+          grade
+          image
+          medium
+          mobileNumber
+          name
+          role
+          school
+          section
+          state
+          status
+          udise
+          updated_at
+          updated_by
+          userId
+          username
+        }
+      }`,
+      variables: { email: email },
+    };
+    console.log(data);
+
+    var config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: {
+        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+
+    const response = await axios(config);
+
+    let result = response.data.data.Users;
+    console.log(response.data.data);
+    const userData = await this.mappedResponse(result);
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: userData,
+    });
+  }
 }
