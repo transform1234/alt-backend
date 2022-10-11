@@ -2,13 +2,12 @@ import { Injectable } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
 import { SuccessResponse } from "src/success-response";
 import { IServicelocator } from "../courseservicelocator";
-import { log } from "console";
 
 export const DikshaCourseToken = "DikshaCourse";
 @Injectable()
 export class DikshaCourseService implements IServicelocator {
   constructor(private httpService: HttpService) {}
-  url = process.env.DIKSHADEVBASEAPIURL;
+  
   currentUrl = process.env.SUNBIRDURL;
   public async getAllCourse(
     subject: [string],
