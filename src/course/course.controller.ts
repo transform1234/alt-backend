@@ -85,20 +85,25 @@ export class CourseController {
       return this.khanAcademyProvider.getCoursesByIds(courseIds, request);
     }
   }
-  @Get(":adapter/hierarchy/courseid")
+  @Get(":adapter/hierarchy/contentid")
   @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
-  @ApiOkResponse({ description: "Get Course detail." })
-  @ApiForbiddenResponse({ description: "Forbidden" })
-  @ApiQuery({ name: "courseId", required: false })
+  @ApiOkResponse({ description: "Get content hierarchy detail." })
+  // @ApiForbiddenResponse({ description: "Forbidden" })
+  //  @ApiQuery({ name: "contentid", required: false })
   public async getCourseHierarchy(
     @Param("adapter") adapter: string,
     @Query("courseId") courseId: string,
+    @Query("type") type: string,
     @Req() request: Request
   ) {
     if (adapter === "diksha") {
-      return this.dikshaProvider.getCourseHierarchy(courseId, request);
+      return this.dikshaProvider.getCourseHierarchy(courseId, type, request);
     } else if (adapter === "khanacademy") {
-      return this.khanAcademyProvider.getCourseHierarchy(courseId, request);
+      return this.khanAcademyProvider.getCourseHierarchy(
+        courseId,
+        type,
+        request
+      );
     }
   }
 

@@ -7,7 +7,6 @@ export const DikshaCourseToken = "DikshaCourse";
 @Injectable()
 export class DikshaCourseService implements IServicelocator {
   constructor(private httpService: HttpService) {}
-  
   currentUrl = process.env.SUNBIRDURL;
   public async getAllCourse(
     subject: [string],
@@ -58,7 +57,9 @@ export class DikshaCourseService implements IServicelocator {
 
     var config = {
       method: "post",
-      url: this.currentUrl+"/api/content/v1/search?orgdetails=orgName,email&framework=ekstep_ncert_k-12",
+      url:
+        this.currentUrl +
+        "/api/content/v1/search?orgdetails=orgName,email&framework=ekstep_ncert_k-12",
       data: data,
     };
 
@@ -77,7 +78,7 @@ export class DikshaCourseService implements IServicelocator {
 
     let config = {
       method: "get",
-      url: this.currentUrl+`/api/content/v1/read/${value}`,
+      url: this.currentUrl + `/api/content/v1/read/${value}`,
     };
 
     const response = await axios(config);
@@ -111,24 +112,37 @@ export class DikshaCourseService implements IServicelocator {
     });
   }
 
-  public async getCourseHierarchy(value: any) {
+  public async getCourseHierarchy(value: any, type: any) {
     var axios = require("axios");
+    if (type == "assessment") {
+      let config = {
+        method: "get",
+        url:
+          this.currentUrl +
+          `/learner/questionset/v1/hierarchy/${value}?orgdetails=orgName,email&licenseDetails=name,description,url`,
+      };
+      const response = await axios(config);
+      const data = response?.data.result.questionSet;
+      return new SuccessResponse({
+        statusCode: 200,
+        message: "ok",
+        data: data,
+      });
+    } else {
+      let config = {
+        method: "get",
+        url:
+          this.currentUrl +
+          `/api/course/v1/hierarchy/${value}?orgdetails=orgName,email&licenseDetails=name,description,url`,
+      };
 
-    let config = {
-      method: "get",
-      url: this.currentUrl+`/api/course/v1/hierarchy/${value}?orgdetails=orgName,email&licenseDetails=name,description,url`,
-    };
-
-    const response = await axios(config);
-
-    const data = response?.data;
-
-    const final = data.result.content;
-
-    return new SuccessResponse({
-      statusCode: 200,
-      message: "ok",
-      data: final,
-    });
+      const response = await axios(config);
+      const data = response?.data.result.content;
+      return new SuccessResponse({
+        statusCode: 200,
+        message: "ok",
+        data: data,
+      });
+    }
   }
 }
