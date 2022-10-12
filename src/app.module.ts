@@ -30,7 +30,7 @@ import { RoleModule } from "./role/role.module";
 import { WorkHistoryModule } from "./workHistory/workHistory.module";
 import { GroupMembershipModule } from "./groupMembership/groupMembership.module";
 import { SelfAssessmentModule } from './selfAssessment/selfAssessment.module';
-
+import { ALTCourseTrackingModule } from "./altCourseTracking/altCourseTracking.module";
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -64,6 +64,7 @@ import { SelfAssessmentModule } from './selfAssessment/selfAssessment.module';
     WorkHistoryModule,
     GroupMembershipModule,
     SelfAssessmentModule,
+    ALTCourseTrackingModule
   ],
   controllers: [AppController],
   providers: [AppService],

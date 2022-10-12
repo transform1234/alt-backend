@@ -31,7 +31,7 @@ import {
 } from "./dto/program.dto"
 
 @ApiTags("Self Assessment")
-@Controller("self-assessment")
+@Controller("selfassessment")
 export class SelfAssessmentController {
     constructor(
         private selfAssessmentService: SelfAssessmentService
@@ -45,8 +45,8 @@ export class SelfAssessmentController {
     @SerializeOptions({
       strategy: "excludeAll",
     })
-    public async getProgramById(@Req() request: Request,@Param("id")id: string){     
-        return this.selfAssessmentService.getProgramById(request,id);
+    public async getProgramById(@Req() request: Request,@Param("id")id: string) {     
+        return this.selfAssessmentService.getProgramById(request,id.trim());
     }
 
     @Post("/create-program")
@@ -55,7 +55,7 @@ export class SelfAssessmentController {
     @ApiBody({ type: ProgramDto })
     @ApiForbiddenResponse({ description: "Forbidden" })
     @UseInterceptors(ClassSerializerInterceptor)
-    public async createSchool(
+    public async createProgram(
       @Req() request: Request,
       @Body() programDto: ProgramDto
     ) {
