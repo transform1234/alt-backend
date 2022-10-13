@@ -152,7 +152,7 @@ export class DikshaCourseService implements IServicelocator {
     var data = {
       request: {
         search: {
-          subject: [questions],
+          identifier: [questions],
         },
       },
     };
