@@ -22,6 +22,12 @@ export class UserSearchDto {
   @ApiPropertyOptional()
   filters: object;
 
+  @ApiProperty({
+    type: String,
+    description: "Page",
+  })
+  page: number;
+
   constructor(partial: Partial<UserSearchDto>) {
     Object.assign(this, partial);
   }

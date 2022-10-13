@@ -12,45 +12,19 @@ export class UserDto {
   @Expose()
   userId: string;
 
-  @ApiProperty()
-  @Expose()
-  refId1: string;
-
-  @ApiProperty()
-  @Expose()
-  refId2: string;
-
-  @ApiProperty()
-  @Expose()
-  refId3: string;
-
   @ApiProperty({
     type: String,
     description: "The first name of the user",
   })
   @Expose()
-  firstName: string;
-
-  @ApiProperty({
-    type: String,
-    description: "The middle name of the user",
-  })
-  @Expose()
-  middleName: string;
-
-  @ApiProperty({
-    type: String,
-    description: "The lastname of the user",
-  })
-  @Expose()
-  lastName: string;
+  name: string;
 
   @ApiProperty({
     type: String,
     description: "The contact number of the user",
   })
   @Expose()
-  phoneNumber: string;
+  mobileNumber: string;
 
   @ApiProperty({
     type: String,
@@ -59,10 +33,6 @@ export class UserDto {
   @Expose()
   @IsEmail()
   email: string;
-
-  @ApiProperty()
-  @Expose()
-  aadhaar: string;
 
   @ApiProperty({
     type: String,
@@ -73,52 +43,10 @@ export class UserDto {
 
   @ApiProperty({
     type: String,
-    description: "The socialCategory of the user",
-  })
-  @Expose()
-  socialCategory: string;
-
-  @ApiProperty({
-    type: String,
     description: "The birthDate of the user",
   })
   @Expose()
   birthDate: string;
-
-  @ApiProperty({
-    type: String,
-    description: "The designation of the user",
-  })
-  @Expose()
-  designation: string;
-
-  @ApiProperty({
-    type: String,
-    description: "The cadre of the user",
-  })
-  @Expose()
-  cadre: string;
-
-  @ApiProperty({
-    type: String,
-    description: "The profQualification of the user",
-  })
-  @Expose()
-  profQualification: string;
-
-  @ApiProperty({
-    type: String,
-    description: "The joiningDate of the user",
-  })
-  @Expose()
-  joiningDate: string;
-
-  @ApiProperty({
-    type: [String],
-    description: "The subjectId of the user",
-  })
-  @Expose()
-  subjectIds: [string];
 
   @ApiProperty({
     type: String,
@@ -129,53 +57,49 @@ export class UserDto {
 
   @ApiProperty({
     type: String,
-    description: "The maritalStatus of the user",
+    description: "Student grade section",
   })
   @Expose()
-  maritalStatus: string;
+  section: string;
 
   @ApiProperty({
     type: String,
-    description: "The compSkills of the user",
+    description: "username",
   })
   @Expose()
-  compSkills: string;
+  username: string;
 
   @ApiProperty({
     type: String,
-    description: "The disability of the user",
+    description: "user udise Id",
   })
   @Expose()
-  disability: string;
+  udise: string;
 
   @ApiProperty({
     type: String,
-    description: "The religion of the user",
+    description: "the user board",
   })
   @Expose()
-  religion: string;
+  board: string;
 
   @ApiProperty({
     type: String,
-    description: "The homeDistance of the user",
+    description: "the user medium",
   })
   @Expose()
-  homeDistance: string;
+  medium: string;
 
   @ApiProperty({
     type: String,
-    description: "The schoolId of the user",
+    description: "The school of the user",
   })
   @Expose()
-  schoolId: string;
+  school: string;
 
   @ApiPropertyOptional()
   @Expose()
-  address: string;
-
-  @ApiProperty()
-  @Expose()
-  village: string;
+  grade: string;
 
   @ApiProperty()
   @Expose()
@@ -187,29 +111,7 @@ export class UserDto {
 
   @ApiProperty()
   @Expose()
-  stateId: string;
-
-  @ApiProperty()
-  @Expose()
-  pincode: string;
-
-  @ApiProperty()
-  @Expose()
-  locationId: string;
-
-  @ApiProperty({
-    type: String,
-    description: "The retirementDate of the user",
-  })
-  @Expose()
-  retirementDate: string;
-
-  @ApiProperty({
-    type: String,
-    description: "The workingStatus of the user",
-  })
-  @Expose()
-  workingStatus: string;
+  state: string;
 
   @ApiProperty({
     type: String,
@@ -220,36 +122,10 @@ export class UserDto {
 
   @ApiProperty({
     type: String,
-    description: "The employmentType of the user",
-  })
-  @Expose()
-  employmentType: string;
-
-  @ApiProperty({
-    type: String,
     description: "The status of the user",
   })
   @Expose()
   status: string;
-
-  @ApiProperty({
-    type: String,
-    description: "The deactivation reason of the user",
-  })
-  @Expose()
-  deactivationReason: string;
-
-  @ApiProperty()
-  @Expose()
-  reportsTo: string;
-
-  @ApiPropertyOptional()
-  @Expose()
-  metaData: [string];
-
-  @ApiPropertyOptional()
-  @Expose()
-  fcmToken: string;
 
   @ApiProperty({
     type: String,
@@ -258,24 +134,17 @@ export class UserDto {
   @Expose()
   role: string;
 
-  @ApiProperty({
-    type: String,
-    description: "employee code of user, teacher, mentor,monitor",
-  })
   @Expose()
-  employeeCode: string;
+  created_at: string;
 
   @Expose()
-  createdAt: string;
+  updated_at: string;
 
   @Expose()
-  updatedAt: string;
+  created_by: string;
 
   @Expose()
-  createdBy: string;
-
-  @Expose()
-  updatedBy: string;
+  updated_by: string;
 
   constructor(obj: any) {
     Object.assign(this, obj);
