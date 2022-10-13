@@ -123,4 +123,21 @@ export class CourseController {
       return this.khanAcademyProvider.getCourseDetail(courseId, request);
     }
   }
+
+  @Get(":adapter/search")
+  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
+  @ApiOkResponse({ description: "Get all Course detail." })
+  // @ApiForbiddenResponse({ description: "Forbidden" })
+  @ApiQuery({ name: "subject", required: false })
+  public async getQuestionset(
+    @Param("adapter") adapter: string,
+    @Query("questions") questions: [string],
+    @Req() request: Request
+  ) {
+    if (adapter === "diksha") {
+      return this.dikshaProvider.getQuestionset(questions);
+    } else if (adapter === "khanacademy") {
+      return this.khanAcademyProvider.getQuestionset(questions);
+    }
+  }
 }
