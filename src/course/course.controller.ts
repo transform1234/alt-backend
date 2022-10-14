@@ -124,7 +124,7 @@ export class CourseController {
     }
   }
 
-  @Get(":adapter/search")
+  @Get(":/questionset")
   @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
   @ApiOkResponse({ description: "Get all Course detail." })
   // @ApiForbiddenResponse({ description: "Forbidden" })
