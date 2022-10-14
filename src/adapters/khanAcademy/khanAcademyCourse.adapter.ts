@@ -23,5 +23,5 @@ export class KhanAcadermyCourseService implements IServicelocator {
     type: string,
     request: any
   ) {}
-  public async getQuestionset(questions: [string]) {}
+  public async getQuestionset(request: any) {}
 }

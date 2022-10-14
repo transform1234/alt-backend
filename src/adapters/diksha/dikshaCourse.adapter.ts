@@ -146,16 +146,9 @@ export class DikshaCourseService implements IServicelocator {
     }
   }
 
-  public async getQuestionset(questions: [string]) {
+  public async getQuestionset(request: any) {
     var axios = require("axios");
     let topics = Array;
-    var data = {
-      request: {
-        search: {
-          identifier: [questions],
-        },
-      },
-    };
 
     var config = {
       method: "post",
@@ -163,15 +156,10 @@ export class DikshaCourseService implements IServicelocator {
       headers: {
         "Content-Type": "application/json",
       },
-      data: data,
+      data: request,
     };
 
     const responseData = await axios(config);
-
-    return new SuccessResponse({
-      statusCode: 200,
-      message: "ok",
-      data: responseData,
-    });
+    return responseData;
   }
 }
