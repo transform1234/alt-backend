@@ -1,4 +1,7 @@
 import {
+  ApiBasicAuth,
+  ApiBody,
+  ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiOkResponse,
   ApiQuery,
@@ -15,11 +18,15 @@ import {
   Req,
   Request,
   Inject,
+  Body,
+  Post,
+  SerializeOptions,
 } from "@nestjs/common";
 
 import { DikshaCourseToken } from "src/adapters/diksha/dikshaCourse.adapter";
 import { IServicelocator } from "src/adapters/courseservicelocator";
 import { KhanAcademyCourseToken } from "src/adapters/khanAcademy/khanAcademyCourse.adapter";
+import { GroupSearchDto } from "src/group/dto/group-search.dto";
 
 @ApiTags("Course")
 @Controller("course")
@@ -124,11 +131,13 @@ export class CourseController {
     }
   }
 
-  @Get(":/questionset")
-  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
-  @ApiOkResponse({ description: "Get all Course detail." })
+  @Post("/questionset")
+  @UseInterceptors(ClassSerializerInterceptor)
+  @ApiCreatedResponse({ description: "Get all Course detail." })
   // @ApiForbiddenResponse({ description: "Forbidden" })
-  @ApiQuery({ name: "subject", required: false })
+  @SerializeOptions({
+    strategy: "excludeAll",
+  })
   public async getQuestionset(@Req() request: Request) {
     return this.dikshaProvider.getQuestionset(request);
   }
