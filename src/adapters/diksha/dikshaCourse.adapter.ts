@@ -1,7 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
 import { SuccessResponse } from "src/success-response";
+import { QuestionsetlistResponse } from "src/questionsetlist-response";
 import { IServicelocator } from "../courseservicelocator";
+import { questionsetSearchDto } from "src/course/dto/questionset.response.dto";
+import { questionSearchDto } from "src/course/dto/question.response.dto";
 
 export const DikshaCourseToken = "DikshaCourse";
 @Injectable()
@@ -149,7 +152,8 @@ export class DikshaCourseService implements IServicelocator {
   public async getQuestionset(request: any) {
     var axios = require("axios");
     let topics = Array;
-
+    let newQuestions = {};
+    // const identifier = request.search.identifier;
     var config = {
       method: "post",
       url: this.currentUrl + "/api/question/v1/list",
@@ -160,6 +164,23 @@ export class DikshaCourseService implements IServicelocator {
     };
 
     const responseData = await axios(config);
-    return responseData;
+    const data = responseData.data;
+    const result = data.result.questions;
+    const qu = result.map((e: any) => {
+      return new questionSearchDto(e);
+    });
+
+    const question = { questions: qu, count: data.result.count };
+    const questions = new questionsetSearchDto(question);
+    // console.log(data.result);
+    return new QuestionsetlistResponse({
+      id: data.id,
+      ver: data.ver,
+      ts: data.ts,
+      params: data.params,
+      responseCode: data.responseCode,
+      result: questions,
+      // ...data,
+    });
   }
 }
