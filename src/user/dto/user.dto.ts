@@ -9,22 +9,23 @@ import {
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class UserDto {
-  @Expose()
-  userId: string;
+
+  // @Expose()
+  // userId: string; 
 
   @ApiProperty({
     type: String,
-    description: "The first name of the user",
+    description: "The full name of the user",
   })
   @Expose()
   name: string;
 
   @ApiProperty({
     type: String,
-    description: "The contact number of the user",
+    description: "username",
   })
   @Expose()
-  mobileNumber: string;
+  username: string;
 
   @ApiProperty({
     type: String,
@@ -36,10 +37,10 @@ export class UserDto {
 
   @ApiProperty({
     type: String,
-    description: "The gender of the user",
+    description: "The contact number of the user",
   })
   @Expose()
-  gender: string;
+  mobileNumber: string;
 
   @ApiProperty({
     type: String,
@@ -50,10 +51,45 @@ export class UserDto {
 
   @ApiProperty({
     type: String,
-    description: "The bloodGroup of the user",
+    description: "The father's name of the user",
   })
   @Expose()
-  bloodGroup: string;
+  father: string;
+
+  @ApiProperty({
+    type: String,
+    description: "The father's name of the user",
+  })
+  @Expose()
+  mother: string;
+
+  @ApiProperty({
+    type: String,
+    description: "user udise Id",
+  })
+  @Expose()
+  uniqueId: string;
+
+  @ApiProperty({
+    type: String,
+    description: "user udise Id",
+  })
+  @Expose()
+  udise: string;
+
+  @ApiProperty({
+    type: String,
+    description: "State",
+  })
+  @Expose()
+  state: string;
+
+  @ApiProperty({
+    type: String,
+    description: "District",
+  })
+  @Expose()
+  district: string;
 
   @ApiProperty({
     type: String,
@@ -62,19 +98,16 @@ export class UserDto {
   @Expose()
   section: string;
 
-  @ApiProperty({
-    type: String,
-    description: "username",
-  })
+  @ApiProperty()
   @Expose()
-  username: string;
+  block: string;
 
   @ApiProperty({
     type: String,
-    description: "user udise Id",
+    description: "The school of the user",
   })
   @Expose()
-  udise: string;
+  school: string;
 
   @ApiProperty({
     type: String,
@@ -90,35 +123,30 @@ export class UserDto {
   @Expose()
   medium: string;
 
-  @ApiProperty({
-    type: String,
-    description: "The school of the user",
-  })
-  @Expose()
-  school: string;
-
   @ApiPropertyOptional()
   @Expose()
   grade: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    type: String,
+    description: "roleId of user, teacher, mentor,monitor",
+  })
   @Expose()
-  block: string;
-
-  @ApiProperty()
-  @Expose()
-  district: string;
-
-  @ApiProperty()
-  @Expose()
-  state: string;
+  role: string;
 
   @ApiProperty({
     type: String,
-    description: "The image of the user",
+    description: "The gender of the user",
   })
   @Expose()
-  image: string;
+  gender: string;
+
+  @ApiProperty({
+    type: String,
+    description: "The bloodGroup of the user",
+  })
+  @Expose()
+  bloodGroup: string;
 
   @ApiProperty({
     type: String,
@@ -129,10 +157,10 @@ export class UserDto {
 
   @ApiProperty({
     type: String,
-    description: "roleId of user, teacher, mentor,monitor",
+    description: "The image of the user",
   })
   @Expose()
-  role: string;
+  image: string;
 
   @Expose()
   created_at: string;

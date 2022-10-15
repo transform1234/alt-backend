@@ -10,10 +10,10 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class UserSearchDto {
   @ApiProperty({
-    type: String,
+    type: Number,
     description: "Limit",
   })
-  limit: string;
+  limit: number;
 
   @ApiProperty({
     type: Object,
