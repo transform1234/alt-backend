@@ -20,6 +20,9 @@ export class HasuraUserService implements IServicelocator {
             userId
             name
             username
+            father
+            mother
+            uniqueId
             email
             mobileNumber
             birthDate
@@ -35,6 +38,8 @@ export class HasuraUserService implements IServicelocator {
             role
             gender
             section
+            status
+            image
         }
       }
       `,
@@ -59,7 +64,6 @@ export class HasuraUserService implements IServicelocator {
       });
     } else {
       let result = [response.data.data.Users_by_pk];
-      console.log(response.data.data);
 
       const userData = await this.mappedResponse(result);
       return new SuccessResponse({
@@ -91,12 +95,70 @@ export class HasuraUserService implements IServicelocator {
 
     var data = {
       query: `mutation CreateUser {
-        insert_user_one(object: {${query}}) {
+        insert_Users_one(object: {${query}}) {
          userId
         }
       }
       `,
       variables: {},
+    };
+
+    var config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: {
+        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+
+    const response = await axios(config);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    } else {
+      const result = response.data.data.insert_Users_one;
+      
+      return new SuccessResponse({
+        statusCode: 200,
+        message: "Ok.",
+        data: result,
+      });
+    }
+  }
+
+  public async updateUser(userId: string, request: any, userDto: UserDto) {
+    var axios = require("axios");
+
+    const userSchema = new UserDto(userDto);
+    let userUpdate = "";
+    Object.keys(userDto).forEach((e) => {
+      if (
+        userDto[e] &&
+        userDto[e] != "" &&
+        Object.keys(userSchema).includes(e)
+      ) {
+        if (Array.isArray(userDto[e])) {
+          userUpdate += `${e}: ${JSON.stringify(userDto[e])}, `;  // ?
+        } else {
+          userUpdate += `${e}: ${JSON.stringify(userDto[e])}, `;
+        }
+      }
+    });
+
+    var data = {
+      query: `mutation UpdateUser ($userId:uuid){
+        update_Users(where: {userId: {_eq: $userId}}, _set: {${userUpdate}}) {
+          affected_rows
+        }
+      }`,
+      variables: {
+        userId: userId,
+      },
     };
 
     var config = {
@@ -124,64 +186,16 @@ export class HasuraUserService implements IServicelocator {
         data: result,
       });
     }
-  }
 
-  public async updateUser(userId: string, request: any, userDto: UserDto) {
-    var axios = require("axios");
-
-    const userSchema = new UserDto(userDto);
-    let query = "";
-    Object.keys(userDto).forEach((e) => {
-      if (
-        userDto[e] &&
-        userDto[e] != "" &&
-        Object.keys(userSchema).includes(e)
-      ) {
-        if (Array.isArray(userDto[e])) {
-          query += `${e}: ${JSON.stringify(userDto[e])}, `;
-        } else {
-          query += `${e}: ${JSON.stringify(userDto[e])}, `;
-        }
-      }
-    });
-
-    var data = {
-      query: `mutation UpdateUser($userId:uuid) {
-          update_user(where: {userId: {_eq: $userId}}, _set: {${query}}) {
-          affected_rows
-        }}`,
-      variables: {
-        userId: userId,
-      },
-    };
-
-    var config = {
-      method: "post",
-      url: process.env.REGISTRYHASURA,
-      headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
-        "Content-Type": "application/json",
-      },
-      data: data,
-    };
-
-    const response = await axios(config);
-
-    const result = response.data.data;
-
-    return new SuccessResponse({
-      statusCode: 200,
-      message: "Ok.",
-      data: result,
-    });
-  }
+    }
+  
 
   public async searchUser(request: any, userSearchDto: UserSearchDto) {
     var axios = require("axios");
 
     let offset = 0;
     if (userSearchDto.page > 1) {
-      offset = parseInt(userSearchDto.limit) * (userSearchDto.page - 1);
+      offset = userSearchDto.limit * (userSearchDto.page - 1);
     }
 
     let filters = userSearchDto.filters;
@@ -195,68 +209,36 @@ export class HasuraUserService implements IServicelocator {
       });
     });
     var data = {
-      query: `query SearchUser($filters:user_bool_exp,$limit:Int, $offset:Int) {
-        user_aggregate {
+      query: `query SearchUser($filters:Users_bool_exp,$limit:Int, $offset:Int) {
+        Users_aggregate {
           aggregate {
             count
           }
         }
-          user(where:$filters, limit: $limit, offset: $offset,) {
-            aadhaar
+        Users(where:$filters, limit: $limit, offset: $offset,) {          
+            name
+            username
+            email
+            mobileNumber
             birthDate
-            block
-            bloodGroup
-            bpl
-            created_at
-            deactivationReason
+            udise
+            state
             district
-            fatherEmail
-            fatherFirstName
-            fatherLastName
-            fatherMiddleName
-            fatherPhoneNumber
-            firstName
-            gender
-            groupId
-            guardianEmail
-            guardianFirstName
-            guardianLastName
-            guardianMiddleName
-            guardianPhoneNumber
-            height
-            homeless
-            image
-            iscwsn
-            lastName
-            locationId
-            metaData
-            middleName
-            migrant
-            motherEmail
-            motherFirstName
-            motherLastName
-            motherMiddleName
-            motherPhoneNumber
-            pincode
-            refId1
-            refId2
-            religion
-            schoolId
-            singleGirl
-            socialCategory
-            stateId
+            section
+            block
+            school
+            board
+            medium
+            grade
+            role 
+            gender 
+            bloodGroup
             status
-            userAddress
-            userEmail
-            userId
-            userPhoneNumber
-            updated_at
-            village
-            weight
+            image
             }
           }`,
       variables: {
-        limit: parseInt(userSearchDto.limit),
+        limit: userSearchDto.limit,
         offset: offset,
         filters: userSearchDto.filters,
       },
@@ -271,16 +253,25 @@ export class HasuraUserService implements IServicelocator {
       data: data,
     };
 
-    const response = await axios(config);
+    const response = await axios(config);   
 
-    let result = response.data.data.user;
-    const userData = await this.mappedResponse(result);
-    const count = response?.data?.data?.user_aggregate?.aggregate?.count;
-    return new SuccessResponse({
-      statusCode: 200,
-      message: "Ok.",
-      data: userData,
-    });
+    if (response?.data?.errors) {
+
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    } else {
+      const result = response.data.data.Users;
+      const userData = await this.mappedResponse(result);
+      const count = response?.data?.data?.user_aggregate?.aggregate?.count;
+
+      return new SuccessResponse({
+        statusCode: 200,
+        message: "Ok.",
+        data: userData,
+      });
+    }
   }
 
   public async mappedResponse(result: any) {
@@ -289,6 +280,9 @@ export class HasuraUserService implements IServicelocator {
         userId: item?.userId ? `${item.userId}` : "",
         name: item?.name ? `${item.name}` : "",
         username: item?.username ? `${item.username}` : "",
+        father: item?.father ? `${item.father}` : "",
+        mother: item?.mother ? `${item.mother}` : "",
+        uniqueId: item?.uniqueId ? `${item.uniqueId}` : "",
         school: item?.school ? `${item.school}` : "",
         email: item?.email ? `${item.uemail}` : "",
         mobileNumber: item?.mobileNumber ? item.mobileNumber : "",
@@ -359,7 +353,6 @@ export class HasuraUserService implements IServicelocator {
       }`,
       variables: { email: email },
     };
-    console.log(data);
 
     var config = {
       method: "post",
@@ -374,7 +367,6 @@ export class HasuraUserService implements IServicelocator {
     const response = await axios(config);
 
     let result = response.data.data.Users;
-    console.log(response.data.data);
     const userData = await this.mappedResponse(result);
     return new SuccessResponse({
       statusCode: 200,
