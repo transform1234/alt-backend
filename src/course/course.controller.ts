@@ -27,6 +27,7 @@ import { DikshaCourseToken } from "src/adapters/diksha/dikshaCourse.adapter";
 import { IServicelocator } from "src/adapters/courseservicelocator";
 import { KhanAcademyCourseToken } from "src/adapters/khanAcademy/khanAcademyCourse.adapter";
 import { GroupSearchDto } from "src/group/dto/group-search.dto";
+import { CourseSearchDto } from "./dto/course.search.dto";
 
 @ApiTags("Course")
 @Controller("course")
@@ -132,13 +133,15 @@ export class CourseController {
   }
 
   @Post("/questionset")
+  @ApiBody({ type: CourseSearchDto })
   @UseInterceptors(ClassSerializerInterceptor)
   @ApiCreatedResponse({ description: "Get all Course detail." })
   // @ApiForbiddenResponse({ description: "Forbidden" })
   @SerializeOptions({
     strategy: "excludeAll",
   })
-  public async getQuestionset(@Req() request: Request) {
-    return this.dikshaProvider.getQuestionset(request);
+  public async getQuestionset(@Body() CourseSearchDto: CourseSearchDto) {
+    return this.dikshaProvider.getQuestionset(CourseSearchDto);
+    //return { id: "sdgkf" };
   }
 }
