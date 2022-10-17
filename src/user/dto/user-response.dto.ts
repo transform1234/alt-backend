@@ -1,5 +1,5 @@
-export interface TeacherResponseDto {
-  teacherId: string;
+export interface UserResponseDto {
+  userId: string;
   firstName: string;
   lastName: string;
   contactNumber: string;
