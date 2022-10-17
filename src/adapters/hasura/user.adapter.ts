@@ -122,7 +122,7 @@ export class HasuraUserService implements IServicelocator {
       });
     } else {
       const result = response.data.data.insert_Users_one;
-      
+
       return new SuccessResponse({
         statusCode: 200,
         message: "Ok.",
@@ -143,7 +143,7 @@ export class HasuraUserService implements IServicelocator {
         Object.keys(userSchema).includes(e)
       ) {
         if (Array.isArray(userDto[e])) {
-          userUpdate += `${e}: ${JSON.stringify(userDto[e])}, `;  // ?
+          userUpdate += `${e}: ${JSON.stringify(userDto[e])}, `; // ?
         } else {
           userUpdate += `${e}: ${JSON.stringify(userDto[e])}, `;
         }
@@ -186,9 +186,7 @@ export class HasuraUserService implements IServicelocator {
         data: result,
       });
     }
-
-    }
-  
+  }
 
   public async searchUser(request: any, userSearchDto: UserSearchDto) {
     var axios = require("axios");
@@ -231,7 +229,7 @@ export class HasuraUserService implements IServicelocator {
             medium
             grade
             role 
-            gender 
+            gender
             bloodGroup
             status
             image
@@ -253,10 +251,9 @@ export class HasuraUserService implements IServicelocator {
       data: data,
     };
 
-    const response = await axios(config);   
+    const response = await axios(config);
 
     if (response?.data?.errors) {
-
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
         errorMessage: response.data.errors[0].message,
@@ -284,7 +281,7 @@ export class HasuraUserService implements IServicelocator {
         mother: item?.mother ? `${item.mother}` : "",
         uniqueId: item?.uniqueId ? `${item.uniqueId}` : "",
         school: item?.school ? `${item.school}` : "",
-        email: item?.email ? `${item.uemail}` : "",
+        email: item?.email ? `${item.email}` : "",
         mobileNumber: item?.mobileNumber ? item.mobileNumber : "",
         gender: item?.gender ? `${item.gender}` : "",
         udise: item?.udise ? `${item.udise}` : "",
