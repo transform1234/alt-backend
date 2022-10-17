@@ -9,9 +9,8 @@ import {
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class UserDto {
-
-  // @Expose()
-  // userId: string; 
+  @Expose()
+  userId: string;
 
   @ApiProperty({
     type: String,
