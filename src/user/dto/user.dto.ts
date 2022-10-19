@@ -78,6 +78,20 @@ export class UserDto {
 
   @ApiProperty({
     type: String,
+    description: "user Serial Id",
+  })
+  @Expose()
+  serialNo: string;
+
+  @ApiProperty({
+    type: String,
+    description: "Password",
+  })
+  @Expose()
+  password: string;
+
+  @ApiProperty({
+    type: String,
     description: "State",
   })
   @Expose()
