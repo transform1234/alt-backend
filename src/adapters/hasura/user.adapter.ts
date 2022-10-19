@@ -94,7 +94,7 @@ export class HasuraUserService implements IServicelocator {
       }
     });
     
-    await this.createUserInKeyCloak(userSchema);
+    const resKeycloak = await this.createUserInKeyCloak(userSchema);
 
     var data = {
       query: `mutation CreateUser {
@@ -118,7 +118,7 @@ export class HasuraUserService implements IServicelocator {
 
     const response = await axios(config);
 
-    if (response?.data?.errors) {
+    if (response?.data?.errors || resKeycloak == undefined) {
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
         errorMessage: response.data.errors[0].message,
@@ -133,14 +133,6 @@ export class HasuraUserService implements IServicelocator {
       });
     }
 
-    // const resToken = await this.getToken();  // token 
-
-    // console.log(resToken , "restoken");
-    
-    //const keycloakResponse = 
-    
-  
-    // console.log(keycloakResponse , "res");
   }
 
   public async createUserInKeyCloak(query: UserDto) {
@@ -174,13 +166,12 @@ export class HasuraUserService implements IServicelocator {
       ]
     });
 
-   this.getToken()
-    .then(function (response) {
-      const res = response.data.access_token;
+    const response = await this.getToken();
+    const res = response.data.access_token;
 
       var config = {
         method: "post",
-        url: "https://alt-shiksha.uniteframework.io/auth/admin/realms/hasura/users",
+        url: process.env.ALTKEYCLOAK,
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer " + res,
@@ -188,21 +179,12 @@ export class HasuraUserService implements IServicelocator {
         data: data,
       };
 
-      axios(config)
-      .then(function (response) {
-        console.log((response.status), "DATA DATA");
-        return "xyz";
-      })
-      .catch(function (error) {
-        console.log(error);
+      const userResponse = await axios(config)
+      .catch(function (error){
+          console.log(error , "Error !!");
       });
-      
-      return res;      
-    })
-    .catch(function (error) {
-      console.log(error);
-    }); 
-   
+
+      return userResponse;
   }
 
   public async getToken() {
