@@ -144,4 +144,16 @@ export class CourseController {
     return this.dikshaProvider.getQuestionset(CourseSearchDto);
     //return { id: "sdgkf" };
   }
+
+  @Get(":questionset/questionsetid")
+  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
+  @ApiOkResponse({ description: "Get Questionset detail." })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @ApiQuery({ name: "questionsetId", required: false })
+  public async getQuestionsetContent(
+    @Query("questionsetId") courseId: string,
+    @Req() request: Request
+  ) {
+    return this.dikshaProvider.getQuestionsetContent(courseId, request);
+  }
 }

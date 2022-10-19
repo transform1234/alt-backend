@@ -12,4 +12,5 @@ export interface IServicelocator {
   getCourseDetail(courseId: string, request: any);
   getCourseHierarchy(courseId: string, type: string, request: any);
   getQuestionset(request: any);
+  getQuestionsetContent(questionsetId: string, request: any);
 }
