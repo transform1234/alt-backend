@@ -183,4 +183,26 @@ export class DikshaCourseService implements IServicelocator {
       // ...data,
     });
   }
+
+  public async getQuestionsetContent(value: any) {
+    var axios = require("axios");
+
+    let config = {
+      method: "get",
+      url:
+        this.currentUrl +
+        `/api/questionset/v1/read/${value}?fields=instructions`,
+    };
+
+    const response = await axios(config);
+    const data = response?.data;
+
+    const final = data.result.questionset;
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "ok",
+      data: final,
+    });
+  }
 }
