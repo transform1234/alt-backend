@@ -94,7 +94,11 @@ export class HasuraUserService implements IServicelocator {
       }
     });
     
-    const resKeycloak = await this.createUserInKeyCloak(userSchema);
+    let errKeycloak = "";
+    const resKeycloak = await this.createUserInKeyCloak(userSchema)
+    .catch(function (error){
+      errKeycloak = error.response.data.errorMessage;
+  });
 
     var data = {
       query: `mutation CreateUser {
@@ -121,7 +125,7 @@ export class HasuraUserService implements IServicelocator {
     if (response?.data?.errors || resKeycloak == undefined) {
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
-        errorMessage: response.data.errors[0].message,
+        errorMessage: response.data.errors[0].message + errKeycloak,
       });
     } else {
       const result = response.data.data.insert_Users_one;
@@ -179,10 +183,7 @@ export class HasuraUserService implements IServicelocator {
         data: data,
       };
 
-      const userResponse = await axios(config)
-      .catch(function (error){
-          console.log(error , "Error !!");
-      });
+      const userResponse = await axios(config);
 
       return userResponse;
   }
