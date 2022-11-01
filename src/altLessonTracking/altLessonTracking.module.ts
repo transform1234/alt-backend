@@ -2,6 +2,9 @@ import { CacheModule, Module } from "@nestjs/common";
 import { HttpModule } from "@nestjs/axios";
 import { ALTLessonTrackingController } from "./altLessonTracking.controller";
 import { ALTLessonTrackingService } from "../adapters/hasura/altLessonTracking.adapter";
+import {
+    SelfAssessmentService
+  } from "../adapters/hasura/selfAssessment.adapter";
 
 const ttl = process.env.TTL as never;
 
@@ -14,7 +17,8 @@ const ttl = process.env.TTL as never;
     ],
     controllers: [ALTLessonTrackingController],
     providers: [
-        ALTLessonTrackingService
+        ALTLessonTrackingService,
+        SelfAssessmentService
     ]
 })
 export class ALTLessonTrackingModule {}
