@@ -38,8 +38,10 @@ export class ALTLessonTrackingService {
       const altLessonTrackingRecord = {
         query: `query GetLessonTrackingData ($userId:uuid!, $lessonId:String) {
           LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}}) {
-            created_at
-            created_by
+            userId
+            lessonId
+            createdAt
+            createdBy
             status
             attempts
         } }`,
@@ -159,7 +161,6 @@ export class ALTLessonTrackingService {
 
     public async mutateALTLessonTracking (request: any, altLessonTrackingDto: ALTLessonTrackingDto) {
 
-      // get existing records
       let errorExRec = "";
       const recordList = await this.getExistingLessonTrackingRecords(altLessonTrackingDto.userId, altLessonTrackingDto.lessonId)
       .catch(function (error) {
@@ -176,8 +177,6 @@ export class ALTLessonTrackingService {
         });
       }
       
-      // console.log(altLessonTrackingDto);
-
       const fbgms = {
         framework: 'ALT new',
         board: 'Haryana',
@@ -186,30 +185,26 @@ export class ALTLessonTrackingService {
         subject: 'English'
       };
 
-      //refactor
+      //refactor AND need BGMS or programId , program is needed to check baseline assessment or course
       const programDetails = await this.selfAssessmentService.getProgramByFBMGS(request, fbgms); // get rules
 
       const programRules =  JSON.parse(programDetails.data[0].AssessProgram.rules);
 
-      let res = {};
-
-      // need BGMS or programId , program is needed to check baseline assessment or course
     
       if(altLessonTrackingDto.userId) {
         for (const course of programRules?.prog) {
-          // checking which course is needed
           if (course.contentId == altLessonTrackingDto.courseId) {
             const numberOfRecords = parseInt(recordList.length);
             const allowedAttempts = parseInt(course.allowedAttempts) ;
             if (course.contentType == "assessment" && allowedAttempts === 1) {
               console.log("BaselineAssess");
               if (numberOfRecords === 0) {
-                // insert
+                altLessonTrackingDto.attempts = 1;
+                return await this.createALTLessonTracking(request,altLessonTrackingDto);
               } else if (numberOfRecords === 1 && recordList[0].status !== "Completed") {
-                console.log("Reached");
-                // update
+                  return await this.updateALTLessonTracking(request,altLessonTrackingDto.userId,altLessonTrackingDto.lessonId,altLessonTrackingDto);
               } else if (numberOfRecords === 1 && recordList[0].status === "Completed") {
-                return new ErrorResponse({
+                  return new ErrorResponse({
                   errorMessage: "Record for Baseline Assessment already exists!"
                 });
               } else {
@@ -218,15 +213,12 @@ export class ALTLessonTrackingService {
                   errorMessage: "Duplicate entry found in DataBase for Baseline Assessment"
                 });
               }
-
-              // status complete
-              // if found no new entry return if pending update
-              // else insert data 
-              // res = await this.createLessonTrackingRecord(userSchema)
             } else if (course.contentType == "course" && allowedAttempts === 0) {
               console.log("Course");
               if (numberOfRecords === 0) {
+                altLessonTrackingDto.attempts = 1;
                 // insert
+                return this.createALTLessonTracking(request,altLessonTrackingDto);
               } else if (numberOfRecords >= 1) {
                 // get last record details
                 const lastRecord = await this.getLastLessonTrackingRecord(altLessonTrackingDto.userId, altLessonTrackingDto.lessonId,numberOfRecords).
@@ -242,23 +234,28 @@ export class ALTLessonTrackingService {
                   
                 } else if (lastRecord[0]?.status === "Completed") {
                   // insert with increased attempt
+                  altLessonTrackingDto.attempts = numberOfRecords +1;
+
                 } else {
                   return new ErrorResponse({
                     errorMessage: lastRecord
                   });
                 }
-                
               }
               // what if content is not a assessment
               // insert data by increasing attempt count
               // how to handle attempts
             }       
+          } else {
+              return new ErrorResponse({
+                errorMessage: `Course provided does not exist in the current program.`
+              });
           }
         }
       }
     }
 
-    public async createALTLessonTracking (request: any, altLessonTrackingDto: ALTLessonTrackingDto) {
+    public async createALTLessonTracking (request: any, altLessonTrackingDto: ALTLessonTrackingDto) {     
 
       const altLessonTracking = new ALTLessonTrackingDto(altLessonTrackingDto);
       let newAltLessonTracking = "";
@@ -268,9 +265,16 @@ export class ALTLessonTrackingService {
             altLessonTrackingDto[key] != "" &&
             Object.keys(altLessonTracking).includes(key)
             ){
+              if(key === "status"){
+                newAltLessonTracking += `${key}: ${altLessonTrackingDto[key]},`;
+              } else {
               newAltLessonTracking += `${key}: ${JSON.stringify(altLessonTrackingDto[key])},`;   
+              }
             }
       });
+
+      console.log(newAltLessonTracking);
+      
 
     const altLessonTrackingData = {
         query: `mutation CreateALTLessonTracking {
@@ -298,22 +302,22 @@ export class ALTLessonTrackingService {
         data: altLessonTrackingData,
       }        
 
-     // const response = await this.axios(configDataforCreate);
+     const response = await this.axios(configDataforCreate);
  
-      // if (response?.data?.errors) {
-      //   return new ErrorResponse({
-      //     errorCode: response.data.errors[0].extensions,
-      //     errorMessage: response.data.errors[0].message,
-      //   });
-      // }
+      if (response?.data?.errors) {
+        return new ErrorResponse({
+          errorCode: response.data.errors[0].extensions,
+          errorMessage: response.data.errors[0].message,
+        });
+      }
   
-      // const result =  response.data.data.insert_LessonProgressTracking_one;
+      const result =  response.data.data.insert_LessonProgressTracking_one;
 
-      //   return new SuccessResponse({
-      //     statusCode: 200,
-      //     message: "Ok.",
-      //     data: result,
-      // });
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "Ok.",
+          data: result,
+      });
 
     }
 
@@ -327,12 +331,16 @@ export class ALTLessonTrackingService {
             updateAltLessonTrackDto[key] != "" &&
             Object.keys(updateAltLessonTracking).includes(key)
             ) {
-                newUpdateAltLessonTracking += `${key}: ${JSON.stringify(updateAltLessonTrackDto[key])}, `;
+                if(key === "status"){
+                  newUpdateAltLessonTracking += `${key}: ${updateAltLessonTrackDto[key]},`;
+                } else {
+                  newUpdateAltLessonTracking += `${key}: ${JSON.stringify(updateAltLessonTrackDto[key])}, `;
+                }
             }
       });         
   
       const altLessonUpdateTrackingData = { 
-        query: `mutation updateAltLessonTracking ($userId:String , $lessonId:String) {
+        query: `mutation updateAltLessonTracking ($userId:uuid!, $lessonId:String) {
             update_LessonProgressTracking(where: {lessonId: {_eq: $lessonId}, userId: {_eq: $userId}}, _set: {${newUpdateAltLessonTracking}}) {
             affected_rows
           }
