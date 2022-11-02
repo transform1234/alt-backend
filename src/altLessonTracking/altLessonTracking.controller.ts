@@ -74,7 +74,7 @@ export class ALTLessonTrackingController {
         @Param('userid') userId: string, 
         @Query('lessonid') lessonId : string,
         @Body() updateUserDto: UpdateALTLessonTrackingDto) {
-            return this.altLessonTrackingService.updateALTLessonTracking(request, userId, lessonId, updateUserDto);
+            return this.altLessonTrackingService.updateALTLessonTracking(request, userId, lessonId, updateUserDto,0);
         }
 
   

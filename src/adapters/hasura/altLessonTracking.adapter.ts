@@ -70,9 +70,9 @@ export class ALTLessonTrackingService {
     public async getLastLessonTrackingRecord(userId:string, lessonId:string, attemptNumber: number) {
       const altLastLessonTrackingRecord = {
         query: `query GetLastLessonTrackingRecord ($userId:uuid!, $lessonId:String, $attemptNumber: Int) {
-          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}, attempts: {_eq: $attemptNumber}) {
-            created_at
-            created_by
+          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}, attempts: {_eq: $attemptNumber}}) {
+            createdAt
+            createdBy
             status
             attempts
         } }`,
@@ -190,37 +190,34 @@ export class ALTLessonTrackingService {
 
       const programRules =  JSON.parse(programDetails.data[0].AssessProgram.rules);
 
+      let flag = false;
     
       if(altLessonTrackingDto.userId) {
         for (const course of programRules?.prog) {
           if (course.contentId == altLessonTrackingDto.courseId) {
+            flag = true;
             const numberOfRecords = parseInt(recordList.length);
             const allowedAttempts = parseInt(course.allowedAttempts) ;
             if (course.contentType == "assessment" && allowedAttempts === 1) {
-              console.log("BaselineAssess");
               if (numberOfRecords === 0) {
                 altLessonTrackingDto.attempts = 1;
                 return await this.createALTLessonTracking(request,altLessonTrackingDto);
               } else if (numberOfRecords === 1 && recordList[0].status !== "Completed") {
-                  return await this.updateALTLessonTracking(request,altLessonTrackingDto.userId,altLessonTrackingDto.lessonId,altLessonTrackingDto);
+                  return await this.updateALTLessonTracking(request,altLessonTrackingDto.userId,altLessonTrackingDto.lessonId,altLessonTrackingDto,0);
               } else if (numberOfRecords === 1 && recordList[0].status === "Completed") {
                   return new ErrorResponse({
                   errorMessage: "Record for Baseline Assessment already exists!"
                 });
               } else {
-                console.log(recordList);
                 return new ErrorResponse({
                   errorMessage: "Duplicate entry found in DataBase for Baseline Assessment"
                 });
               }
             } else if (course.contentType == "course" && allowedAttempts === 0) {
-              console.log("Course");
               if (numberOfRecords === 0) {
                 altLessonTrackingDto.attempts = 1;
-                // insert
-                return this.createALTLessonTracking(request,altLessonTrackingDto);
+                return await this.createALTLessonTracking(request,altLessonTrackingDto);
               } else if (numberOfRecords >= 1) {
-                // get last record details
                 const lastRecord = await this.getLastLessonTrackingRecord(altLessonTrackingDto.userId, altLessonTrackingDto.lessonId,numberOfRecords).
                 catch(function (error) {
                   return new ErrorResponse({
@@ -228,29 +225,31 @@ export class ALTLessonTrackingService {
                   });
                 });
 
-                if (lastRecord[0]?.status !== "Completed") {
-                  // update
-                  console.log("Pend");
-                  
-                } else if (lastRecord[0]?.status === "Completed") {
-                  // insert with increased attempt
-                  altLessonTrackingDto.attempts = numberOfRecords +1;
+                if(!lastRecord[0].status) {
+                  return new ErrorResponse({
+                    errorMessage: lastRecord
+                  });
+                }
 
+                if (lastRecord[0]?.status !== "Completed") {
+                  return await this.updateALTLessonTracking(request,altLessonTrackingDto.userId,altLessonTrackingDto.lessonId,altLessonTrackingDto,lastRecord[0]?.attempts);
+                } else if (lastRecord[0]?.status === "Completed") {
+                  altLessonTrackingDto.attempts = numberOfRecords +1;
+                  return await this.createALTLessonTracking(request,altLessonTrackingDto);
                 } else {
                   return new ErrorResponse({
                     errorMessage: lastRecord
                   });
                 }
               }
-              // what if content is not a assessment
-              // insert data by increasing attempt count
-              // how to handle attempts
-            }       
-          } else {
-              return new ErrorResponse({
-                errorMessage: `Course provided does not exist in the current program.`
-              });
+            }           
           }
+
+        } 
+        if(!flag){
+          return new ErrorResponse({
+            errorMessage: `Course provided does not exist in the current program.`
+          });
         }
       }
     }
@@ -272,9 +271,6 @@ export class ALTLessonTrackingService {
               }
             }
       });
-
-      console.log(newAltLessonTracking);
-      
 
     const altLessonTrackingData = {
         query: `mutation CreateALTLessonTracking {
@@ -321,7 +317,7 @@ export class ALTLessonTrackingService {
 
     }
 
-    public async updateALTLessonTracking(request: any,userId: string, lessonId: string, updateAltLessonTrackDto: UpdateALTLessonTrackingDto ) {
+    public async updateALTLessonTracking(request: any,userId: string, lessonId: string, updateAltLessonTrackDto: UpdateALTLessonTrackingDto, lastAttempt: number ) {
 
       const updateAltLessonTracking = new UpdateALTLessonTrackingDto(updateAltLessonTrackDto);
       let newUpdateAltLessonTracking = "";
@@ -339,17 +335,36 @@ export class ALTLessonTrackingService {
             }
       });         
   
-      const altLessonUpdateTrackingData = { 
-        query: `mutation updateAltLessonTracking ($userId:uuid!, $lessonId:String) {
-            update_LessonProgressTracking(where: {lessonId: {_eq: $lessonId}, userId: {_eq: $userId}}, _set: {${newUpdateAltLessonTracking}}) {
-            affected_rows
-          }
-      }`,
-        variables: {
-          userId : userId,
-          lessonId : lessonId
-        },
-    }
+      let altLessonUpdateTrackingData = {}
+        
+      if (!lastAttempt) {
+
+        altLessonUpdateTrackingData = {
+          query: `mutation updateAltLessonTracking ($userId:uuid!, $lessonId:String) {
+              update_LessonProgressTracking(where: {lessonId: {_eq: $lessonId}, userId: {_eq: $userId}}, _set: {${newUpdateAltLessonTracking}}) {
+              affected_rows
+            }
+        }`,
+          variables: {
+            userId: userId,
+            lessonId: lessonId
+          },
+        }
+      } else {
+        altLessonUpdateTrackingData = {
+          query: `mutation updateAltLessonTracking ($userId:uuid!, $lessonId:String, $lastAttempt:Int) {
+              update_LessonProgressTracking(where: {lessonId: {_eq: $lessonId}, userId: {_eq: $userId} ,attempts: {_eq: $lastAttempt}}, _set: {${newUpdateAltLessonTracking}}) {
+              affected_rows
+            }
+        }`,
+          variables: {
+            userId: userId,
+            lessonId: lessonId,
+            lastAttempt: lastAttempt
+          },
+        }
+      }
+
 
     const configData = {
       method: "post",
