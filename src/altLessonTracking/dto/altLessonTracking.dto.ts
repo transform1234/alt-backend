@@ -1,6 +1,7 @@
 import { Exclude, Expose } from "class-transformer";
 import {
   IsNotEmpty,
+  IsNumber,
   IsString,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
@@ -45,11 +46,7 @@ export class ALTLessonTrackingDto{
 
     @Expose()
     @IsNotEmpty()
-    @IsString()
-    @ApiProperty({
-        type: Number,
-        description: "Number of Attempts taken",
-    })
+    @IsNumber()
     attempts: number;
 
     @Expose()
@@ -69,6 +66,26 @@ export class ALTLessonTrackingDto{
         description: "ScoreDetails of the course"
     })
     scoreDetails: String;
+
+    @Expose()
+    created_at: string;
+  
+    @Expose()
+    updated_at: string;
+  
+    @ApiProperty({
+      type: String,
+      description: "Created by uuid",
+    })
+    @Expose()
+    createdBy: string;
+  
+    @ApiProperty({
+      type: String,
+      description: "Updated by uuid",
+    })
+    @Expose()
+    updatedBy: string;
 
     constructor(obj:any){
         Object.assign(this,obj);

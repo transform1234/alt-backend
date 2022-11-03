@@ -38,43 +38,43 @@ export class ALTLessonTrackingController {
 
     @Get("/altlessontrackingdetails")
     @ApiBasicAuth("access-token")
-    @ApiOkResponse({description: "ALT Course Tracking Details"})
+    @ApiOkResponse({description: "ALT Lesson Tracking Details"})
     @ApiForbiddenResponse({description: "Forbidden"})
     @ApiQuery({ name: "userid" })
     @ApiQuery({ name: "lessonid" })
-    public async getCourseDetails(
+    public async getLessonDetails(
         @Req() request: Request,
-        @Query('userid') userId: string, // ?
+        @Query('userid') userId: string,
         @Query('lessonid') lessonId : string,
         ){
             return this.altLessonTrackingService.getALTLessonTracking(lessonId,userId);
         }
 
-    @Post("/altcreatecoursetracking")
+    @Post("/altcheckandaddlessontracking")
     @ApiBasicAuth("access-token")
-    @ApiCreatedResponse({description: "ALTCourseTrack has been created successfully."})
+    @ApiCreatedResponse({description: "ALTLessonTrack has been created successfully."})
     @ApiBody({ type: ALTLessonTrackingDto })
     @ApiForbiddenResponse({ description: "Forbidden" })
     @UseInterceptors(ClassSerializerInterceptor)
-    public async createALTCourseTracking(
+    public async createALTLessonTracking(
       @Req() request: Request,
       @Body() altLessonTrackingDto: ALTLessonTrackingDto
     ) {
-       return this.altLessonTrackingService.createALTLessonTracking(request,altLessonTrackingDto);
+       return this.altLessonTrackingService.checkAndAddALTLessonTracking(request,altLessonTrackingDto);
     }
 
     @Patch("/altupdatelessontracking/:userid")
     @ApiBasicAuth("access-token")
     @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
     @ApiBody({ type: UpdateALTLessonTrackingDto })
-    @ApiCreatedResponse({ description: "ALTCourseTrack has been updated successfully." })
+    @ApiCreatedResponse({ description: "ALTLessonTrack has been updated successfully." })
     @ApiForbiddenResponse({ description: "Forbidden" })
-    public async updateALTCourseTracking(
+    public async updateALTLessonTracking(
         @Req() request: Request,
         @Param('userid') userId: string, 
         @Query('lessonid') lessonId : string,
         @Body() updateUserDto: UpdateALTLessonTrackingDto) {
-            return this.altLessonTrackingService.updateALTCourseTracking(request, userId, lessonId, updateUserDto);
+            return this.altLessonTrackingService.updateALTLessonTracking(request, userId, lessonId, updateUserDto,0);
         }
 
   

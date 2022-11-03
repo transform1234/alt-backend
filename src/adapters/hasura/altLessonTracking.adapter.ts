@@ -4,12 +4,16 @@ import { SuccessResponse } from "src/success-response";
 import { ALTLessonTrackingDto } from "src/altLessonTracking/dto/altLessonTracking.dto";
 import { UpdateALTLessonTrackingDto } from "src/altLessonTracking/dto/updateAltLessonTracking.dto";
 import { ALTLessonTrackingSearch } from "src/altLessonTracking/dto/searchaltLessonTracking.dto";
+import {
+  SelfAssessmentService
+} from "../../adapters/hasura/selfAssessment.adapter";
+import { ErrorResponse } from "src/error-response";
 
 @Injectable()
 export class ALTLessonTrackingService {
     axios = require("axios");
 
-    constructor(private httpService: HttpService) {}
+    constructor(private httpService: HttpService, private selfAssessmentService: SelfAssessmentService) {}
 
     public async mappedResponse(data: any) {
         const altLessonTrackingResponse = data.map((item: any) => {
@@ -23,17 +27,90 @@ export class ALTLessonTrackingService {
             status : item?.status ? `${item.status}` : 0,
             scoreDetails : item?.scoreDetails ? `${item.scoreDetails}` : ""
           };
-        return new ALTLessonTrackingDto(altLessonMapping);
-        });
-    
+        
+          return new ALTLessonTrackingDto(altLessonMapping);
+      });
         return altLessonTrackingResponse;
+    }
+
+    public async getExistingLessonTrackingRecords (userId:string, lessonId:string) {
+            
+      const altLessonTrackingRecord = {
+        query: `query GetLessonTrackingData ($userId:uuid!, $lessonId:String) {
+          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}}) {
+            userId
+            lessonId
+            createdAt
+            createdBy
+            status
+            attempts
+        } }`,
+        variables: {
+          userId: userId,
+          lessonId : lessonId
+        },
       }
+      
+      const configData = {
+        method: "post",
+        url: process.env.ALTHASURA,
+        headers: {
+        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Content-Type": "application/json",
+        },
+        data: altLessonTrackingRecord,
+      }
+
+      const resLessonTracking = await this.axios(configData);
+
+      return resLessonTracking.data.data.LessonProgressTracking;
+
+    }
+
+    public async getLastLessonTrackingRecord(userId:string, lessonId:string, attemptNumber: number) {
+      const altLastLessonTrackingRecord = {
+        query: `query GetLastLessonTrackingRecord ($userId:uuid!, $lessonId:String, $attemptNumber: Int) {
+          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}, attempts: {_eq: $attemptNumber}}) {
+            createdAt
+            createdBy
+            status
+            attempts
+        } }`,
+        variables: {
+          userId: userId,
+          lessonId: lessonId,
+          attemptNumber: attemptNumber
+        },
+      }
+      
+      const configData = {
+        method: "post",
+        url: process.env.ALTHASURA,
+        headers: {
+        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Content-Type": "application/json",
+        },
+        data: altLastLessonTrackingRecord,
+      }
+
+      const resLessonTracking = await this.axios(configData);
+
+      if (resLessonTracking?.data?.errors) {
+        throw {
+          errorCode: resLessonTracking.data.errors[0].extensions,
+          errorMessage: resLessonTracking.data.errors[0].message,
+        };
+      }
+      
+      return resLessonTracking.data.data.LessonProgressTracking;
+
+    }
 
     public async getALTLessonTracking(altLessonId: string , altUserId: string) {
         
         const ALTLessonTrackingData = {
             query: `
-            query GetLessonTracking($altUserId: String, $altLessonId: String) {
+            query GetLessonTracking($altUserId: uuid!, $altLessonId: String) {
                 LessonProgressTracking(where: {lessonId: {_eq: $altLessonId}, userId: {_eq: $altUserId}}) {
                   courseId
                   userId
@@ -61,16 +138,13 @@ export class ALTLessonTrackingService {
             data: ALTLessonTrackingData,
         }        
 
-        const response = await this.axios(configData);          
+        const response = await this.axios(configData);  
 
-        if (response.data.errors) {
-
-            return new SuccessResponse({
-              statusCode: 422,
-              message: "Error",
-              data: { "msg" : "Unprocessable Entity" }
-            });
-
+        if (response?.data?.errors) {
+          return new ErrorResponse({
+            errorCode: response.data.errors[0].extensions,
+            errorMessage: response.data.errors[0].message,
+          });
         }
         
         const result =  response.data.data.LessonProgressTracking;
@@ -85,7 +159,102 @@ export class ALTLessonTrackingService {
 
     }
 
-    public async createALTLessonTracking(request: any, altLessonTrackingDto: ALTLessonTrackingDto) {
+    public async checkAndAddALTLessonTracking (request: any, altLessonTrackingDto: ALTLessonTrackingDto) {
+
+      let errorExRec = "";
+      const recordList = await this.getExistingLessonTrackingRecords(altLessonTrackingDto.userId, altLessonTrackingDto.lessonId)
+      .catch(function (error) {
+        if (error?.response?.data) {
+          errorExRec = error.response.data.errorMessage;
+        } else {
+          errorExRec = error + ", Can't fetch existing records."
+        }
+      }); 
+
+      if(!recordList) {
+        return new ErrorResponse({
+          errorMessage: errorExRec
+        });
+      }
+      
+      const fbgms = {
+        framework: 'ALT new',
+        board: 'Haryana',
+        medium: 'English',
+        grade: '10',
+        subject: 'English'
+      };
+
+      //refactor AND need BGMS or programId , program is needed to check baseline assessment or course
+      const programDetails = await this.selfAssessmentService.getProgramByFBMGS(request, fbgms); // get rules
+
+      const programRules =  JSON.parse(programDetails.data[0].AssessProgram.rules);
+
+      let flag = false;
+    
+      if(altLessonTrackingDto.userId) {
+        for (const course of programRules?.prog) {
+          if (course.contentId == altLessonTrackingDto.courseId) {
+            flag = true;
+            const numberOfRecords = parseInt(recordList.length);
+            const allowedAttempts = parseInt(course.allowedAttempts) ;
+            if (course.contentType == "assessment" && allowedAttempts === 1) {
+              if (numberOfRecords === 0) {
+                altLessonTrackingDto.attempts = 1;
+                return await this.createALTLessonTracking(request,altLessonTrackingDto);
+              } else if (numberOfRecords === 1 && recordList[0].status !== "Completed") {
+                  return await this.updateALTLessonTracking(request,altLessonTrackingDto.userId,altLessonTrackingDto.lessonId,altLessonTrackingDto,0);
+              } else if (numberOfRecords === 1 && recordList[0].status === "Completed") {
+                  return new ErrorResponse({
+                  errorMessage: "Record for Baseline Assessment already exists!"
+                });
+              } else {
+                return new ErrorResponse({
+                  errorMessage: "Duplicate entry found in DataBase for Baseline Assessment"
+                });
+              }
+            } else if (course.contentType == "course" && allowedAttempts === 0) {
+              if (numberOfRecords === 0) {
+                altLessonTrackingDto.attempts = 1;
+                return await this.createALTLessonTracking(request,altLessonTrackingDto);
+              } else if (numberOfRecords >= 1) {
+                const lastRecord = await this.getLastLessonTrackingRecord(altLessonTrackingDto.userId, altLessonTrackingDto.lessonId,numberOfRecords).
+                catch(function (error) {
+                  return new ErrorResponse({
+                    errorMessage: error
+                  });
+                });
+
+                if(!lastRecord[0].status) {
+                  return new ErrorResponse({
+                    errorMessage: lastRecord
+                  });
+                }
+
+                if (lastRecord[0]?.status !== "Completed") {
+                  return await this.updateALTLessonTracking(request,altLessonTrackingDto.userId,altLessonTrackingDto.lessonId,altLessonTrackingDto,lastRecord[0]?.attempts);
+                } else if (lastRecord[0]?.status === "Completed") {
+                  altLessonTrackingDto.attempts = numberOfRecords +1;
+                  return await this.createALTLessonTracking(request,altLessonTrackingDto);
+                } else {
+                  return new ErrorResponse({
+                    errorMessage: lastRecord
+                  });
+                }
+              }
+            }           
+          }
+
+        } 
+        if(!flag){
+          return new ErrorResponse({
+            errorMessage: `Course provided does not exist in the current program.`
+          });
+        }
+      }
+    }
+
+    public async createALTLessonTracking (request: any, altLessonTrackingDto: ALTLessonTrackingDto) {     
 
       const altLessonTracking = new ALTLessonTrackingDto(altLessonTrackingDto);
       let newAltLessonTracking = "";
@@ -95,13 +264,16 @@ export class ALTLessonTrackingService {
             altLessonTrackingDto[key] != "" &&
             Object.keys(altLessonTracking).includes(key)
             ){
-                    newAltLessonTracking += `${key}: ${JSON.stringify(altLessonTrackingDto[key])},`;
-                
+              if(key === "status"){
+                newAltLessonTracking += `${key}: ${altLessonTrackingDto[key]},`;
+              } else {
+              newAltLessonTracking += `${key}: ${JSON.stringify(altLessonTrackingDto[key])},`;   
+              }
             }
-    });      
+      });
 
     const altLessonTrackingData = {
-        query: `mutation CreateALTLessonTracking ($rules:String,$program_name:String) {
+        query: `mutation CreateALTLessonTracking {
             insert_LessonProgressTracking_one(object: {${newAltLessonTracking}}) {
                 attempts
                 status
@@ -116,7 +288,7 @@ export class ALTLessonTrackingService {
         variables: {},
       }
 
-      const configData = {
+      const configDataforCreate = {
         method: "post",
         url: process.env.ALTHASURA,
         headers: {
@@ -126,16 +298,13 @@ export class ALTLessonTrackingService {
         data: altLessonTrackingData,
       }        
 
-      const response = await this.axios(configData);
+     const response = await this.axios(configDataforCreate);
  
-      if (response.data.errors) {
-
-        return new SuccessResponse({
-          statusCode: 422,
-          message: "Error",
-          data: { "msg" : "Unprocessable Entity" }
+      if (response?.data?.errors) {
+        return new ErrorResponse({
+          errorCode: response.data.errors[0].extensions,
+          errorMessage: response.data.errors[0].message,
         });
-
       }
   
       const result =  response.data.data.insert_LessonProgressTracking_one;
@@ -148,31 +317,54 @@ export class ALTLessonTrackingService {
 
     }
 
-    public async updateALTCourseTracking(request: any,userId: string, lessonId: string, updateAltLessonTrackDto: UpdateALTLessonTrackingDto ) {
+    public async updateALTLessonTracking(request: any,userId: string, lessonId: string, updateAltLessonTrackDto: UpdateALTLessonTrackingDto, lastAttempt: number ) {
 
-      const updateAltCourseTracking = new UpdateALTLessonTrackingDto(updateAltLessonTrackDto);
-      let newUpdateAltCourseTracking = "";
+      const updateAltLessonTracking = new UpdateALTLessonTrackingDto(updateAltLessonTrackDto);
+      let newUpdateAltLessonTracking = "";
       Object.keys(updateAltLessonTrackDto).forEach((key) => {
         if( 
             updateAltLessonTrackDto[key] && 
             updateAltLessonTrackDto[key] != "" &&
-            Object.keys(updateAltCourseTracking).includes(key)
+            Object.keys(updateAltLessonTracking).includes(key)
             ) {
-                newUpdateAltCourseTracking += `${key}: ${JSON.stringify(updateAltLessonTrackDto[key])}, `;
+                if(key === "status"){
+                  newUpdateAltLessonTracking += `${key}: ${updateAltLessonTrackDto[key]},`;
+                } else {
+                  newUpdateAltLessonTracking += `${key}: ${JSON.stringify(updateAltLessonTrackDto[key])}, `;
+                }
             }
       });         
   
-      const altCourseUpdateTrackingData = { 
-        query: `mutation updateAltLessonTracking ($userId:String , $lessonId:String) {
-            update_LessonProgressTracking(where: {lessonId: {_eq: $lessonId}, userId: {_eq: $userId}}, _set: {${newUpdateAltCourseTracking}}) {
-            affected_rows
-          }
-      }`,
-        variables: {
-          userId : userId,
-          lessonId : lessonId
-        },
-    }
+      let altLessonUpdateTrackingData = {}
+        
+      if (!lastAttempt) {
+
+        altLessonUpdateTrackingData = {
+          query: `mutation updateAltLessonTracking ($userId:uuid!, $lessonId:String) {
+              update_LessonProgressTracking(where: {lessonId: {_eq: $lessonId}, userId: {_eq: $userId}}, _set: {${newUpdateAltLessonTracking}}) {
+              affected_rows
+            }
+        }`,
+          variables: {
+            userId: userId,
+            lessonId: lessonId
+          },
+        }
+      } else {
+        altLessonUpdateTrackingData = {
+          query: `mutation updateAltLessonTracking ($userId:uuid!, $lessonId:String, $lastAttempt:Int) {
+              update_LessonProgressTracking(where: {lessonId: {_eq: $lessonId}, userId: {_eq: $userId} ,attempts: {_eq: $lastAttempt}}, _set: {${newUpdateAltLessonTracking}}) {
+              affected_rows
+            }
+        }`,
+          variables: {
+            userId: userId,
+            lessonId: lessonId,
+            lastAttempt: lastAttempt
+          },
+        }
+      }
+
 
     const configData = {
       method: "post",
@@ -181,19 +373,16 @@ export class ALTLessonTrackingService {
       "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
       "Content-Type": "application/json",
       },
-      data: altCourseUpdateTrackingData,
+      data: altLessonUpdateTrackingData,
     }        
 
     const response = await this.axios(configData);
 
-    if (response.data.errors) {
-        
-        return new SuccessResponse({
-            statusCode: 422,
-            message: "Error",
-            data: { "error" : "Unprocessable Entity" }
+    if (response?.data?.errors) {
+        return new ErrorResponse({
+          errorCode: response.data.errors[0].extensions,
+          errorMessage: response.data.errors[0].message,
         });
-
     }
 
     const result =  response.data.data.update_LessonProgressTracking;
@@ -241,25 +430,22 @@ export class ALTLessonTrackingService {
       data: searchData,
     }
 
-    const response = await axios(configData);
+    const response = await axios(configData); 
 
-    if (response.data.errors) {
-
-      return new SuccessResponse({
-        statusCode: 422,
-        message: "Error",
-        data: { "error" : "Unprocessable Entity" }
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
       });
-
-    }  
+    }
 
       let result = response.data.data.LessonProgressTracking;
-      const altCourseTrackingList = await this.mappedResponse(result);
+      const altLessonTrackingList = await this.mappedResponse(result);
       
       return new SuccessResponse({
         statusCode: 200,
         message: "Ok.",
-        data: altCourseTrackingList,
+        data: altLessonTrackingList,
       });
   }
   
