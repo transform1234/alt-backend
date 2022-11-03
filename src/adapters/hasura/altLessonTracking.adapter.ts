@@ -159,7 +159,7 @@ export class ALTLessonTrackingService {
 
     }
 
-    public async mutateALTLessonTracking (request: any, altLessonTrackingDto: ALTLessonTrackingDto) {
+    public async checkAndAddALTLessonTracking (request: any, altLessonTrackingDto: ALTLessonTrackingDto) {
 
       let errorExRec = "";
       const recordList = await this.getExistingLessonTrackingRecords(altLessonTrackingDto.userId, altLessonTrackingDto.lessonId)
