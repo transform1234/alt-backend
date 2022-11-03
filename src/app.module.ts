@@ -32,6 +32,7 @@ import { GroupMembershipModule } from "./groupMembership/groupMembership.module"
 import { SelfAssessmentModule } from './selfAssessment/selfAssessment.module';
 import { ALTCourseTrackingModule } from "./altCourseTracking/altCourseTracking.module";
 import { ALTLessonTrackingModule } from "./altLessonTracking/altLessonTracking.module";
+import { ALTProgramAssociationModule } from "./altProgramAssociation/altProgramAssociation.module";
 
 @Module({
   imports: [
@@ -67,7 +68,8 @@ import { ALTLessonTrackingModule } from "./altLessonTracking/altLessonTracking.m
     GroupMembershipModule,
     SelfAssessmentModule,
     ALTCourseTrackingModule,
-    ALTLessonTrackingModule
+    ALTLessonTrackingModule,
+    ALTProgramAssociationModule
   ],
   controllers: [AppController],
   providers: [AppService],
