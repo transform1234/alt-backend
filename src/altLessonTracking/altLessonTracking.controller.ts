@@ -50,7 +50,7 @@ export class ALTLessonTrackingController {
             return this.altLessonTrackingService.getALTLessonTracking(lessonId,userId);
         }
 
-    @Post("/altmutatelessontracking")
+    @Post("/altcheckandaddlessontracking")
     @ApiBasicAuth("access-token")
     @ApiCreatedResponse({description: "ALTLessonTrack has been created successfully."})
     @ApiBody({ type: ALTLessonTrackingDto })
@@ -60,7 +60,7 @@ export class ALTLessonTrackingController {
       @Req() request: Request,
       @Body() altLessonTrackingDto: ALTLessonTrackingDto
     ) {
-       return this.altLessonTrackingService.mutateALTLessonTracking(request,altLessonTrackingDto);
+       return this.altLessonTrackingService.checkAndAddALTLessonTracking(request,altLessonTrackingDto);
     }
 
     @Patch("/altupdatelessontracking/:userid")
