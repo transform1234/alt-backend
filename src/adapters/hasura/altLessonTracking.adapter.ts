@@ -110,7 +110,7 @@ export class ALTLessonTrackingService {
         
         const ALTLessonTrackingData = {
             query: `
-            query GetLessonTracking($altUserId: String, $altLessonId: String) {
+            query GetLessonTracking($altUserId: uuid!, $altLessonId: String) {
                 LessonProgressTracking(where: {lessonId: {_eq: $altLessonId}, userId: {_eq: $altUserId}}) {
                   courseId
                   userId
