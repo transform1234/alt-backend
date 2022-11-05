@@ -28,6 +28,7 @@ import { ALTLessonTrackingDto } from "./dto/altLessonTracking.dto";
  import { ALTLessonTrackingService } from "../adapters/hasura/altLessonTracking.adapter";
 import { UpdateALTLessonTrackingDto } from "./dto/updateAltLessonTracking.dto";
 import { ALTLessonTrackingSearch } from "./dto/searchaltLessonTracking.dto";
+import { FBMGStoProgramDto } from "src/selfAssessment/dto/fbmgstoProgram.dto";
 
 @ApiTags("ALT Lesson Tracking")
 @Controller("altlessontracking")
@@ -50,17 +51,19 @@ export class ALTLessonTrackingController {
             return this.altLessonTrackingService.getALTLessonTracking(lessonId,userId);
         }
 
-    @Post("/altmutatelessontracking")
+    @Post("/altcheckandaddlessontracking")
     @ApiBasicAuth("access-token")
     @ApiCreatedResponse({description: "ALTLessonTrack has been created successfully."})
     @ApiBody({ type: ALTLessonTrackingDto })
     @ApiForbiddenResponse({ description: "Forbidden" })
     @UseInterceptors(ClassSerializerInterceptor)
     public async createALTLessonTracking(
-      @Req() request: Request,
-      @Body() altLessonTrackingDto: ALTLessonTrackingDto
+        @Req() request: Request,
+        @Query('program') programId : string,
+        @Query('subject') subject : string,
+        @Body() altLessonTrackingDto: ALTLessonTrackingDto
     ) {
-       return this.altLessonTrackingService.mutateALTLessonTracking(request,altLessonTrackingDto);
+       return this.altLessonTrackingService.checkAndAddALTLessonTracking(request,programId,subject,altLessonTrackingDto);
     }
 
     @Patch("/altupdatelessontracking/:userid")

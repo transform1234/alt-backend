@@ -68,10 +68,10 @@ export class ALTLessonTrackingDto{
     scoreDetails: String;
 
     @Expose()
-    createdAt: string;
+    created_at: string;
   
     @Expose()
-    updatedAt: string;
+    updated_at: string;
   
     @ApiProperty({
       type: String,

@@ -7,13 +7,15 @@ import { ALTLessonTrackingSearch } from "src/altLessonTracking/dto/searchaltLess
 import {
   SelfAssessmentService
 } from "../../adapters/hasura/selfAssessment.adapter";
+import { ALTProgramAssociationService } from "../../adapters/hasura/altProgramAssociation.adapter";
 import { ErrorResponse } from "src/error-response";
+import { TermsProgramtoRulesDto } from "src/altProgramAssociation/dto/altTermsProgramtoRules.dto";
 
 @Injectable()
 export class ALTLessonTrackingService {
     axios = require("axios");
 
-    constructor(private httpService: HttpService, private selfAssessmentService: SelfAssessmentService) {}
+    constructor(private httpService: HttpService, private selfAssessmentService: SelfAssessmentService, private altProgramAssociationService: ALTProgramAssociationService) {}
 
     public async mappedResponse(data: any) {
         const altLessonTrackingResponse = data.map((item: any) => {
@@ -40,7 +42,7 @@ export class ALTLessonTrackingService {
           LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}}) {
             userId
             lessonId
-            createdAt
+            created_at
             createdBy
             status
             attempts
@@ -71,7 +73,7 @@ export class ALTLessonTrackingService {
       const altLastLessonTrackingRecord = {
         query: `query GetLastLessonTrackingRecord ($userId:uuid!, $lessonId:String, $attemptNumber: Int) {
           LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}, attempts: {_eq: $attemptNumber}}) {
-            createdAt
+            created_at
             createdBy
             status
             attempts
@@ -110,7 +112,7 @@ export class ALTLessonTrackingService {
         
         const ALTLessonTrackingData = {
             query: `
-            query GetLessonTracking($altUserId: String, $altLessonId: String) {
+            query GetLessonTracking($altUserId: uuid!, $altLessonId: String) {
                 LessonProgressTracking(where: {lessonId: {_eq: $altLessonId}, userId: {_eq: $altUserId}}) {
                   courseId
                   userId
@@ -159,7 +161,7 @@ export class ALTLessonTrackingService {
 
     }
 
-    public async mutateALTLessonTracking (request: any, altLessonTrackingDto: ALTLessonTrackingDto) {
+    public async checkAndAddALTLessonTracking (request: any, programId: string, subject: string, altLessonTrackingDto: ALTLessonTrackingDto) {
 
       let errorExRec = "";
       const recordList = await this.getExistingLessonTrackingRecords(altLessonTrackingDto.userId, altLessonTrackingDto.lessonId)
@@ -177,18 +179,23 @@ export class ALTLessonTrackingService {
         });
       }
       
-      const fbgms = {
-        framework: 'ALT new',
-        board: 'Haryana',
-        medium: 'English',
-        grade: '10',
-        subject: 'English'
-      };
+      // program is needed to check baseline assessment or course
+      let currentProgramDetails: any = {};
+      currentProgramDetails = await this.selfAssessmentService.getProgramDetailsById(programId);
+      const paramData = new TermsProgramtoRulesDto(currentProgramDetails.data);
+   
+      let progTermData: any = {};
+      progTermData = await this.altProgramAssociationService.getRules(
+        {
+          programId: programId,
+          framework: paramData.framework,
+          board: paramData.board,
+          medium: paramData.medium,
+          grade: paramData.grade,
+          subject: subject
+      })
 
-      //refactor AND need BGMS or programId , program is needed to check baseline assessment or course
-      const programDetails = await this.selfAssessmentService.getProgramByFBMGS(request, fbgms); // get rules
-
-      const programRules =  JSON.parse(programDetails.data[0].AssessProgram.rules);
+      const programRules =  JSON.parse(progTermData.data[0].rules);
 
       let flag = false;
     
