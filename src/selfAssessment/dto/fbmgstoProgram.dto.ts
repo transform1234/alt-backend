@@ -1,5 +1,6 @@
 import { Exclude, Expose } from "class-transformer";
 import {
+    IsDate,
   IsNotEmpty,
   IsString,
 } from "class-validator";
@@ -45,11 +46,11 @@ export class FBMGStoProgramDto{
 
     @Expose()
     @IsNotEmpty()
-    @IsString()
+    @IsDate()
     @ApiProperty({
-        type: String,
-        description: "Name of the Subject"
+        type: Date,
+        description: "Current Date in format YYYY-MM-DD without timestamp"
     })
-    subject: string;
+    currentDate: Date
 
 }

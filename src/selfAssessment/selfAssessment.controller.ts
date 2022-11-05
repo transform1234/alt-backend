@@ -46,7 +46,7 @@ export class SelfAssessmentController {
       strategy: "excludeAll",
     })
     public async getProgramById(@Req() request: Request,@Param("id")id: string) {     
-        return this.selfAssessmentService.getProgramById(request,id.trim());
+        return this.selfAssessmentService.getProgramDetailsById(id.trim());
     }
 
     @Post("/create-program")
@@ -72,6 +72,6 @@ export class SelfAssessmentController {
       @Req() request: Request,
       @Body() fbgmstoprogramdto: FBMGStoProgramDto
     ) {
-        return this.selfAssessmentService.getProgramByFBMGS(request, fbgmstoprogramdto);
+        return this.selfAssessmentService.getCurrentProgramId(request, fbgmstoprogramdto);
     }
 }
