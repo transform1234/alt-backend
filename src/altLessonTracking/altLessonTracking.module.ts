@@ -5,7 +5,7 @@ import { ALTLessonTrackingService } from "../adapters/hasura/altLessonTracking.a
 import {
     SelfAssessmentService
   } from "../adapters/hasura/selfAssessment.adapter";
-
+  import { ALTProgramAssociationService } from "../adapters/hasura/altProgramAssociation.adapter";
 const ttl = process.env.TTL as never;
 
 @Module({
@@ -18,7 +18,8 @@ const ttl = process.env.TTL as never;
     controllers: [ALTLessonTrackingController],
     providers: [
         ALTLessonTrackingService,
-        SelfAssessmentService
+        SelfAssessmentService,
+        ALTProgramAssociationService
     ]
 })
 export class ALTLessonTrackingModule {}

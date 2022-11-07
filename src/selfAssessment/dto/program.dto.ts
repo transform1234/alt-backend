@@ -2,20 +2,16 @@ import { Exclude, Expose } from "class-transformer";
 import {
     IsUUID,
     IsString,
-    IsNotEmpty
+    IsNotEmpty,
+    IsDate
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class ProgramDto {
     
-    // @Expose()
-    // @IsUUID()
-    // @IsNotEmpty()
-    // @ApiProperty({
-    //     type: String,
-    //     description: "ProgramId is UUID used to get ordering information",
-    // })
-    // programId: string; AUTO GENERATED
+    @Expose()
+    @IsUUID()
+    programId: string;  // AUTO GENERATED
 
     @Expose()
     @IsString()
@@ -27,13 +23,64 @@ export class ProgramDto {
     programName: string;
 
     @Expose()
-    @IsString()
     @IsNotEmpty()
+    @IsDate()
+    @ApiProperty({
+        type: Date,
+        description: "Start Date in format YYYY-MM-DD without timestamp"
+    })
+    startDate: Date
+
+    @Expose()
+    @IsNotEmpty()
+    @IsDate()
+    @ApiProperty({
+        type: Date,
+        description: "End Date in format YYYY-MM-DD without timestamp"
+    })
+    endDate: Date
+
+    @Expose()
+    @IsNotEmpty()
+    @IsString()
     @ApiProperty({
         type: String,
-        description: "Rules are actual data needed for ordering",
+        description: "Name of the Framework"
     })
-    rules: string;
+    framework: string;
+
+    @Expose()
+    @IsNotEmpty()
+    @IsString()
+    @ApiProperty({
+        type: String,
+        description: "Name of the Board"
+    })
+    board: string;
+
+    @Expose()
+    @IsNotEmpty()
+    @IsString()
+    @ApiProperty({
+        type: String,
+        description: "Name of the Medium"
+    })
+    medium: string;
+
+    @Expose()
+    @IsNotEmpty()
+    @IsString()
+    @ApiProperty({
+        type: String,
+        description: "Name of the Grade"
+    })
+    grade: string;
+
+    @Expose()
+    created_at: string;
+  
+    @Expose()
+    updated_at: string;
 
     constructor(obj:any){
         Object.assign(this,obj);

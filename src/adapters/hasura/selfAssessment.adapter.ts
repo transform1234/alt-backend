@@ -4,6 +4,7 @@ import { SuccessResponse } from "src/success-response";
 import { ProgramDto } from "src/selfAssessment/dto/program.dto";
 import { FBMGStoProgramDto } from "src/selfAssessment/dto/fbmgstoProgram.dto";
 import { ISelfAssessServicelocator } from "../selfAssessmentservicelocator";
+import { ErrorResponse } from "src/error-response";
 
 @Injectable()
 export class SelfAssessmentService implements ISelfAssessServicelocator{
@@ -26,7 +27,7 @@ export class SelfAssessmentService implements ISelfAssessServicelocator{
         });
 
         const programData = {
-            query: `mutation CreateProgram ($rules:String,$program_name:String){
+            query: `mutation CreateProgram {
               insert_AssessProgram_one(object: {${newProgramData}}) {
                   programId
             }
@@ -55,15 +56,22 @@ export class SelfAssessmentService implements ISelfAssessServicelocator{
         });
     }
 
-    public async getProgramById(request: any,programId:string){
+    public async getProgramDetailsById(programId:string){
 
         const programData = {
             query: `query GetProgramById ($programId:uuid!) {
               AssessProgram_by_pk(programId:$programId) {
-                rules
                 programName
+                startDate
+                endDate
+                framework
+                board
+                medium
+                grade
+                created_at
+                updated_at
               }
-              }`,
+            }`,
           variables: {
             programId: programId
           },
@@ -81,14 +89,19 @@ export class SelfAssessmentService implements ISelfAssessServicelocator{
 
         const response = await this.axios(configData);
 
-        const result =  [response.data.data.AssessProgram_by_pk];
-    
-        const data = await this.mappedResponse(result);
+        if (response?.data?.errors) {
+          return new ErrorResponse({
+            errorCode: response.data.errors[0].extensions,
+            errorMessage: response.data.errors[0].message,
+          });
+        }
 
+        const result =  response.data.data.AssessProgram_by_pk;
+    
         return new SuccessResponse({
             statusCode: 200,
             message: "Ok.",
-            data: data,
+            data: result,
         });
         
     }
@@ -107,39 +120,30 @@ export class SelfAssessmentService implements ISelfAssessServicelocator{
       return programResponse;
     }
 
-    public async getProgramByFBMGS(request: any,fbmgstoprogramdto: FBMGStoProgramDto){
+    public async getCurrentProgramId(request: any,fbmgstoprogramdto: FBMGStoProgramDto) {
 
       const programData = {
-          query: `query GetProgramData ($framework:String,$board:String,$medium:String,$grade:String,$subject:String){
-            ProgramTermAssoc(where: 
+          query: `query GetCurrentProgramId ($framework:String,$board:String,$medium:String,$grade:String,$currentDate:date){
+            AssessProgram(where: 
             {
-              frameworkCode: {_eq: $framework}
-              boardCode: {_eq: $board},
-              mediumCode: {_eq: $medium}
-              gradeCode: {_eq: $grade},
-              subjectCode: {_eq: $subject},    
-            }) {
-              boardCode
-              frameworkCode
-              gradeCode
-              mediumCode
-              progAssocNo
+              framework: {_eq: $framework}
+              board: {_eq: $board},
+              medium: {_eq: $medium}
+              grade: {_eq: $grade},
+              endDate: {_gte: $currentDate},
+              startDate: {_lte: $currentDate}
+            }) 
+            {
               programId
-              subjectCode
-           AssessProgram {
-             rules
-             programId
-             programName
-           }
-         }
-       }`,
-        variables: {
-          "framework":fbmgstoprogramdto.framework,
-          "board":fbmgstoprogramdto.board,
-          "medium": fbmgstoprogramdto.medium,
-          "subject": fbmgstoprogramdto.subject,
-          "grade": fbmgstoprogramdto.grade 
-        },
+            }
+          }`,
+          variables: {
+            "framework":fbmgstoprogramdto.framework,
+            "board":fbmgstoprogramdto.board,
+            "medium": fbmgstoprogramdto.medium,
+            "grade": fbmgstoprogramdto.grade,
+            "currentDate": fbmgstoprogramdto.currentDate
+          }
       }
 
       const configData = {
@@ -153,8 +157,15 @@ export class SelfAssessmentService implements ISelfAssessServicelocator{
       }
 
       const response = await this.axios(configData);
+      
+      if (response?.data?.errors) {
+        return new ErrorResponse({
+          errorCode: response.data.errors[0].extensions,
+          errorMessage: response.data.errors[0].message,
+        });
+      }
 
-      const result =  response.data.data.ProgramTermAssoc;
+      const result =  response.data.data.AssessProgram;
       
       return new SuccessResponse({
           statusCode: 200,
