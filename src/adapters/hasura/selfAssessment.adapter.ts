@@ -27,7 +27,7 @@ export class SelfAssessmentService implements ISelfAssessServicelocator{
         });
 
         const programData = {
-            query: `mutation CreateProgram ($rules:String,$program_name:String){
+            query: `mutation CreateProgram {
               insert_AssessProgram_one(object: {${newProgramData}}) {
                   programId
             }
