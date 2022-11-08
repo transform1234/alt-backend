@@ -94,7 +94,7 @@ export class ProgramService implements IProgramServicelocator {
       });
     }
 
-    const result = response.data.data.AssessProgram_by_pk;
+    const result = await this.mappedResponse([response.data.data.AssessProgram_by_pk]);    
 
     return new SuccessResponse({
       statusCode: 200,
@@ -103,12 +103,18 @@ export class ProgramService implements IProgramServicelocator {
     });
   }
 
-  public async mappedResponse(data: any) {
+  public async mappedResponse(data: any) {  // why??
     const programResponse = data.map((item: any) => {
       const programMapping = {
-        programId: item?.programId ? `${item.programId}` : "",
         programName: item?.programName ? `${item.programName}` : "",
-        rules: item?.rules ? `${item.rules}` : "",
+        startDate: item?.startDate ? `${item.startDate}` : "",
+        endDate: item?.endDate ? `${item.endDate}` : "",
+        framework: item?.framework ? `${item.framework}` : "",
+        board: item?.board ? `${item.board}` : "",
+        medium: item?.medium ? `${item.medium}` : "",
+        grade: item?.grade ? `${item.grade}` : "",
+        created_at: item?.created_at ? `${item.created_at}` : "",
+        updated_at: item?.updated_at ? `${item.updated_at}` : "",
       };
       return new ProgramDto(programMapping);
     });
