@@ -5,8 +5,8 @@ import { ALTLessonTrackingDto } from "src/altLessonTracking/dto/altLessonTrackin
 import { UpdateALTLessonTrackingDto } from "src/altLessonTracking/dto/updateAltLessonTracking.dto";
 import { ALTLessonTrackingSearch } from "src/altLessonTracking/dto/searchaltLessonTracking.dto";
 import {
-  SelfAssessmentService
-} from "../../adapters/hasura/selfAssessment.adapter";
+  ProgramService
+} from "./altProgram.adapter";
 import { ALTProgramAssociationService } from "../../adapters/hasura/altProgramAssociation.adapter";
 import { ErrorResponse } from "src/error-response";
 import { TermsProgramtoRulesDto } from "src/altProgramAssociation/dto/altTermsProgramtoRules.dto";
@@ -15,7 +15,7 @@ import { TermsProgramtoRulesDto } from "src/altProgramAssociation/dto/altTermsPr
 export class ALTLessonTrackingService {
     axios = require("axios");
 
-    constructor(private httpService: HttpService, private selfAssessmentService: SelfAssessmentService, private altProgramAssociationService: ALTProgramAssociationService) {}
+    constructor(private httpService: HttpService, private programService: ProgramService, private altProgramAssociationService: ALTProgramAssociationService) {}
 
     public async mappedResponse(data: any) {
         const altLessonTrackingResponse = data.map((item: any) => {
@@ -181,7 +181,7 @@ export class ALTLessonTrackingService {
       
       // program is needed to check baseline assessment or course
       let currentProgramDetails: any = {};
-      currentProgramDetails = await this.selfAssessmentService.getProgramDetailsById(programId);
+      currentProgramDetails = await this.programService.getProgramDetailsById(programId);
       const paramData = new TermsProgramtoRulesDto(currentProgramDetails.data);
    
       let progTermData: any = {};

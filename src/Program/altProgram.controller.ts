@@ -23,18 +23,18 @@ import {
     ApiBasicAuth,
 } from "@nestjs/swagger";
 import {
-    SelfAssessmentService
-} from "../adapters/hasura/selfAssessment.adapter";
+    ProgramService
+} from "../adapters/hasura/altProgram.adapter";
 import { FBMGStoProgramDto } from "./dto/fbmgstoProgram.dto";
 import {
     ProgramDto
 } from "./dto/program.dto"
 
-@ApiTags("Self Assessment")
-@Controller("selfassessment")
+@ApiTags("ALT Program")
+@Controller("altprogram")
 export class SelfAssessmentController {
     constructor(
-        private selfAssessmentService: SelfAssessmentService
+        private programService: ProgramService
     ){}
 
     @Get("/:id")
@@ -46,7 +46,7 @@ export class SelfAssessmentController {
       strategy: "excludeAll",
     })
     public async getProgramById(@Req() request: Request,@Param("id")id: string) {     
-        return this.selfAssessmentService.getProgramDetailsById(id.trim());
+        return this.programService.getProgramDetailsById(id.trim());
     }
 
     @Post("/create-program")
@@ -59,7 +59,7 @@ export class SelfAssessmentController {
       @Req() request: Request,
       @Body() programDto: ProgramDto
     ) {
-        return this.selfAssessmentService.createProgram(request,programDto);
+        return this.programService.createProgram(request,programDto);
     }
 
     @Post("/fbmgs")
@@ -72,6 +72,6 @@ export class SelfAssessmentController {
       @Req() request: Request,
       @Body() fbgmstoprogramdto: FBMGStoProgramDto
     ) {
-        return this.selfAssessmentService.getCurrentProgramId(request, fbgmstoprogramdto);
+        return this.programService.getCurrentProgramId(request, fbgmstoprogramdto);
     }
 }

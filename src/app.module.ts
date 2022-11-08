@@ -29,7 +29,7 @@ import { AnnouncementsModule } from "./announcements/announcements.module";
 import { RoleModule } from "./role/role.module";
 import { WorkHistoryModule } from "./workHistory/workHistory.module";
 import { GroupMembershipModule } from "./groupMembership/groupMembership.module";
-import { SelfAssessmentModule } from './selfAssessment/selfAssessment.module';
+import { ProgramModule } from './Program/altProgram.module';
 import { ALTCourseTrackingModule } from "./altCourseTracking/altCourseTracking.module";
 import { ALTLessonTrackingModule } from "./altLessonTracking/altLessonTracking.module";
 import { ALTProgramAssociationModule } from "./altProgramAssociation/altProgramAssociation.module";
@@ -66,7 +66,7 @@ import { ALTProgramAssociationModule } from "./altProgramAssociation/altProgramA
     AnnouncementsModule,
     WorkHistoryModule,
     GroupMembershipModule,
-    SelfAssessmentModule,
+    ProgramModule,
     ALTCourseTrackingModule,
     ALTLessonTrackingModule,
     ALTProgramAssociationModule

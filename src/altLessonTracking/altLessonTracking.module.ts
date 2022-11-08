@@ -3,8 +3,8 @@ import { HttpModule } from "@nestjs/axios";
 import { ALTLessonTrackingController } from "./altLessonTracking.controller";
 import { ALTLessonTrackingService } from "../adapters/hasura/altLessonTracking.adapter";
 import {
-    SelfAssessmentService
-  } from "../adapters/hasura/selfAssessment.adapter";
+    ProgramService
+  } from "../adapters/hasura/altProgram.adapter";
   import { ALTProgramAssociationService } from "../adapters/hasura/altProgramAssociation.adapter";
 const ttl = process.env.TTL as never;
 
@@ -18,7 +18,7 @@ const ttl = process.env.TTL as never;
     controllers: [ALTLessonTrackingController],
     providers: [
         ALTLessonTrackingService,
-        SelfAssessmentService,
+        ProgramService,
         ALTProgramAssociationService
     ]
 })
