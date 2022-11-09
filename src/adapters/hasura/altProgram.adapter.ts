@@ -1,10 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
 import { SuccessResponse } from "src/success-response";
-import { ProgramDto } from "src/Program/dto/program.dto";
-import { FBMGStoProgramDto } from "src/Program/dto/fbmgstoProgram.dto";
+import { ProgramDto } from "src/altProgram/dto/program.dto";
+import { FBMGStoProgramDto } from "src/altProgram/dto/fbmgstoProgram.dto";
 import { IProgramServicelocator } from "../programservicelocator";
 import { ErrorResponse } from "src/error-response";
+import { UpdateALTProgramDto } from "src/altProgram/dto/updateAltProgram.dto";
+import { ALTProgramSearch } from "src/altProgram/dto/searchAltProgram.dto";
 
 @Injectable()
 export class ProgramService implements IProgramServicelocator {
@@ -12,47 +14,23 @@ export class ProgramService implements IProgramServicelocator {
 
   constructor(private httpService: HttpService) {}
 
-  public async createProgram(request: any, programdto: ProgramDto) {
-    const programSchema = new ProgramDto(programdto);
-    let newProgramData = "";
-    Object.keys(programdto).forEach((key) => {
-      if (
-        programdto[key] &&
-        programdto[key] != "" &&
-        Object.keys(programSchema).includes(key)
-      ) {
-        newProgramData += `${key}: ${JSON.stringify(programdto[key])}, `;
-      }
+  public async mappedResponse(data: any) {
+    const programResponse = data.map((item: any) => {
+      const programMapping = {
+        programName: item?.programName ? `${item.programName}` : "",
+        startDate: item?.startDate ? `${item.startDate}` : "",
+        endDate: item?.endDate ? `${item.endDate}` : "",
+        framework: item?.framework ? `${item.framework}` : "",
+        board: item?.board ? `${item.board}` : "",
+        medium: item?.medium ? `${item.medium}` : "",
+        grade: item?.grade ? `${item.grade}` : "",
+        created_at: item?.created_at ? `${item.created_at}` : "",
+        updated_at: item?.updated_at ? `${item.updated_at}` : "",
+      };
+      return new ProgramDto(programMapping);
     });
 
-    const programData = {
-      query: `mutation CreateProgram {
-              insert_AssessProgram_one(object: {${newProgramData}}) {
-                  programId
-            }
-          }`,
-      variables: {},
-    };
-
-    const configData = {
-      method: "post",
-      url: process.env.ALTHASURA,
-      headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
-        "Content-Type": "application/json",
-      },
-      data: programData,
-    };
-
-    const response = await this.axios(configData);
-
-    const result = response.data.data.insert_AssessProgram_one;
-
-    return new SuccessResponse({
-      statusCode: 200,
-      message: "Ok.",
-      data: result,
-    });
+    return programResponse;
   }
 
   public async getProgramDetailsById(programId: string) {
@@ -94,32 +72,15 @@ export class ProgramService implements IProgramServicelocator {
       });
     }
 
-    const result = await this.mappedResponse([response.data.data.AssessProgram_by_pk]);    
+    const result = await this.mappedResponse([
+      response.data.data.AssessProgram_by_pk,
+    ]);
 
     return new SuccessResponse({
       statusCode: 200,
       message: "Ok.",
       data: result,
     });
-  }
-
-  public async mappedResponse(data: any) {  // why??
-    const programResponse = data.map((item: any) => {
-      const programMapping = {
-        programName: item?.programName ? `${item.programName}` : "",
-        startDate: item?.startDate ? `${item.startDate}` : "",
-        endDate: item?.endDate ? `${item.endDate}` : "",
-        framework: item?.framework ? `${item.framework}` : "",
-        board: item?.board ? `${item.board}` : "",
-        medium: item?.medium ? `${item.medium}` : "",
-        grade: item?.grade ? `${item.grade}` : "",
-        created_at: item?.created_at ? `${item.created_at}` : "",
-        updated_at: item?.updated_at ? `${item.updated_at}` : "",
-      };
-      return new ProgramDto(programMapping);
-    });
-
-    return programResponse;
   }
 
   public async getCurrentProgramId(
@@ -175,6 +136,177 @@ export class ProgramService implements IProgramServicelocator {
       statusCode: 200,
       message: "Ok.",
       data: result,
+    });
+  }
+
+  public async createProgram(request: any, programdto: ProgramDto) {
+    const programSchema = new ProgramDto(programdto);
+    let newProgramData = "";
+    Object.keys(programdto).forEach((key) => {
+      if (
+        programdto[key] &&
+        programdto[key] != "" &&
+        Object.keys(programSchema).includes(key)
+      ) {
+        newProgramData += `${key}: ${JSON.stringify(programdto[key])}, `;
+      }
+    });
+
+    const programData = {
+      query: `mutation CreateProgram {
+              insert_AssessProgram_one(object: {${newProgramData}}) {
+                  programId
+            }
+          }`,
+      variables: {},
+    };
+
+    const configData = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Content-Type": "application/json",
+      },
+      data: programData,
+    };
+
+    const response = await this.axios(configData);
+
+    const result = response.data.data.insert_AssessProgram_one;
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: result,
+    });
+  }
+
+  public async updateProgram(
+    programId: string,
+    updateAltProgramDto: UpdateALTProgramDto
+  ) {
+    const updateAltProgram = new UpdateALTProgramDto(updateAltProgramDto);
+    let newUpdateAltProgram = "";
+    Object.keys(updateAltProgramDto).forEach((key) => {
+      if (
+        updateAltProgramDto[key] &&
+        updateAltProgramDto[key] != "" &&
+        Object.keys(updateAltProgram).includes(key)
+      ) {
+        if (key === "status") {
+          newUpdateAltProgram += `${key}: ${updateAltProgramDto[key]},`;
+        } else {
+          newUpdateAltProgram += `${key}: ${JSON.stringify(
+            updateAltProgramDto[key]
+          )}, `;
+        }
+      }
+    });
+
+    const altProgramUpdateData = {
+      query: `mutation UpdateProgram($programId:uuid!) {
+        update_AssessProgram_by_pk(pk_columns: {programId: $programId}, _set: {${newUpdateAltProgram}}) {
+          updated_at
+        }
+      }`,
+      variables: {
+        programId: programId,
+      },
+    };
+
+    const configData = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Content-Type": "application/json",
+      },
+      altProgramUpdateData,
+    };
+
+    const response = await this.axios(configData);
+
+    if (response?.data?.errors) {
+      console.log(response);
+
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    console.log(response);
+
+    const result = response.data.data.AssessProgram_by_pk;
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: result,
+    });
+  }
+
+  public async searchALTProgram(altProgramSearch: ALTProgramSearch) {
+    var axios = require("axios");
+
+    let query = "";
+    Object.keys(altProgramSearch.filters).forEach((e) => {
+      if (altProgramSearch.filters[e] && altProgramSearch.filters[e] != "") {
+        if (e === "programName") {
+          query += `${e}:{_ilike: "%${altProgramSearch.filters[e]}%"}`;
+        } else {
+          query += `${e}:{_eq:"${altProgramSearch.filters[e]}"}`;
+        }
+      }
+    });
+    console.log(query);
+    var searchData = {
+      query: `query SearchALTSchoolTracking($limit:Int) {
+        AssessProgram(limit: $limit, where: {${query}}) {
+          framework
+          board
+          grade
+          medium
+          programId
+          programName
+          startDate
+          endDate
+          created_at
+          updated_at
+        }
+    }`,
+      variables: {
+        limit: altProgramSearch.limit,
+      },
+    };
+
+    const configData = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Content-Type": "application/json",
+      },
+      data: searchData,
+    };
+
+    const response = await axios(configData);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    let result = response.data.data.AssessProgram;
+    const altProgramList = await this.mappedResponse(result);
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: altProgramList,
     });
   }
 }
