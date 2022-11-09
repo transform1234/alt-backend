@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { ALTLessonTrackingDto } from "./altLessonTracking.dto";
 
 export class ALTLessonTrackingSearch {
   @ApiProperty({
@@ -8,11 +9,11 @@ export class ALTLessonTrackingSearch {
   limit: number;
 
   @ApiProperty({
-    type: Object,
+    type: ALTLessonTrackingDto,
     description: "Filters",
   })
   @ApiPropertyOptional()
-  filters: object;
+  filters: ALTLessonTrackingDto;
 
   constructor(partial: Partial<ALTLessonTrackingSearch>) {
     Object.assign(this, partial);

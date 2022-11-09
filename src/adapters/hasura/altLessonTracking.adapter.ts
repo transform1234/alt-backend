@@ -3,7 +3,7 @@ import { HttpService } from "@nestjs/axios";
 import { SuccessResponse } from "src/success-response"; 
 import { ALTLessonTrackingDto } from "src/altLessonTracking/dto/altLessonTracking.dto";
 import { UpdateALTLessonTrackingDto } from "src/altLessonTracking/dto/updateAltLessonTracking.dto";
-import { ALTLessonTrackingSearch } from "src/altLessonTracking/dto/searchaltLessonTracking.dto";
+import { ALTLessonTrackingSearch } from "src/altLessonTracking/dto/searchAltLessonTracking.dto";
 import {
   ProgramService
 } from "./altProgram.adapter";
@@ -179,19 +179,20 @@ export class ALTLessonTrackingService {
         });
       }
       
-      // program is needed to check baseline assessment or course
+      // rule is needed to check baseline assessment or course
       let currentProgramDetails: any = {};
       currentProgramDetails = await this.programService.getProgramDetailsById(programId);
-      const paramData = new TermsProgramtoRulesDto(currentProgramDetails.data);
    
+      const paramData = new TermsProgramtoRulesDto(currentProgramDetails.data);
+
       let progTermData: any = {};
       progTermData = await this.altProgramAssociationService.getRules(
         {
           programId: programId,
-          framework: paramData.framework,
-          board: paramData.board,
-          medium: paramData.medium,
-          grade: paramData.grade,
+          framework: paramData[0].framework,
+          board: paramData[0].board,
+          medium: paramData[0].medium,
+          grade: paramData[0].grade,
           subject: subject
       })
 
@@ -324,7 +325,7 @@ export class ALTLessonTrackingService {
 
     }
 
-    public async updateALTLessonTracking(request: any,userId: string, lessonId: string, updateAltLessonTrackDto: UpdateALTLessonTrackingDto, lastAttempt: number ) {
+    public async updateALTLessonTracking(request: any,userId: string, lessonId: string, updateAltLessonTrackDto: UpdateALTLessonTrackingDto, lastAttempt: number ) {//
 
       const updateAltLessonTracking = new UpdateALTLessonTrackingDto(updateAltLessonTrackDto);
       let newUpdateAltLessonTracking = "";
