@@ -11,8 +11,26 @@ export class UpdateALTLessonTrackingDto {
     @IsNotEmpty()
     @IsString()
     @ApiProperty({
+        type: String,
+        description: "ID of the respective enrolled course"
+    })
+    courseId: string;
+
+    @Expose()
+    @IsNotEmpty()
+    @IsString()
+    @ApiProperty({
+        type: String,
+        description: "ID of the respective Lesson"
+    })
+    lessonId: string;
+
+    @Expose()
+    @IsNotEmpty()
+    @IsString()
+    @ApiProperty({
       type: String,
-      description: "Status of course",
+      description: "Status of lesson",
     })
     status: string;
 
@@ -30,7 +48,7 @@ export class UpdateALTLessonTrackingDto {
     @IsString()
     @ApiProperty({
         type: Number,
-        description: "Name of the next Course to be taken",
+        description: "Score of the lesson",
     })
     score: number;
 
@@ -39,10 +57,23 @@ export class UpdateALTLessonTrackingDto {
     @IsString()
     @ApiProperty({
         type: String,
-        description: "Score of the course",
+        description: "ScoreDetails of the lesson",
     })
     scoreDetails: String;
 
+    @ApiProperty({
+      type: String,
+      description: "Created by uuid",
+    })
+    @Expose()
+    createdBy: string;
+  
+    @ApiProperty({
+      type: String,
+      description: "Updated by uuid",
+    })
+    @Expose()
+    updatedBy: string;
 
   constructor(obj: any) {
     Object.assign(this, obj);

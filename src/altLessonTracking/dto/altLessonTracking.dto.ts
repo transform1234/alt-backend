@@ -40,7 +40,7 @@ export class ALTLessonTrackingDto{
     @IsString()
     @ApiProperty({
         type: String,
-        description: "Status of course"
+        description: "Status of lesson"
     })
     status: string;
 
@@ -54,7 +54,7 @@ export class ALTLessonTrackingDto{
     @IsString()
     @ApiProperty({
         type: Number,
-        description: "Score of the course"
+        description: "Score of the lesson"
     })
     score: number;
 
@@ -63,7 +63,7 @@ export class ALTLessonTrackingDto{
     @IsString()
     @ApiProperty({
         type: String,
-        description: "ScoreDetails of the course"
+        description: "ScoreDetails of the lesson"
     })
     scoreDetails: String;
 

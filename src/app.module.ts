@@ -29,7 +29,7 @@ import { AnnouncementsModule } from "./announcements/announcements.module";
 import { RoleModule } from "./role/role.module";
 import { WorkHistoryModule } from "./workHistory/workHistory.module";
 import { GroupMembershipModule } from "./groupMembership/groupMembership.module";
-import { ProgramModule } from './altProgram/altProgram.module';
+import { ProgramModule } from "./altProgram/altProgram.module";
 import { ALTCourseTrackingModule } from "./altCourseTracking/altCourseTracking.module";
 import { ALTLessonTrackingModule } from "./altLessonTracking/altLessonTracking.module";
 import { ALTProgramAssociationModule } from "./altProgramAssociation/altProgramAssociation.module";
@@ -69,7 +69,7 @@ import { ALTProgramAssociationModule } from "./altProgramAssociation/altProgramA
     ProgramModule,
     ALTCourseTrackingModule,
     ALTLessonTrackingModule,
-    ALTProgramAssociationModule
+    ALTProgramAssociationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
