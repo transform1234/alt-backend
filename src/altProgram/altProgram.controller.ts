@@ -49,19 +49,6 @@ export class SelfAssessmentController {
         return this.programService.getProgramDetailsById(id.trim());
     }
 
-    @Post("/create-program")
-    @ApiBasicAuth("access-token")
-    @ApiCreatedResponse({ description: "Program has been created successfully." })
-    @ApiBody({ type: ProgramDto })
-    @ApiForbiddenResponse({ description: "Forbidden" })
-    @UseInterceptors(ClassSerializerInterceptor)
-    public async createProgram(
-      @Req() request: Request,
-      @Body() programDto: ProgramDto
-    ) {
-        return this.programService.createProgram(request,programDto);
-    }
-
     @Post("/fbmgs")
     @ApiBasicAuth("access-token")
     @ApiCreatedResponse({ description: "Program has been found." })
@@ -73,5 +60,18 @@ export class SelfAssessmentController {
       @Body() fbgmstoprogramdto: FBMGStoProgramDto
     ) {
         return this.programService.getCurrentProgramId(request, fbgmstoprogramdto);
+    }
+
+    @Post("/create-program")
+    @ApiBasicAuth("access-token")
+    @ApiCreatedResponse({ description: "Program has been created successfully." })
+    @ApiBody({ type: ProgramDto })
+    @ApiForbiddenResponse({ description: "Forbidden" })
+    @UseInterceptors(ClassSerializerInterceptor)
+    public async createProgram(
+      @Req() request: Request,
+      @Body() programDto: ProgramDto
+    ) {
+        return this.programService.createProgram(request,programDto);
     }
 }
