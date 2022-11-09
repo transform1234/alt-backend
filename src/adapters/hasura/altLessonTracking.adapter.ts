@@ -184,6 +184,7 @@ export class ALTLessonTrackingService {
 
     if (!recordList) {
       return new ErrorResponse({
+        errorCode: "400",
         errorMessage: errorExRec,
       });
     }
@@ -239,10 +240,12 @@ export class ALTLessonTrackingService {
               recordList[0].status === "Completed"
             ) {
               return new ErrorResponse({
+                errorCode: "403",
                 errorMessage: "Record for Baseline Assessment already exists!",
               });
             } else {
               return new ErrorResponse({
+                errorCode: "403",
                 errorMessage:
                   "Duplicate entry found in DataBase for Baseline Assessment",
               });
@@ -261,12 +264,14 @@ export class ALTLessonTrackingService {
                 numberOfRecords
               ).catch(function (error) {
                 return new ErrorResponse({
+                  errorCode: "400",
                   errorMessage: error,
                 });
               });
 
               if (!lastRecord[0].status) {
                 return new ErrorResponse({
+                  errorCode: "400",
                   errorMessage: lastRecord,
                 });
               }
@@ -287,6 +292,7 @@ export class ALTLessonTrackingService {
                 );
               } else {
                 return new ErrorResponse({
+                  errorCode: "400",
                   errorMessage: lastRecord,
                 });
               }
@@ -296,6 +302,7 @@ export class ALTLessonTrackingService {
       }
       if (!flag) {
         return new ErrorResponse({
+          errorCode: "403",
           errorMessage: `Course provided does not exist in the current program.`,
         });
       }

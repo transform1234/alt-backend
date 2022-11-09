@@ -173,6 +173,13 @@ export class ProgramService implements IProgramServicelocator {
 
     const response = await this.axios(configData);
 
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
     const result = response.data.data.insert_AssessProgram_one;
 
     return new SuccessResponse({
@@ -228,15 +235,11 @@ export class ProgramService implements IProgramServicelocator {
     const response = await this.axios(configData);
 
     if (response?.data?.errors) {
-      console.log(response);
-
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
         errorMessage: response.data.errors[0].message,
       });
     }
-
-    console.log(response);
 
     const result = response.data.data.AssessProgram_by_pk;
 
@@ -260,7 +263,6 @@ export class ProgramService implements IProgramServicelocator {
         }
       }
     });
-    console.log(query);
     var searchData = {
       query: `query SearchALTSchoolTracking($limit:Int) {
         AssessProgram(limit: $limit, where: {${query}}) {
