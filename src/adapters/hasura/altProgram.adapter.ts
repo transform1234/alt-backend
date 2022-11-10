@@ -189,66 +189,74 @@ export class ProgramService implements IProgramServicelocator {
     });
   }
 
-  public async updateProgram(
-    programId: string,
-    updateAltProgramDto: UpdateALTProgramDto
-  ) {
-    const updateAltProgram = new UpdateALTProgramDto(updateAltProgramDto);
-    let newUpdateAltProgram = "";
-    Object.keys(updateAltProgramDto).forEach((key) => {
-      if (
-        updateAltProgramDto[key] &&
-        updateAltProgramDto[key] != "" &&
-        Object.keys(updateAltProgram).includes(key)
-      ) {
-        if (key === "status") {
-          newUpdateAltProgram += `${key}: ${updateAltProgramDto[key]},`;
-        } else {
-          newUpdateAltProgram += `${key}: ${JSON.stringify(
-            updateAltProgramDto[key]
-          )}, `;
-        }
-      }
-    });
+  // public async updateProgram(
+  //   programId: string,
+  //   updateAltProgramDto: UpdateALTProgramDto
+  // ) {
+  //   const updateAltProgram = new UpdateALTProgramDto(updateAltProgramDto);
 
-    const altProgramUpdateData = {
-      query: `mutation UpdateProgram($programId:uuid!) {
-        update_AssessProgram_by_pk(pk_columns: {programId: $programId}, _set: {${newUpdateAltProgram}}) {
-          updated_at
-        }
-      }`,
-      variables: {
-        programId: programId,
-      },
-    };
+  //   console.log(updateAltProgram, "hmm");
+  //   console.log(updateAltProgramDto);
 
-    const configData = {
-      method: "post",
-      url: process.env.ALTHASURA,
-      headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
-        "Content-Type": "application/json",
-      },
-      altProgramUpdateData,
-    };
+  //   let newUpdateAltProgram = "";
+  //   Object.keys(updateAltProgramDto).forEach((key) => {
+  //     if (
+  //       updateAltProgramDto[key] &&
+  //       updateAltProgramDto[key] != "" &&
+  //       Object.keys(updateAltProgram).includes(key)
+  //     ) {
+  //       newUpdateAltProgram += `${key}: ${JSON.stringify(
+  //         updateAltProgramDto[key]
+  //       )},`;
+  //     }
+  //   });
 
-    const response = await this.axios(configData);
+  //   console.log(programId);
+    
+  //   console.log(newUpdateAltProgram, "newUpdateAltProgram");
 
-    if (response?.data?.errors) {
-      return new ErrorResponse({
-        errorCode: response.data.errors[0].extensions,
-        errorMessage: response.data.errors[0].message,
-      });
-    }
+  //   const altProgramUpdateData = {
+  //     query: `mutation UpdateProgram($programId:uuid!) {
+  //       update_AssessProgram_by_pk(pk_columns: {programId: $programId}, _set: {${newUpdateAltProgram}}) {
+  //         updated_at
+  //       }
+  //     }`,
+  //     variables: {
+  //       programId: programId,
+  //     },
+  //   };
 
-    const result = response.data.data.AssessProgram_by_pk;
+  //   console.log(altProgramUpdateData);
 
-    return new SuccessResponse({
-      statusCode: 200,
-      message: "Ok.",
-      data: result,
-    });
-  }
+  //   const configData = {
+  //     method: "post",
+  //     url: process.env.ALTHASURA,
+  //     headers: {
+  //       "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+  //       "Content-Type": "application/json",
+  //     },
+  //     altProgramUpdateData,
+  //   };
+
+  //   const response = await this.axios(configData);
+
+  //   if (response?.data?.errors) {
+  //     console.log(response?.data?.errors);
+
+  //     return new ErrorResponse({
+  //       errorCode: response.data.errors[0].extensions,
+  //       errorMessage: response.data.errors[0].message,
+  //     });
+  //   }
+
+  //   const result = response.data.data.AssessProgram_by_pk;
+
+  //   return new SuccessResponse({
+  //     statusCode: 200,
+  //     message: "Ok.",
+  //     data: result,
+  //   });
+  // }
 
   public async searchALTProgram(altProgramSearch: ALTProgramSearch) {
     var axios = require("axios");

@@ -87,7 +87,8 @@ export class SelfAssessmentController {
     @Param("programid") programId: string,
     @Body() updateProgramDto: UpdateALTProgramDto
   ) {
-    return this.programService.updateProgram(programId, updateProgramDto);
+    return "Not Functional";
+    // this.programService.updateProgram(programId, updateProgramDto);
   }
 
   @Post("/search")
@@ -99,7 +100,7 @@ export class SelfAssessmentController {
   @SerializeOptions({
     strategy: "excludeAll",
   })
-  public async searchSchool(
+  public async searchALTProgram(
     @Req() request: Request,
     @Body() altProgramSearch: ALTProgramSearch
   ) {
