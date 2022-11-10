@@ -382,8 +382,6 @@ export class ALTLessonTrackingService {
     updateAltLessonTrackDto: UpdateALTLessonTrackingDto,
     lastAttempt: number
   ) {
-    //
-
     const updateAltLessonTracking = new UpdateALTLessonTrackingDto(
       updateAltLessonTrackDto
     );
@@ -482,6 +480,7 @@ export class ALTLessonTrackingService {
         LessonProgressTracking(limit: $limit, where: {${query}}) {
           userId
           courseId
+          lessonId
           status
           attempts
           score

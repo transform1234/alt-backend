@@ -11,24 +11,6 @@ export class UpdateALTLessonTrackingDto {
     @IsNotEmpty()
     @IsString()
     @ApiProperty({
-        type: String,
-        description: "ID of the respective enrolled course"
-    })
-    courseId: string;
-
-    @Expose()
-    @IsNotEmpty()
-    @IsString()
-    @ApiProperty({
-        type: String,
-        description: "ID of the respective Lesson"
-    })
-    lessonId: string;
-
-    @Expose()
-    @IsNotEmpty()
-    @IsString()
-    @ApiProperty({
       type: String,
       description: "Status of lesson",
     })
