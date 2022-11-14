@@ -33,6 +33,7 @@ import { ProgramModule } from "./altProgram/altProgram.module";
 import { ALTCourseTrackingModule } from "./altCourseTracking/altCourseTracking.module";
 import { ALTLessonTrackingModule } from "./altLessonTracking/altLessonTracking.module";
 import { ALTProgramAssociationModule } from "./altProgramAssociation/altProgramAssociation.module";
+import { ALTModuleTrackingModule } from "./altModuleTracking/altModuleTracking.module";
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { ALTProgramAssociationModule } from "./altProgramAssociation/altProgramA
     ALTCourseTrackingModule,
     ALTLessonTrackingModule,
     ALTProgramAssociationModule,
+    ALTModuleTrackingModule,
   ],
   controllers: [AppController],
   providers: [AppService],
