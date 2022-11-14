@@ -82,20 +82,20 @@ export class ALTLessonTrackingController {
     @Req() request: Request,
     @Param("userid") userId: string,
     @Query("lessonid") lessonId: string,
-    @Body() updateUserDto: UpdateALTLessonTrackingDto
+    @Body() updateALTLessonTrackingDto: UpdateALTLessonTrackingDto
   ) {
     return this.altLessonTrackingService.updateALTLessonTracking(
       request,
       userId,
       lessonId,
-      updateUserDto,
+      updateALTLessonTrackingDto,
       0
     );
   }
 
   @Post("/search")
   @ApiBasicAuth("access-token")
-  @ApiCreatedResponse({ description: "School list." })
+  @ApiCreatedResponse({ description: "Lesson list." })
   @ApiBody({ type: ALTLessonTrackingSearch })
   @ApiForbiddenResponse({ description: "Forbidden" })
   @UseInterceptors(ClassSerializerInterceptor)

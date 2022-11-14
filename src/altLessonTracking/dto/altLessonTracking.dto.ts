@@ -26,6 +26,15 @@ export class ALTLessonTrackingDto {
   @IsString()
   @ApiProperty({
     type: String,
+    description: "ID of the module of the lesson",
+  })
+  moduleId: string;
+
+  @Expose()
+  @IsNotEmpty()
+  @IsString()
+  @ApiProperty({
+    type: String,
     description: "ID of the respective Lesson",
   })
   lessonId: string;

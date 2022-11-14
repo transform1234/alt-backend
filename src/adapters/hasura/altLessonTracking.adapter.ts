@@ -24,6 +24,7 @@ export class ALTLessonTrackingService {
       const altLessonMapping = {
         userId: item?.userId ? `${item.userId}` : "",
         courseId: item?.courseId ? `${item.courseId}` : "",
+        moduleId: item?.moduleId ? `${item.moduleId}` : "",
         lessonId: item?.lessonId ? `${item.lessonId}` : "",
         attempts: item?.attempts ? `${item.attempts}` : 0,
         score: item?.score ? `${item.score}` : 0,
@@ -44,6 +45,7 @@ export class ALTLessonTrackingService {
       query: `query GetLessonTrackingData ($userId:uuid!, $lessonId:String) {
           LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}}) {
             userId
+            moduleId
             lessonId
             created_at
             createdBy
@@ -119,8 +121,9 @@ export class ALTLessonTrackingService {
             query GetLessonTracking($altUserId: uuid!, $altLessonId: String) {
                 LessonProgressTracking(where: {lessonId: {_eq: $altLessonId}, userId: {_eq: $altUserId}}) {
                   courseId
-                  userId
                   lessonId
+                  moduleId
+                  userId
                   attempts
                   status
                   score
@@ -339,6 +342,7 @@ export class ALTLessonTrackingService {
                 userId
                 courseId
                 lessonId
+                moduleId
                 lessonProgressId
                 score
                 scoreDetails                
@@ -481,6 +485,7 @@ export class ALTLessonTrackingService {
           userId
           courseId
           lessonId
+          moduleId
           status
           attempts
           score
