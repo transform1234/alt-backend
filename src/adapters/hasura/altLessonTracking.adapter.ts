@@ -275,7 +275,7 @@ export class ALTLessonTrackingService {
               if (!lastRecord[0].status) {
                 return new ErrorResponse({
                   errorCode: "400",
-                  errorMessage: lastRecord,
+                  errorMessage: lastRecord + "Duplicate entry found in DataBase for Baseline Assessment",
                 });
               }
 
