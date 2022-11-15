@@ -305,7 +305,7 @@ export class ALTLessonTrackingService {
       }
       if (!flag) {
         return new ErrorResponse({
-          errorCode: "403",
+          errorCode: "400",
           errorMessage: `Course provided does not exist in the current program.`,
         });
       }
