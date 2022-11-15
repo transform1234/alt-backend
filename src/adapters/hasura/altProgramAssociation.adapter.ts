@@ -137,9 +137,6 @@ export class ALTProgramAssociationService {
   ) {
     const programSchema = new ProgramAssociationDto(programAssociationDto);
 
-    console.log(programSchema, "hmm");
-    console.log(programAssociationDto);
-
     let newProgramAssociationData = "";
     Object.keys(programAssociationDto).forEach((key) => {
       if (
