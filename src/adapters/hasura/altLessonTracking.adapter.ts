@@ -248,7 +248,7 @@ export class ALTLessonTrackingService {
               });
             } else {
               return new ErrorResponse({
-                errorCode: "403",
+                errorCode: "400",
                 errorMessage:
                   "Duplicate entry found in DataBase for Baseline Assessment",
               });
