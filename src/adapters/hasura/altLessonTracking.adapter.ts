@@ -243,7 +243,7 @@ export class ALTLessonTrackingService {
               recordList[0].status === "Completed"
             ) {
               return new ErrorResponse({
-                errorCode: "403",
+                errorCode: "400",
                 errorMessage: "Record for Baseline Assessment already exists!",
               });
             } else {
