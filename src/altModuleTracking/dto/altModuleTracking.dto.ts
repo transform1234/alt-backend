@@ -1,8 +1,8 @@
 import { Exclude, Expose } from "class-transformer";
-import { IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { IsNotEmpty, IsString } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
-export class ALTLessonTrackingDto {
+export class ALTModuleTrackingDto {
   @Expose()
   @IsNotEmpty()
   @IsString()
@@ -26,7 +26,7 @@ export class ALTLessonTrackingDto {
   @IsString()
   @ApiProperty({
     type: String,
-    description: "ID of the module of the lesson",
+    description: "ID of the module of course",
   })
   moduleId: string;
 
@@ -34,48 +34,37 @@ export class ALTLessonTrackingDto {
   @IsNotEmpty()
   @IsString()
   @ApiProperty({
-    type: String,
-    description: "ID of the respective Lesson",
+    type: Number,
+    description: "Total number of Modules completed",
   })
-  lessonId: string;
-
-  @Expose()
-  @IsNotEmpty()
-  @IsString()
-  @ApiProperty({
-    type: String,
-    description: "Status of lesson",
-  })
-  status: string;
-
-  @Expose()
-  @IsNotEmpty()
-  @IsNumber()
-  attempts: number;
+  totalNumberOfLessonsCompleted: number;
 
   @Expose()
   @IsNotEmpty()
   @IsString()
   @ApiProperty({
     type: Number,
-    description: "Score of the lesson",
+    description: "Total number of Modules",
   })
-  score: number;
+  totalNumberOfLessons: number;
+
+  @Expose()
+  @IsNotEmpty()
+  @IsString()
+  @ApiProperty({
+    type: Number,
+    description: "Score of the Module",
+  })
+  calculatedScore: number;
 
   @Expose()
   @IsNotEmpty()
   @IsString()
   @ApiProperty({
     type: String,
-    description: "ScoreDetails of the lesson",
+    description: "Status of module",
   })
-  scoreDetails: String;
-
-  @Expose()
-  created_at: string;
-
-  @Expose()
-  updated_at: string;
+  status: string;
 
   @ApiProperty({
     type: String,
@@ -90,6 +79,12 @@ export class ALTLessonTrackingDto {
   })
   @Expose()
   updatedBy: string;
+
+  @Expose()
+  created_at: string;
+
+  @Expose()
+  updated_at: string;
 
   constructor(obj: any) {
     Object.assign(this, obj);

@@ -29,10 +29,11 @@ import { AnnouncementsModule } from "./announcements/announcements.module";
 import { RoleModule } from "./role/role.module";
 import { WorkHistoryModule } from "./workHistory/workHistory.module";
 import { GroupMembershipModule } from "./groupMembership/groupMembership.module";
-import { SelfAssessmentModule } from './selfAssessment/selfAssessment.module';
+import { ProgramModule } from "./altProgram/altProgram.module";
 import { ALTCourseTrackingModule } from "./altCourseTracking/altCourseTracking.module";
 import { ALTLessonTrackingModule } from "./altLessonTracking/altLessonTracking.module";
 import { ALTProgramAssociationModule } from "./altProgramAssociation/altProgramAssociation.module";
+import { ALTModuleTrackingModule } from "./altModuleTracking/altModuleTracking.module";
 
 @Module({
   imports: [
@@ -66,10 +67,11 @@ import { ALTProgramAssociationModule } from "./altProgramAssociation/altProgramA
     AnnouncementsModule,
     WorkHistoryModule,
     GroupMembershipModule,
-    SelfAssessmentModule,
+    ProgramModule,
     ALTCourseTrackingModule,
     ALTLessonTrackingModule,
-    ALTProgramAssociationModule
+    ALTProgramAssociationModule,
+    ALTModuleTrackingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

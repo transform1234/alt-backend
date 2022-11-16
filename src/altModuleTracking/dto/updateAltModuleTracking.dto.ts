@@ -1,43 +1,34 @@
-import { Exclude, Expose } from "class-transformer";
+import { ApiProperty } from "@nestjs/swagger";
+import { Expose } from "class-transformer";
 import { IsNotEmpty, IsString } from "class-validator";
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
-export class UpdateALTLessonTrackingDto {
+export class UpdateALTModuleTrackingDto {
+  @Expose()
+  @IsNotEmpty()
+  @IsString()
+  @ApiProperty({
+    type: Number,
+    description: "Total number of Modules completed",
+  })
+  totalNumberOfLessonsCompleted: number;
+
+  @Expose()
+  @IsNotEmpty()
+  @IsString()
+  @ApiProperty({
+    type: Number,
+    description: "Score of the Module",
+  })
+  calculatedScore: number;
+
   @Expose()
   @IsNotEmpty()
   @IsString()
   @ApiProperty({
     type: String,
-    description: "Status of lesson",
+    description: "Status of module",
   })
   status: string;
-
-  @Expose()
-  @IsNotEmpty()
-  @IsString()
-  @ApiProperty({
-    type: Number,
-    description: "Number of Attempts taken",
-  })
-  attempts: number;
-
-  @Expose()
-  @IsNotEmpty()
-  @IsString()
-  @ApiProperty({
-    type: Number,
-    description: "Score of the lesson",
-  })
-  score: number;
-
-  @Expose()
-  @IsNotEmpty()
-  @IsString()
-  @ApiProperty({
-    type: String,
-    description: "ScoreDetails of the lesson",
-  })
-  scoreDetails: String;
 
   @ApiProperty({
     type: String,
@@ -52,6 +43,12 @@ export class UpdateALTLessonTrackingDto {
   })
   @Expose()
   updatedBy: string;
+
+  @Expose()
+  created_at: string;
+
+  @Expose()
+  updated_at: string;
 
   constructor(obj: any) {
     Object.assign(this, obj);

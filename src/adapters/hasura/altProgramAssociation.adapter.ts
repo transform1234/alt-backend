@@ -3,11 +3,32 @@ import { HttpService } from "@nestjs/axios";
 import { SuccessResponse } from "src/success-response";
 import { ALTSubjectListDto } from "src/altProgramAssociation/dto/altSubjectList.dto";
 import { TermsProgramtoRulesDto } from "src/altProgramAssociation/dto/altTermsProgramtoRules.dto";
+import { ProgramAssociationDto } from "src/altProgramAssociation/dto/altProgramAssociation.dto";
+import { UpdateALTProgramAssociationDto } from "src/altProgramAssociation/dto/updateAltProgramAssociation.dto";
 import { ErrorResponse } from "src/error-response";
+import { ALTProgramAssociationSearch } from "src/altProgramAssociation/dto/searchAltProgramAssociation.dto";
 
 Injectable();
 export class ALTProgramAssociationService {
   axios = require("axios");
+
+  public async mappedResponse(data: any) {
+    const programResponse = data.map((item: any) => {
+      const programMapping = {
+        framework: item?.framework ? `${item.framework}` : "",
+        board: item?.board ? `${item.board}` : "",
+        medium: item?.medium ? `${item.medium}` : "",
+        grade: item?.grade ? `${item.grade}` : "",
+        subject: item?.subject ? `${item.subject}` : "",
+        rules: item?.rules ? `${item.rules}` : "",
+        programId: item?.programId ? `${item.programId}` : "",
+        created_at: item?.created_at ? `${item.created_at}` : "",
+        updated_at: item?.updated_at ? `${item.updated_at}` : "",
+      };
+      return new ProgramAssociationDto(programMapping);
+    });
+    return programResponse;
+  }
 
   public async getSubjectList(altSubjectListDto: ALTSubjectListDto) {
     const subjectListData = {
@@ -108,6 +129,192 @@ export class ALTProgramAssociationService {
       statusCode: 200,
       message: "Ok.",
       data: result,
+    });
+  }
+
+  public async createProgramAssociation(
+    programAssociationDto: ProgramAssociationDto
+  ) {
+    const programSchema = new ProgramAssociationDto(programAssociationDto);
+
+    let newProgramAssociationData = "";
+    Object.keys(programAssociationDto).forEach((key) => {
+      if (
+        programAssociationDto[key] &&
+        programAssociationDto[key] != "" &&
+        Object.keys(programSchema).includes(key)
+      ) {
+        newProgramAssociationData += `${key}: ${JSON.stringify(
+          programAssociationDto[key]
+        )}, `;
+      }
+    });
+
+    const programData = {
+      query: `mutation CreateProgram {
+                insert_ProgramTermAssoc_one(object: {${newProgramAssociationData}}) {
+                  progAssocNo
+            }
+          }`,
+      variables: {},
+    };
+
+    const configData = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Content-Type": "application/json",
+      },
+      data: programData,
+    };
+
+    const response = await this.axios(configData);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const result = response.data.data.insert_ProgramTermAssoc_one;
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: result,
+    });
+  }
+
+  // public async updateProgramAssociation(
+  //   programAssocNo: string,
+  //   updateProgramAssociationDto: UpdateALTProgramAssociationDto
+  // ) {
+  //   const updateAltProgramAssoc = new UpdateALTProgramAssociationDto(
+  //     updateProgramAssociationDto
+  //   );
+
+  //   console.log(updateAltProgramAssoc,"update 1");
+  //   console.log(updateProgramAssociationDto, "update2");
+
+  //   let newUpdateAltProgram = "";
+  //   Object.keys(updateProgramAssociationDto).forEach((key) => {
+  //     if (
+  //       updateProgramAssociationDto[key] &&
+  //       updateProgramAssociationDto[key] != "" &&
+  //       Object.keys(updateAltProgramAssoc).includes(key)
+  //     ) {
+  //       console.log(key);
+
+  //       newUpdateAltProgram += `${key}: ${JSON.stringify(
+  //         updateProgramAssociationDto[key]
+  //       )}, `;
+  //     }
+
+  //   });
+
+  //   console.log(newUpdateAltProgram,"newUpdateAltProgram");
+
+  //   const altProgramUpdateData = {
+  //     query: `mutation UpdateProgram($programAssocNo:uuid!) {
+  //       update_AssessProgram_by_pk(pk_columns: {programAssocNo: $programAssocNo}, _set: {${newUpdateAltProgram}}) {
+  //         updated_at
+  //       }
+  //     }`,
+  //     variables: {
+  //       programAssocNo: programAssocNo,
+  //     },
+  //   };
+
+  //   const configData = {
+  //     method: "post",
+  //     url: process.env.ALTHASURA,
+  //     headers: {
+  //       "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+  //       "Content-Type": "application/json",
+  //     },
+  //     altProgramUpdateData,
+  //   };
+
+  //   const response = await this.axios(configData);
+
+  //   if (response?.data?.errors) {
+  //     console.log(response?.data?.errors);
+  //     return new ErrorResponse({
+  //       errorCode: response.data.errors[0].extensions,
+  //       errorMessage: response.data.errors[0].message,
+  //     });
+  //   }
+
+  //   const result = response.data.data.AssessProgram_by_pk;
+
+  //   return new SuccessResponse({
+  //     statusCode: 200,
+  //     message: "Ok.",
+  //     data: result,
+  //   });
+  // }
+
+  public async searchALTProgramAssociation(
+    altProgramAssociationSearch: ALTProgramAssociationSearch
+  ) {
+    var axios = require("axios");
+
+    let query = "";
+    Object.keys(altProgramAssociationSearch.filters).forEach((e) => {
+      if (
+        altProgramAssociationSearch.filters[e] &&
+        altProgramAssociationSearch.filters[e] != ""
+      ) {
+        query += `${e}:{_eq:"${altProgramAssociationSearch.filters[e]}"}`;
+      }
+    });
+    var searchData = {
+      query: `query SearchALTProgramAssociation($limit:Int) {
+        ProgramTermAssoc(limit: $limit, where: {${query}}) {
+          framework
+          board
+          grade
+          medium
+          subject
+          programId
+          rules
+          created_at
+          updated_at
+        }
+    }`,
+      variables: {
+        limit: altProgramAssociationSearch.limit,
+      },
+    };
+
+    const configData = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Content-Type": "application/json",
+      },
+      data: searchData,
+    };
+
+    const response = await axios(configData);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    let result = response.data.data.ProgramTermAssoc;
+    const altProgramList = await this.mappedResponse(result);
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: altProgramList,
     });
   }
 }
