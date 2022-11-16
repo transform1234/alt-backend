@@ -80,12 +80,14 @@ export class ALTModuleTrackingController {
     @Req() request: Request,
     @Query("program") programId: string,
     @Query("subject") subject: string,
+    @Query("noOfModules") noOfModules: number,
     @Body() altModuleTrackingDto: ALTModuleTrackingDto
   ) {
     return this.altModuleTrackingService.checkAndAddALTModuleTracking(
       request,
       programId,
       subject,
+      noOfModules,
       altModuleTrackingDto
     );
   }

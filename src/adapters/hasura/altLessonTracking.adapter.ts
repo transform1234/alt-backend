@@ -6,8 +6,10 @@ import { UpdateALTLessonTrackingDto } from "src/altLessonTracking/dto/updateAltL
 import { ALTLessonTrackingSearch } from "src/altLessonTracking/dto/searchAltLessonTracking.dto";
 import { ProgramService } from "./altProgram.adapter";
 import { ALTProgramAssociationService } from "../../adapters/hasura/altProgramAssociation.adapter";
+import { ALTModuleTrackingService } from "../../adapters/hasura/altModuleTracking.adapter";
 import { ErrorResponse } from "src/error-response";
 import { TermsProgramtoRulesDto } from "src/altProgramAssociation/dto/altTermsProgramtoRules.dto";
+import { ALTModuleTrackingDto } from "src/altModuleTracking/dto/altModuleTracking.dto";
 
 @Injectable()
 export class ALTLessonTrackingService {
@@ -16,7 +18,8 @@ export class ALTLessonTrackingService {
   constructor(
     private httpService: HttpService,
     private programService: ProgramService,
-    private altProgramAssociationService: ALTProgramAssociationService
+    private altProgramAssociationService: ALTProgramAssociationService,
+    private altModuleTrackingService: ALTModuleTrackingService
   ) {}
 
   public async mappedResponse(data: any) {
@@ -39,11 +42,12 @@ export class ALTLessonTrackingService {
 
   public async getExistingLessonTrackingRecords(
     userId: string,
-    lessonId: string
+    lessonId: string,
+    moduleId: string
   ) {
     const altLessonTrackingRecord = {
-      query: `query GetLessonTrackingData ($userId:uuid!, $lessonId:String) {
-          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}}) {
+      query: `query GetLessonTrackingData ($userId:uuid!, $lessonId:String, $moduleId:String) {
+          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}, moduleId: {_eq: $moduleId}}) {
             userId
             moduleId
             lessonId
@@ -55,6 +59,7 @@ export class ALTLessonTrackingService {
       variables: {
         userId: userId,
         lessonId: lessonId,
+        moduleId: moduleId,
       },
     };
 
@@ -76,11 +81,12 @@ export class ALTLessonTrackingService {
   public async getLastLessonTrackingRecord(
     userId: string,
     lessonId: string,
+    moduleId: string,
     attemptNumber: number
   ) {
     const altLastLessonTrackingRecord = {
-      query: `query GetLastLessonTrackingRecord ($userId:uuid!, $lessonId:String, $attemptNumber: Int) {
-          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}, attempts: {_eq: $attemptNumber}}) {
+      query: `query GetLastLessonTrackingRecord ($userId:uuid!, $lessonId:String, $moduleId:String, $attemptNumber: Int) {
+          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}, moduleId: {_eq: $moduleId}, attempts: {_eq: $attemptNumber}}) {
             created_at
             createdBy
             status
@@ -89,6 +95,7 @@ export class ALTLessonTrackingService {
       variables: {
         userId: userId,
         lessonId: lessonId,
+        moduleId: moduleId,
         attemptNumber: attemptNumber,
       },
     };
@@ -176,7 +183,8 @@ export class ALTLessonTrackingService {
     let errorExRec = "";
     const recordList = await this.getExistingLessonTrackingRecords(
       altLessonTrackingDto.userId,
-      altLessonTrackingDto.lessonId
+      altLessonTrackingDto.lessonId,
+      altLessonTrackingDto.moduleId
     ).catch(function (error) {
       if (error?.response?.data) {
         errorExRec = error.response.data.errorMessage;
@@ -198,6 +206,13 @@ export class ALTLessonTrackingService {
       programId
     );
 
+    if (!currentProgramDetails.data) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: currentProgramDetails?.errorMessage,
+      });
+    }
+
     const paramData = new TermsProgramtoRulesDto(currentProgramDetails.data);
 
     let progTermData: any = {};
@@ -213,6 +228,7 @@ export class ALTLessonTrackingService {
     const programRules = JSON.parse(progTermData.data[0].rules);
 
     let flag = false;
+    let tracklessonModule;
 
     if (altLessonTrackingDto.userId) {
       for (const course of programRules?.prog) {
@@ -256,6 +272,13 @@ export class ALTLessonTrackingService {
           } else if (course.contentType == "course" && allowedAttempts === 0) {
             if (numberOfRecords === 0) {
               altLessonTrackingDto.attempts = 1;
+              if (altLessonTrackingDto.status === "Completed") {
+                tracklessonModule = await this.lessonToModuleTracking(
+                  altLessonTrackingDto,
+                  programId,
+                  subject
+                );
+              }
               return await this.createALTLessonTracking(
                 request,
                 altLessonTrackingDto
@@ -264,6 +287,7 @@ export class ALTLessonTrackingService {
               const lastRecord = await this.getLastLessonTrackingRecord(
                 altLessonTrackingDto.userId,
                 altLessonTrackingDto.lessonId,
+                altLessonTrackingDto.moduleId,
                 numberOfRecords
               ).catch(function (error) {
                 return new ErrorResponse({
@@ -280,6 +304,17 @@ export class ALTLessonTrackingService {
               }
 
               if (lastRecord[0]?.status !== "Completed") {
+                if (
+                  altLessonTrackingDto.status === "Completed" &&
+                  lastRecord[0].attempts === 1
+                ) {
+                  tracklessonModule = await this.lessonToModuleTracking(
+                    altLessonTrackingDto,
+                    programId,
+                    subject
+                  );
+                }
+
                 return await this.updateALTLessonTracking(
                   request,
                   altLessonTrackingDto.userId,
@@ -524,5 +559,52 @@ export class ALTLessonTrackingService {
       message: "Ok.",
       data: altLessonTrackingList,
     });
+  }
+
+  public async lessonToModuleTracking(
+    altLessonTrackingDto: ALTLessonTrackingDto,
+    programId: string,
+    subject: string
+  ) {
+    const currentUrl = process.env.SUNBIRDURL;
+
+    let config = {
+      method: "get",
+      url:
+        currentUrl +
+        `/api/course/v1/hierarchy/${altLessonTrackingDto.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`,
+    };
+
+    const courseHierarchy = await this.axios(config);
+    const data = courseHierarchy?.data.result.content;
+    let noOfModules = data.children.length;
+
+    let currentModule = data.children.find((item) => {
+      return item.identifier === altLessonTrackingDto.moduleId;
+    });
+
+    let altModuleTracking = {
+      userId: altLessonTrackingDto.userId,
+      courseId: altLessonTrackingDto.courseId,
+      moduleId: altLessonTrackingDto.moduleId,
+      status: "Ongoing",
+      totalNumberOfLessonsCompleted: 1,
+      totalNumberOfLessons: currentModule.children.length,
+      calculatedScore: 0,
+      createdBy: altLessonTrackingDto.createdBy,
+      updatedBy: altLessonTrackingDto.updatedBy,
+    };
+
+    const altModuleTrackingDto = new ALTModuleTrackingDto(altModuleTracking);
+
+    let request: Request;
+    const moduleTracking =
+      this.altModuleTrackingService.checkAndAddALTModuleTracking(
+        request,
+        programId,
+        subject,
+        noOfModules,
+        altModuleTrackingDto
+      );
   }
 }
