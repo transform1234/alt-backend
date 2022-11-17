@@ -20,7 +20,6 @@ export class ProgramService implements IProgramServicelocator {
         programName: item?.programName ? `${item.programName}` : "",
         startDate: item?.startDate ? `${item.startDate}` : "",
         endDate: item?.endDate ? `${item.endDate}` : "",
-        framework: item?.framework ? `${item.framework}` : "",
         board: item?.board ? `${item.board}` : "",
         medium: item?.medium ? `${item.medium}` : "",
         grade: item?.grade ? `${item.grade}` : "",
@@ -40,7 +39,6 @@ export class ProgramService implements IProgramServicelocator {
                 programName
                 startDate
                 endDate
-                framework
                 board
                 medium
                 grade
@@ -88,10 +86,9 @@ export class ProgramService implements IProgramServicelocator {
     fbmgstoprogramdto: FBMGStoProgramDto
   ) {
     const programData = {
-      query: `query GetCurrentProgramId ($framework:String,$board:String,$medium:String,$grade:String,$currentDate:date){
+      query: `query GetCurrentProgramId ($board:String,$medium:String,$grade:String,$currentDate:date){
             AssessProgram(where: 
             {
-              framework: {_eq: $framework}
               board: {_eq: $board},
               medium: {_eq: $medium}
               grade: {_eq: $grade},
@@ -103,7 +100,6 @@ export class ProgramService implements IProgramServicelocator {
             }
           }`,
       variables: {
-        framework: fbmgstoprogramdto.framework,
         board: fbmgstoprogramdto.board,
         medium: fbmgstoprogramdto.medium,
         grade: fbmgstoprogramdto.grade,
@@ -212,7 +208,7 @@ export class ProgramService implements IProgramServicelocator {
   //   });
 
   //   console.log(programId);
-    
+
   //   console.log(newUpdateAltProgram, "newUpdateAltProgram");
 
   //   const altProgramUpdateData = {
@@ -274,7 +270,6 @@ export class ProgramService implements IProgramServicelocator {
     var searchData = {
       query: `query SearchALTSchoolTracking($limit:Int) {
         AssessProgram(limit: $limit, where: {${query}}) {
-          framework
           board
           grade
           medium

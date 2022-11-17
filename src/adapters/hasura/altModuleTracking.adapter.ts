@@ -187,7 +187,6 @@ export class ALTModuleTrackingService {
     let progTermData: any = {};
     progTermData = await this.altProgramAssociationService.getRules({
       programId: programId,
-      framework: paramData[0].framework,
       board: paramData[0].board,
       medium: paramData[0].medium,
       grade: paramData[0].grade,
