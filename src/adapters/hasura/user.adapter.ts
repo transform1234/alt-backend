@@ -100,6 +100,8 @@ export class HasuraUserService implements IServicelocator {
       errKeycloak = error.response.data.errorMessage;
   });
 
+    // Add userId created in keycloak as user Id of ALT user  
+    query += `userId: "${resKeycloak}"`;
     var data = {
       query: `mutation CreateUser {
         insert_Users_one(object: {${query}}) {
@@ -184,8 +186,11 @@ export class HasuraUserService implements IServicelocator {
       };
 
       const userResponse = await axios(config);
+      let userString = userResponse.headers.location;
+      let userId = userString.lastIndexOf('/');
+      let result = userString.substring(userId + 1);
 
-      return userResponse;
+      return result;
   }
 
   public async getToken() {
