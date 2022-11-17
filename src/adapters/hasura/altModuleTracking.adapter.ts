@@ -490,7 +490,7 @@ export class ALTModuleTrackingService {
     let request: Request;
     let moduleTracking: any;
     moduleTracking =
-      await this.altCourseTrackingService.checkAndAddALTCourseTracking(
+      await this.altCourseTrackingService.addALTCourseTracking(
         altCourseTrackingDto,
         altModuleTrackingDto.status
       );

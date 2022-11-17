@@ -288,7 +288,7 @@ export class ALTCourseTrackingService {
     });
   }
 
-  public async checkAndAddALTCourseTracking(
+  public async addALTCourseTracking(
     altCourseTrackingDto: ALTCourseTrackingDto,
     moduleStatus: string
   ) {
