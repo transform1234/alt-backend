@@ -126,7 +126,11 @@ export class ProgramService implements IProgramServicelocator {
       });
     }
 
-    const result = response.data.data.AssessProgram;
+    let result = response.data.data.AssessProgram;
+
+    if (!result.length) {
+      result = `No matching record found for the current combination.`;
+    }
 
     return new SuccessResponse({
       statusCode: 200,
