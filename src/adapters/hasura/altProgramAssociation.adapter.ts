@@ -15,7 +15,6 @@ export class ALTProgramAssociationService {
   public async mappedResponse(data: any) {
     const programResponse = data.map((item: any) => {
       const programMapping = {
-        framework: item?.framework ? `${item.framework}` : "",
         board: item?.board ? `${item.board}` : "",
         medium: item?.medium ? `${item.medium}` : "",
         grade: item?.grade ? `${item.grade}` : "",
@@ -32,10 +31,9 @@ export class ALTProgramAssociationService {
 
   public async getSubjectList(altSubjectListDto: ALTSubjectListDto) {
     const subjectListData = {
-      query: `query GetSubjectList ($framework:String,$board:String,$medium:String,$grade:String,$programId:uuid!){
+      query: `query GetSubjectList ($board:String,$medium:String,$grade:String,$programId:uuid!){
                 ProgramTermAssoc(where: 
                 {
-                    framework: {_eq: $framework}
                     board: {_eq: $board},
                     medium: {_eq: $medium}
                     grade: {_eq: $grade},
@@ -44,7 +42,6 @@ export class ALTProgramAssociationService {
                 { subject }
             }`,
       variables: {
-        framework: altSubjectListDto.framework,
         board: altSubjectListDto.board,
         medium: altSubjectListDto.medium,
         grade: altSubjectListDto.grade,
@@ -82,10 +79,9 @@ export class ALTProgramAssociationService {
 
   public async getRules(altTermsProgramDto: TermsProgramtoRulesDto) {
     const TermsProgramtoRulesData = {
-      query: `query GetRules ($framework:String,$board:String,$medium:String,$grade:String,$subject:String,$programId:uuid!){
+      query: `query GetRules ($board:String,$medium:String,$grade:String,$subject:String,$programId:uuid!){
                 ProgramTermAssoc(where: 
                 {
-                    framework: {_eq: $framework}
                     board: {_eq: $board},
                     medium: {_eq: $medium}
                     grade: {_eq: $grade},
@@ -95,7 +91,6 @@ export class ALTProgramAssociationService {
                 { rules }
             }`,
       variables: {
-        framework: altTermsProgramDto.framework,
         board: altTermsProgramDto.board,
         medium: altTermsProgramDto.medium,
         grade: altTermsProgramDto.grade,
@@ -273,7 +268,6 @@ export class ALTProgramAssociationService {
     var searchData = {
       query: `query SearchALTProgramAssociation($limit:Int) {
         ProgramTermAssoc(limit: $limit, where: {${query}}) {
-          framework
           board
           grade
           medium

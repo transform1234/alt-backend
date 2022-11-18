@@ -218,7 +218,6 @@ export class ALTLessonTrackingService {
     let progTermData: any = {};
     progTermData = await this.altProgramAssociationService.getRules({
       programId: programId,
-      framework: paramData[0].framework,
       board: paramData[0].board,
       medium: paramData[0].medium,
       grade: paramData[0].grade,
@@ -299,7 +298,9 @@ export class ALTLessonTrackingService {
               if (!lastRecord[0].status) {
                 return new ErrorResponse({
                   errorCode: "400",
-                  errorMessage: lastRecord + "Duplicate entry found in DataBase for Baseline Assessment",
+                  errorMessage:
+                    lastRecord +
+                    "Duplicate entry found in DataBase for Baseline Assessment",
                 });
               }
 

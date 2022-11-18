@@ -65,6 +65,7 @@ export class ALTCourseTrackingController {
     @Body() altCourseTrackingDto: ALTCourseTrackingDto
   ) {
     const res = this.altCourseTrackingService.addALTCourseTracking(
+      request,
       altCourseTrackingDto,
       moduleStatus
     );

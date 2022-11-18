@@ -39,15 +39,6 @@ export class ProgramDto {
   @IsString()
   @ApiProperty({
     type: String,
-    description: "Name of the Framework",
-  })
-  framework: string;
-
-  @Expose()
-  @IsNotEmpty()
-  @IsString()
-  @ApiProperty({
-    type: String,
     description: "Name of the Board",
   })
   board: string;
