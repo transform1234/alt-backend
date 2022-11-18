@@ -223,7 +223,11 @@ export class ALTModuleTrackingService {
             } else {
               altModuleTrackingDto.status = "Ongoing";
             }
-            this.moduleToCourseTracking(altModuleTrackingDto, noOfModules);
+            this.moduleToCourseTracking(
+              request,
+              altModuleTrackingDto,
+              noOfModules
+            );
             return await this.createALTModuleTracking(altModuleTrackingDto);
           } else if (
             numberOfRecords === 1 &&
@@ -240,6 +244,7 @@ export class ALTModuleTrackingService {
 
             if (altModuleTrackingDto.status === "Completed") {
               await this.moduleToCourseTracking(
+                request,
                 altModuleTrackingDto,
                 noOfModules
               );
@@ -470,6 +475,7 @@ export class ALTModuleTrackingService {
   }
 
   public async moduleToCourseTracking(
+    request: any,
     altModuleTrackingDto: ALTModuleTrackingDto,
     noOfModules: number
   ) {
@@ -486,13 +492,12 @@ export class ALTModuleTrackingService {
 
     const altCourseTrackingDto = new ALTCourseTrackingDto(altCourseTracking);
 
-    let request: Request;
     let moduleTracking: any;
-    moduleTracking =
-      await this.altCourseTrackingService.addALTCourseTracking(
-        altCourseTrackingDto,
-        altModuleTrackingDto.status
-      );
+    moduleTracking = await this.altCourseTrackingService.addALTCourseTracking(
+      request,
+      altCourseTrackingDto,
+      altModuleTrackingDto.status
+    );
 
     if (moduleTracking?.errorCode) {
       return new ErrorResponse({

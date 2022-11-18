@@ -94,6 +94,7 @@ export class ALTCourseTrackingService {
   }
 
   public async createALTCourseTracking(
+    request: any,
     altCourseTrackingDto: ALTCourseTrackingDto
   ) {
     const altCourseTracking = new ALTCourseTrackingDto(altCourseTrackingDto);
@@ -290,6 +291,7 @@ export class ALTCourseTrackingService {
   }
 
   public async addALTCourseTracking(
+    request: any,
     altCourseTrackingDto: ALTCourseTrackingDto,
     moduleStatus: string
   ) {
@@ -322,7 +324,7 @@ export class ALTCourseTrackingService {
           altCourseTrackingDto.totalNumberOfModulesCompleted + 1;
         altCourseTrackingDto.status = "Ongoing";
       }
-      return this.createALTCourseTracking(altCourseTrackingDto);
+      return this.createALTCourseTracking(request,altCourseTrackingDto);
     } else if (
       numberOfRecords === 1 &&
       recordList.data[0].status !== "Completed"

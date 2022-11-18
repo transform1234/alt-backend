@@ -181,11 +181,19 @@ export class UserDto {
   @Expose()
   updated_at: string;
 
+  @ApiProperty({
+    type: String,
+    description: "Created by name",
+  })
   @Expose()
-  created_by: string;
+  createdBy: string;
 
+  @ApiProperty({
+    type: String,
+    description: "Updated by name",
+  })
   @Expose()
-  updated_by: string;
+  updatedBy: string;
 
   constructor(obj: any) {
     Object.assign(this, obj);
