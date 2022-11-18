@@ -244,7 +244,7 @@ export class ALTLessonTrackingService {
               );
             } else if (
               numberOfRecords === 1 &&
-              recordList[0].status !== "Completed"
+              recordList[0].status !== "completed"
             ) {
               return await this.updateALTLessonTracking(
                 request,
@@ -255,7 +255,7 @@ export class ALTLessonTrackingService {
               );
             } else if (
               numberOfRecords === 1 &&
-              recordList[0].status === "Completed"
+              recordList[0].status === "completed"
             ) {
               return new ErrorResponse({
                 errorCode: "400",
@@ -271,7 +271,7 @@ export class ALTLessonTrackingService {
           } else if (course.contentType == "course" && allowedAttempts === 0) {
             if (numberOfRecords === 0) {
               altLessonTrackingDto.attempts = 1;
-              if (altLessonTrackingDto.status === "Completed") {
+              if (altLessonTrackingDto.status === "completed") {
                 tracklessonModule = await this.lessonToModuleTracking(
                   altLessonTrackingDto,
                   programId,
@@ -304,9 +304,9 @@ export class ALTLessonTrackingService {
                 });
               }
 
-              if (lastRecord[0]?.status !== "Completed") {
+              if (lastRecord[0]?.status !== "completed") {
                 if (
-                  altLessonTrackingDto.status === "Completed" &&
+                  altLessonTrackingDto.status === "completed" &&
                   lastRecord[0].attempts === 1
                 ) {
                   tracklessonModule = await this.lessonToModuleTracking(
@@ -323,7 +323,7 @@ export class ALTLessonTrackingService {
                   altLessonTrackingDto,
                   lastRecord[0]?.attempts
                 );
-              } else if (lastRecord[0]?.status === "Completed") {
+              } else if (lastRecord[0]?.status === "completed") {
                 altLessonTrackingDto.attempts = numberOfRecords + 1;
                 return await this.createALTLessonTracking(
                   request,
@@ -588,7 +588,7 @@ export class ALTLessonTrackingService {
       userId: altLessonTrackingDto.userId,
       courseId: altLessonTrackingDto.courseId,
       moduleId: altLessonTrackingDto.moduleId,
-      status: "Ongoing",
+      status: "ongoing",
       totalNumberOfLessonsCompleted: 1,
       totalNumberOfLessons: currentModule.children.length,
       calculatedScore: 0,

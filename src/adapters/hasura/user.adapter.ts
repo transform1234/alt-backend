@@ -435,9 +435,9 @@ export class HasuraUserService implements IServicelocator {
             status
             image
             created_at
-            created_by
+            createdBy
             updated_at
-            updated_by
+            updatedBy
         }
       }`,
       variables: { username: username },

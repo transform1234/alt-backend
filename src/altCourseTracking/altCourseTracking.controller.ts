@@ -51,7 +51,7 @@ export class ALTCourseTrackingController {
     );
   }
 
-  @Post("/altcheckandaddcoursetracking")
+  @Post("/addcoursetracking")
   @ApiBasicAuth("access-token")
   @ApiCreatedResponse({
     description: "ALTCourseTrack has been created successfully.",

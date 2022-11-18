@@ -2,7 +2,7 @@ import { Exclude, Expose } from "class-transformer";
 import { IsDate, IsNotEmpty, IsString } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
-export class FBMGStoProgramDto {
+export class BMGStoProgramDto {
   @Expose()
   @IsNotEmpty()
   @IsString()

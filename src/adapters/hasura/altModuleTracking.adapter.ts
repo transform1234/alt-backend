@@ -219,9 +219,9 @@ export class ALTModuleTrackingService {
               altModuleTrackingDto.totalNumberOfLessons ===
               altModuleTrackingDto.totalNumberOfLessonsCompleted
             ) {
-              altModuleTrackingDto.status = "Completed";
+              altModuleTrackingDto.status = "completed";
             } else {
-              altModuleTrackingDto.status = "Ongoing";
+              altModuleTrackingDto.status = "ongoing";
             }
             this.moduleToCourseTracking(
               request,
@@ -231,18 +231,18 @@ export class ALTModuleTrackingService {
             return await this.createALTModuleTracking(altModuleTrackingDto);
           } else if (
             numberOfRecords === 1 &&
-            recordList.data[0].status !== "Completed"
+            recordList.data[0].status !== "completed"
           ) {
             if (
               parseInt(recordList.data[0].totalNumberOfLessonsCompleted) + 1 ===
               parseInt(recordList.data[0].totalNumberOfLessons)
             ) {
-              altModuleTrackingDto.status = "Completed";
+              altModuleTrackingDto.status = "completed";
             }
             altModuleTrackingDto.totalNumberOfLessonsCompleted =
               recordList.data[0].totalNumberOfLessonsCompleted + 1;
 
-            if (altModuleTrackingDto.status === "Completed") {
+            if (altModuleTrackingDto.status === "completed") {
               await this.moduleToCourseTracking(
                 request,
                 altModuleTrackingDto,
@@ -257,7 +257,7 @@ export class ALTModuleTrackingService {
             );
           } else if (
             numberOfRecords === 1 &&
-            recordList.data[0].status === "Completed"
+            recordList.data[0].status === "completed"
           ) {
             console.log("recal scorehere");
           } else {

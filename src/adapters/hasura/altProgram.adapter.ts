@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
 import { SuccessResponse } from "src/success-response";
 import { ProgramDto } from "src/altProgram/dto/program.dto";
-import { FBMGStoProgramDto } from "src/altProgram/dto/fbmgstoProgram.dto";
+import { BMGStoProgramDto } from "src/altProgram/dto/bmgstoProgram.dto";
 import { IProgramServicelocator } from "../programservicelocator";
 import { ErrorResponse } from "src/error-response";
 import { UpdateALTProgramDto } from "src/altProgram/dto/updateAltProgram.dto";
@@ -83,7 +83,7 @@ export class ProgramService implements IProgramServicelocator {
 
   public async getCurrentProgramId(
     request: any,
-    fbmgstoprogramdto: FBMGStoProgramDto
+    fbmgstoprogramdto: BMGStoProgramDto
   ) {
     const programData = {
       query: `query GetCurrentProgramId ($board:String,$medium:String,$grade:String,$currentDate:date){
