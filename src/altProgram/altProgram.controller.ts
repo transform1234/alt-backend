@@ -23,7 +23,7 @@ import {
   ApiBasicAuth,
 } from "@nestjs/swagger";
 import { ProgramService } from "../adapters/hasura/altProgram.adapter";
-import { FBMGStoProgramDto } from "./dto/fbmgstoProgram.dto";
+import { BMGStoProgramDto } from "./dto/bmgstoProgram.dto";
 import { ProgramDto } from "./dto/program.dto";
 import { ALTProgramSearch } from "./dto/searchAltProgram.dto";
 import { UpdateALTProgramDto } from "./dto/updateAltProgram.dto";
@@ -48,15 +48,15 @@ export class SelfAssessmentController {
     return this.programService.getProgramDetailsById(id.trim());
   }
 
-  @Post("/fbmgs")
+  @Post("/bmgs")
   @ApiBasicAuth("access-token")
   @ApiCreatedResponse({ description: "Program has been found." })
-  @ApiBody({ type: FBMGStoProgramDto })
+  @ApiBody({ type: BMGStoProgramDto })
   @ApiForbiddenResponse({ description: "Forbidden" })
   @UseInterceptors(ClassSerializerInterceptor)
   public async getProgramByBMGS(
     @Req() request: Request,
-    @Body() fbgmstoprogramdto: FBMGStoProgramDto
+    @Body() fbgmstoprogramdto: BMGStoProgramDto
   ) {
     return this.programService.getCurrentProgramId(request, fbgmstoprogramdto);
   }
