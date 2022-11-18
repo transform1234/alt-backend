@@ -25,15 +25,6 @@ export class ALTCourseTrackingDto {
   @IsNotEmpty()
   @IsString()
   @ApiProperty({
-    type: String,
-    description: "Name of the next Course to be taken",
-  })
-  nextCourse: string;
-
-  @Expose()
-  @IsNotEmpty()
-  @IsString()
-  @ApiProperty({
     type: Number,
     description: "Total number of Modules completed",
   })

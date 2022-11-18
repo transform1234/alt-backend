@@ -17,9 +17,12 @@ export class ALTCourseTrackingService {
       const altCourseMapping = {
         userId: item?.userId ? `${item.userId}` : "",
         courseId: item?.courseId ? `${item.courseId}` : "",
-        nextCourse: item?.nextCourse ? `${item.nextCourse}` : "",
-        totalNumberOfModulesCompleted: item?.totalNumberOfModulesCompleted ? `${item.totalNumberOfModulesCompleted}` : 0,
-        totalNumberOfModules: item?.totalNumberOfModules ? `${item.totalNumberOfModules}` : 0,
+        totalNumberOfModulesCompleted: item?.totalNumberOfModulesCompleted
+          ? `${item.totalNumberOfModulesCompleted}`
+          : 0,
+        totalNumberOfModules: item?.totalNumberOfModules
+          ? `${item.totalNumberOfModules}`
+          : 0,
         calculatedScore: item?.calculatedScore ? `${item.calculatedScore}` : 0,
         status: item?.status ? `${item.status}` : "",
         createdBy: item?.createdBy ? `${item.createdBy}` : "",
@@ -33,16 +36,19 @@ export class ALTCourseTrackingService {
     return altCourseTrackingResponse;
   }
 
-  public async getALTCourseTracking(altCourseId: string, altUserId: string) {
+  public async getExistingCourseTrackingRecords(
+    altCourseId: string,
+    altUserId: string
+  ) {
     const ALTCourseTrackingData = {
       query: `
-            query MyQuery($altUserId: String, $altCourseId: String) {
+            query MyQuery($altUserId: uuid!, $altCourseId: String) {
                 CourseProgressTracking(where: {courseId: {_eq: $altCourseId}, userId: {_eq: $altUserId}}) {
                   courseId
                   userId
-                  attempts
+                  totalNumberOfModulesCompleted
+                  totalNumberOfModules
                   calculatedScore
-                  nextCourse
                   status
                   created_at
                   updated_at
@@ -88,7 +94,6 @@ export class ALTCourseTrackingService {
   }
 
   public async createALTCourseTracking(
-    request: any,
     altCourseTrackingDto: ALTCourseTrackingDto
   ) {
     const altCourseTracking = new ALTCourseTrackingDto(altCourseTrackingDto);
@@ -99,20 +104,23 @@ export class ALTCourseTrackingService {
         altCourseTrackingDto[key] != "" &&
         Object.keys(altCourseTracking).includes(key)
       ) {
-        newAltCourseTracking += `${key}: ${JSON.stringify(
-          altCourseTrackingDto[key]
-        )}, `;
+        if (key === "status") {
+          newAltCourseTracking += `${key}: ${altCourseTrackingDto[key]},`;
+        } else {
+          newAltCourseTracking += `${key}: ${JSON.stringify(
+            altCourseTrackingDto[key]
+          )}, `;
+        }
       }
     });
 
     const altCourseTrackingData = {
-      query: `mutation CreateALTProgressTracking ($rules:String,$program_name:String) {
+      query: `mutation CreateALTProgressTracking {
             insert_CourseProgressTracking_one(object: {${newAltCourseTracking}}) {
               courseProgressId
               courseId
               userId
               calculatedScore
-              nextCourse
               status
               created_at
               updated_at
@@ -153,29 +161,32 @@ export class ALTCourseTrackingService {
   }
 
   public async updateALTCourseTracking(
-    request: any,
     userId: string,
     courseId: string,
-    updateUserDto: UpdateALTCourseTrackingDto
+    updateCourseTrackingDto: UpdateALTCourseTrackingDto
   ) {
     const updateAltCourseTracking = new UpdateALTCourseTrackingDto(
-      updateUserDto
+      updateCourseTrackingDto
     );
     let newUpdateAltCourseTracking = "";
-    Object.keys(updateUserDto).forEach((key) => {
+    Object.keys(updateCourseTrackingDto).forEach((key) => {
       if (
-        updateUserDto[key] &&
-        updateUserDto[key] != "" &&
+        updateCourseTrackingDto[key] &&
+        updateCourseTrackingDto[key] != "" &&
         Object.keys(updateAltCourseTracking).includes(key)
       ) {
-        newUpdateAltCourseTracking += `${key}: ${JSON.stringify(
-          updateUserDto[key]
-        )}, `;
+        if (key === "status") {
+          newUpdateAltCourseTracking += `${key}: ${updateCourseTrackingDto[key]},`;
+        } else {
+          newUpdateAltCourseTracking += `${key}: ${JSON.stringify(
+            updateCourseTrackingDto[key]
+          )}, `;
+        }
       }
     });
 
     const altCourseUpdateTrackingData = {
-      query: `mutation updateAltCourseTracking ($userId:String , $courseId:String) {
+      query: `mutation updateAltCourseTracking ($userId:uuid! , $courseId:String) {
           update_CourseProgressTracking(where: {courseId: {_eq: $courseId}, userId: {_eq: $userId}}, _set: {${newUpdateAltCourseTracking}}) {
             affected_rows
           }
@@ -237,7 +248,6 @@ export class ALTCourseTrackingService {
           courseId
           status
           calculatedScore
-          nextCourse
           status
           created_at
           updated_at
@@ -277,5 +287,75 @@ export class ALTCourseTrackingService {
       message: "Ok.",
       data: altCourseTrackingList,
     });
+  }
+
+  public async addALTCourseTracking(
+    altCourseTrackingDto: ALTCourseTrackingDto,
+    moduleStatus: string
+  ) {
+    let errorExRec = "";
+    let recordList: any = {};
+    recordList = await this.getExistingCourseTrackingRecords(
+      altCourseTrackingDto.courseId,
+      altCourseTrackingDto.userId
+    ).catch(function (error) {
+      errorExRec = error;
+    });
+
+    if (!recordList?.data) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: recordList?.errorMessage,
+      });
+    }
+
+    const numberOfRecords = parseInt(recordList?.data.length);
+
+    if (numberOfRecords === 0) {
+      if (
+        altCourseTrackingDto.totalNumberOfModulesCompleted + 1 ===
+        altCourseTrackingDto.totalNumberOfModules
+      ) {
+        altCourseTrackingDto.status = "Completed";
+      } else if (moduleStatus === "Completed") {
+        altCourseTrackingDto.totalNumberOfModulesCompleted =
+          altCourseTrackingDto.totalNumberOfModulesCompleted + 1;
+        altCourseTrackingDto.status = "Ongoing";
+      }
+      return this.createALTCourseTracking(altCourseTrackingDto);
+    } else if (
+      numberOfRecords === 1 &&
+      recordList.data[0].status !== "Completed"
+    ) {
+      if (
+        parseInt(recordList.data[0].totalNumberOfModulesCompleted) + 1 ===
+        parseInt(recordList.data[0].totalNumberOfModules)
+      ) {
+        altCourseTrackingDto.status = "Completed";
+      } else {
+        altCourseTrackingDto.status = "Ongoing";
+      }
+
+      if (moduleStatus === "Completed") {
+        altCourseTrackingDto.totalNumberOfModulesCompleted =
+          parseInt(recordList.data[0].totalNumberOfModulesCompleted) + 1;
+      }
+
+      return await this.updateALTCourseTracking(
+        altCourseTrackingDto.userId,
+        altCourseTrackingDto.courseId,
+        altCourseTrackingDto
+      );
+    } else if (numberOfRecords > 1) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Duplicate entry found in DataBase for Course",
+      });
+    } else if (recordList.data[0].status === "Completed") {
+      return new SuccessResponse({
+        statusCode: 200,
+        message: "Course is completed.",
+      });
+    }
   }
 }
