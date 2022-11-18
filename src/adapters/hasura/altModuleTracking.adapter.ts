@@ -4,10 +4,12 @@ import { SuccessResponse } from "src/success-response";
 import { ErrorResponse } from "src/error-response";
 import { ProgramService } from "./altProgram.adapter";
 import { ALTProgramAssociationService } from "../../adapters/hasura/altProgramAssociation.adapter";
+import { ALTCourseTrackingService } from "../../adapters/hasura/altCourseTracking.adapter";
 import { ALTModuleTrackingDto } from "src/altModuleTracking/dto/altModuleTracking.dto";
 import { TermsProgramtoRulesDto } from "src/altProgramAssociation/dto/altTermsProgramtoRules.dto";
 import { UpdateALTModuleTrackingDto } from "src/altModuleTracking/dto/updateAltModuleTracking.dto";
 import { ALTModuleTrackingSearch } from "src/altModuleTracking/dto/searchAltModuleTracking.dto";
+import { ALTCourseTrackingDto } from "src/altCourseTracking/dto/altCourseTracking.dto";
 
 @Injectable()
 export class ALTModuleTrackingService {
@@ -16,7 +18,8 @@ export class ALTModuleTrackingService {
   constructor(
     private httpService: HttpService,
     private programService: ProgramService,
-    private altProgramAssociationService: ALTProgramAssociationService
+    private altProgramAssociationService: ALTProgramAssociationService,
+    private altCourseTrackingService: ALTCourseTrackingService
   ) {}
 
   public async mappedResponse(data: any) {
@@ -103,7 +106,7 @@ export class ALTModuleTrackingService {
     const ALTModuleTrackingData = {
       query: `
             query GetModuleTracking($altUserId: uuid!, $altModuleId: String) {
-                ModuleProgressTracking(where: {moduleId: {_eq: $altmoduleId}, userId: {_eq: $altUserId}}) {
+                ModuleProgressTracking(where: {moduleId: {_eq: $altModuleId}, userId: {_eq: $altUserId}}) {
                   courseId
                   moduleId
                   userId
@@ -158,6 +161,7 @@ export class ALTModuleTrackingService {
     request: any,
     programId: string,
     subject: string,
+    noOfModules: number,
     altModuleTrackingDto: ALTModuleTrackingDto
   ) {
     let errorExRec = "";
@@ -182,6 +186,13 @@ export class ALTModuleTrackingService {
       programId
     );
 
+    if (!currentProgramDetails.data) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: currentProgramDetails?.errorMessage,
+      });
+    }
+
     const paramData = new TermsProgramtoRulesDto(currentProgramDetails.data);
 
     let progTermData: any = {};
@@ -205,12 +216,35 @@ export class ALTModuleTrackingService {
           const numberOfRecords = parseInt(recordList?.data.length);
 
           if (numberOfRecords === 0) {
-            altModuleTrackingDto.status = "Ongoing";
+            if (
+              altModuleTrackingDto.totalNumberOfLessons ===
+              altModuleTrackingDto.totalNumberOfLessonsCompleted
+            ) {
+              altModuleTrackingDto.status = "Completed";
+            } else {
+              altModuleTrackingDto.status = "Ongoing";
+            }
+            this.moduleToCourseTracking(altModuleTrackingDto, noOfModules);
             return await this.createALTModuleTracking(altModuleTrackingDto);
           } else if (
             numberOfRecords === 1 &&
             recordList.data[0].status !== "Completed"
           ) {
+            if (
+              parseInt(recordList.data[0].totalNumberOfLessonsCompleted) + 1 ===
+              parseInt(recordList.data[0].totalNumberOfLessons)
+            ) {
+              altModuleTrackingDto.status = "Completed";
+            }
+            altModuleTrackingDto.totalNumberOfLessonsCompleted =
+              recordList.data[0].totalNumberOfLessonsCompleted + 1;
+
+            if (altModuleTrackingDto.status === "Completed") {
+              await this.moduleToCourseTracking(
+                altModuleTrackingDto,
+                noOfModules
+              );
+            }
             return await this.updateALTModuleTracking(
               altModuleTrackingDto.userId,
               altModuleTrackingDto.moduleId,
@@ -224,7 +258,7 @@ export class ALTModuleTrackingService {
             console.log("recal scorehere");
           } else {
             return new ErrorResponse({
-              errorCode: "403",
+              errorCode: "400",
               errorMessage:
                 "Duplicate entry found in DataBase for Course Module",
             });
@@ -434,5 +468,38 @@ export class ALTModuleTrackingService {
       message: "Ok.",
       data: altModuleTrackingList,
     });
+  }
+
+  public async moduleToCourseTracking(
+    altModuleTrackingDto: ALTModuleTrackingDto,
+    noOfModules: number
+  ) {
+    let altCourseTracking = {
+      userId: altModuleTrackingDto.userId,
+      courseId: altModuleTrackingDto.courseId,
+      totalNumberOfModulesCompleted: 0,
+      totalNumberOfModules: noOfModules,
+      calculatedScore: 0,
+      status: altModuleTrackingDto.status,
+      createdBy: altModuleTrackingDto.createdBy,
+      updatedBy: altModuleTrackingDto.updatedBy,
+    };
+
+    const altCourseTrackingDto = new ALTCourseTrackingDto(altCourseTracking);
+
+    let request: Request;
+    let moduleTracking: any;
+    moduleTracking =
+      await this.altCourseTrackingService.addALTCourseTracking(
+        altCourseTrackingDto,
+        altModuleTrackingDto.status
+      );
+
+    if (moduleTracking?.errorCode) {
+      return new ErrorResponse({
+        errorCode: "${moduleTracking?.errorCode}",
+        errorMessage: "${moduleTracking?.errorMessage}",
+      });
+    }
   }
 }
