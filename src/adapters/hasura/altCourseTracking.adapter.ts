@@ -318,27 +318,27 @@ export class ALTCourseTrackingService {
         altCourseTrackingDto.totalNumberOfModulesCompleted + 1 ===
         altCourseTrackingDto.totalNumberOfModules
       ) {
-        altCourseTrackingDto.status = "Completed";
-      } else if (moduleStatus === "Completed") {
+        altCourseTrackingDto.status = "completed";
+      } else if (moduleStatus === "completed") {
         altCourseTrackingDto.totalNumberOfModulesCompleted =
           altCourseTrackingDto.totalNumberOfModulesCompleted + 1;
-        altCourseTrackingDto.status = "Ongoing";
+        altCourseTrackingDto.status = "ongoing";
       }
-      return this.createALTCourseTracking(request,altCourseTrackingDto);
+      return this.createALTCourseTracking(request, altCourseTrackingDto);
     } else if (
       numberOfRecords === 1 &&
-      recordList.data[0].status !== "Completed"
+      recordList.data[0].status !== "completed"
     ) {
       if (
         parseInt(recordList.data[0].totalNumberOfModulesCompleted) + 1 ===
         parseInt(recordList.data[0].totalNumberOfModules)
       ) {
-        altCourseTrackingDto.status = "Completed";
+        altCourseTrackingDto.status = "completed";
       } else {
-        altCourseTrackingDto.status = "Ongoing";
+        altCourseTrackingDto.status = "ongoing";
       }
 
-      if (moduleStatus === "Completed") {
+      if (moduleStatus === "completed") {
         altCourseTrackingDto.totalNumberOfModulesCompleted =
           parseInt(recordList.data[0].totalNumberOfModulesCompleted) + 1;
       }
@@ -353,7 +353,7 @@ export class ALTCourseTrackingService {
         errorCode: "400",
         errorMessage: "Duplicate entry found in DataBase for Course",
       });
-    } else if (recordList.data[0].status === "Completed") {
+    } else if (recordList.data[0].status === "completed") {
       return new SuccessResponse({
         statusCode: 200,
         message: "Course is completed.",
