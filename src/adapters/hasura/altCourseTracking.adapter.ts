@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
+import jwt_decode from "jwt-decode";
 import { SuccessResponse } from "src/success-response";
 import { ALTCourseTrackingDto } from "src/altCourseTracking/dto/altCourseTracking.dto";
 import { UpdateALTCourseTrackingDto } from "src/altCourseTracking/dto/updatealtCourseTracking.dto";
@@ -37,9 +38,12 @@ export class ALTCourseTrackingService {
   }
 
   public async getExistingCourseTrackingRecords(
-    altCourseId: string,
-    altUserId: string
+    request: any,
+    altCourseId: string
   ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+
     const ALTCourseTrackingData = {
       query: `
             query MyQuery($altUserId: uuid!, $altCourseId: String) {
@@ -61,30 +65,30 @@ export class ALTCourseTrackingService {
         altCourseId: altCourseId,
         altUserId: altUserId,
       },
-    };
+    };    
 
     const configData = {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: ALTCourseTrackingData,
     };
 
     const response = await this.axios(configData);
-
-    const result = response.data.data.CourseProgressTracking;
-
-    const data = await this.mappedResponse(result);
-
+  
     if (response?.data?.errors) {
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
         errorMessage: response.data.errors[0].message,
       });
     }
+
+    const result = response.data.data.CourseProgressTracking;
+
+    const data = await this.mappedResponse(result);
 
     return new SuccessResponse({
       statusCode: 200,
@@ -97,6 +101,9 @@ export class ALTCourseTrackingService {
     request: any,
     altCourseTrackingDto: ALTCourseTrackingDto
   ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    altCourseTrackingDto.userId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+    
     const altCourseTracking = new ALTCourseTrackingDto(altCourseTrackingDto);
     let newAltCourseTracking = "";
     Object.keys(altCourseTrackingDto).forEach((key) => {
@@ -136,7 +143,6 @@ export class ALTCourseTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        //"x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
         "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
@@ -162,13 +168,15 @@ export class ALTCourseTrackingService {
   }
 
   public async updateALTCourseTracking(
-    userId: string,
-    courseId: string,
+    request: any,
     updateCourseTrackingDto: UpdateALTCourseTrackingDto
   ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    updateCourseTrackingDto.userId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+    
     const updateAltCourseTracking = new UpdateALTCourseTrackingDto(
       updateCourseTrackingDto
-    );
+    );    
     let newUpdateAltCourseTracking = "";
     Object.keys(updateCourseTrackingDto).forEach((key) => {
       if (
@@ -186,15 +194,15 @@ export class ALTCourseTrackingService {
       }
     });
 
-    const altCourseUpdateTrackingData = {
+    const altCourseUpdateTrackingQuery = {
       query: `mutation updateAltCourseTracking ($userId:uuid! , $courseId:String) {
           update_CourseProgressTracking(where: {courseId: {_eq: $courseId}, userId: {_eq: $userId}}, _set: {${newUpdateAltCourseTracking}}) {
             affected_rows
           }
       }`,
       variables: {
-        userId: userId,
-        courseId: courseId,
+        userId: updateAltCourseTracking.userId,
+        courseId: updateAltCourseTracking.courseId,
       },
     };
 
@@ -202,12 +210,12 @@ export class ALTCourseTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
-      data: altCourseUpdateTrackingData,
+      data: altCourseUpdateTrackingQuery,
     };
-
+    
     const response = await this.axios(configData);
 
     if (response?.data?.errors) {
@@ -231,6 +239,9 @@ export class ALTCourseTrackingService {
     altCourseTrackingSearch: ALTCourseTrackingSearch
   ) {
     var axios = require("axios");
+
+    const decoded: any = jwt_decode(request.headers.authorization);
+    altCourseTrackingSearch.filters.userId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
 
     let query = "";
     Object.keys(altCourseTrackingSearch.filters).forEach((e) => {
@@ -265,7 +276,7 @@ export class ALTCourseTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: searchData,
@@ -298,8 +309,8 @@ export class ALTCourseTrackingService {
     let errorExRec = "";
     let recordList: any = {};
     recordList = await this.getExistingCourseTrackingRecords(
+      request,
       altCourseTrackingDto.courseId,
-      altCourseTrackingDto.userId
     ).catch(function (error) {
       errorExRec = error;
     });
@@ -344,8 +355,7 @@ export class ALTCourseTrackingService {
       }
 
       return await this.updateALTCourseTracking(
-        altCourseTrackingDto.userId,
-        altCourseTrackingDto.courseId,
+        request,
         altCourseTrackingDto
       );
     } else if (numberOfRecords > 1) {

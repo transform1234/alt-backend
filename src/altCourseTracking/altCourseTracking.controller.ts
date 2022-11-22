@@ -42,12 +42,11 @@ export class ALTCourseTrackingController {
   @ApiQuery({ name: "courseid" })
   public async getCourseDetails(
     @Req() request: Request,
-    @Query("userid") userId: string, // ?
     @Query("courseid") courseId: string
   ) {
     return this.altCourseTrackingService.getExistingCourseTrackingRecords(
-      courseId,
-      userId
+      request,
+      courseId
     );
   }
 
@@ -73,7 +72,7 @@ export class ALTCourseTrackingController {
     return res;
   }
 
-  @Patch("/altupdatecoursetracking/:userid")
+  @Patch("/altupdatecoursetracking/")
   @ApiBasicAuth("access-token")
   @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
   @ApiBody({ type: UpdateALTCourseTrackingDto })
@@ -83,14 +82,11 @@ export class ALTCourseTrackingController {
   @ApiForbiddenResponse({ description: "Forbidden" })
   public async updateALTCourseTracking(
     @Req() request: Request,
-    @Param("userid") userId: string,
-    @Query("courseid") courseId: string,
-    @Body() updateUserDto: UpdateALTCourseTrackingDto
+    @Body() updateALtCourseTrackingDto: UpdateALTCourseTrackingDto
   ) {
     const res = this.altCourseTrackingService.updateALTCourseTracking(
-      userId,
-      courseId,
-      updateUserDto
+      request,
+      updateALtCourseTrackingDto
     );
 
     return res;
