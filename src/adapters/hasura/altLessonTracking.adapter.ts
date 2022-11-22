@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
+import jwt_decode from "jwt-decode";
 import { SuccessResponse } from "src/success-response";
 import { ALTLessonTrackingDto } from "src/altLessonTracking/dto/altLessonTracking.dto";
 import { UpdateALTLessonTrackingDto } from "src/altLessonTracking/dto/updateAltLessonTracking.dto";
@@ -41,10 +42,14 @@ export class ALTLessonTrackingService {
   }
 
   public async getExistingLessonTrackingRecords(
-    userId: string,
+    request: any,
     lessonId: string,
     moduleId: string
   ) {
+
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+
     const altLessonTrackingRecord = {
       query: `query GetLessonTrackingData ($userId:uuid!, $lessonId:String, $moduleId:String) {
           LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}, moduleId: {_eq: $moduleId}}) {
@@ -57,7 +62,7 @@ export class ALTLessonTrackingService {
             attempts
         } }`,
       variables: {
-        userId: userId,
+        userId: altUserId,
         lessonId: lessonId,
         moduleId: moduleId,
       },
@@ -67,7 +72,7 @@ export class ALTLessonTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altLessonTrackingRecord,
@@ -75,15 +80,31 @@ export class ALTLessonTrackingService {
 
     const resLessonTracking = await this.axios(configData);
 
-    return resLessonTracking.data.data.LessonProgressTracking;
+    if (resLessonTracking?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: resLessonTracking.data.errors[0].extensions,
+        errorMessage: resLessonTracking.data.errors[0].message,
+      });
+    }
+
+    const result = resLessonTracking.data.data.LessonProgressTracking;
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: result,
+    });
   }
 
   public async getLastLessonTrackingRecord(
-    userId: string,
+    request: any,
     lessonId: string,
     moduleId: string,
     attemptNumber: number
   ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const userId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+
     const altLastLessonTrackingRecord = {
       query: `query GetLastLessonTrackingRecord ($userId:uuid!, $lessonId:String, $moduleId:String, $attemptNumber: Int) {
           LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}, moduleId: {_eq: $moduleId}, attempts: {_eq: $attemptNumber}}) {
@@ -104,7 +125,7 @@ export class ALTLessonTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altLastLessonTrackingRecord,
@@ -122,7 +143,11 @@ export class ALTLessonTrackingService {
     return resLessonTracking.data.data.LessonProgressTracking;
   }
 
-  public async getALTLessonTracking(altLessonId: string, altUserId: string) {
+  public async getALTLessonTracking(request: any,altLessonId: string) {
+
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+
     const ALTLessonTrackingData = {
       query: `
             query GetLessonTracking($altUserId: uuid!, $altLessonId: String) {
@@ -148,7 +173,7 @@ export class ALTLessonTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: ALTLessonTrackingData,
@@ -180,9 +205,13 @@ export class ALTLessonTrackingService {
     subject: string,
     altLessonTrackingDto: ALTLessonTrackingDto
   ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    altLessonTrackingDto.userId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+
     let errorExRec = "";
-    const recordList = await this.getExistingLessonTrackingRecords(
-      altLessonTrackingDto.userId,
+    let recordList: any;
+    recordList = await this.getExistingLessonTrackingRecords(
+      request,
       altLessonTrackingDto.lessonId,
       altLessonTrackingDto.moduleId
     ).catch(function (error) {
@@ -193,7 +222,7 @@ export class ALTLessonTrackingService {
       }
     });
 
-    if (!recordList) {
+    if (!recordList?.data) {      
       return new ErrorResponse({
         errorCode: "400",
         errorMessage: errorExRec,
@@ -203,10 +232,11 @@ export class ALTLessonTrackingService {
     // rule is needed to check baseline assessment or course
     let currentProgramDetails: any = {};
     currentProgramDetails = await this.programService.getProgramDetailsById(
+      request,
       programId
     );
 
-    if (!currentProgramDetails.data) {
+    if (!currentProgramDetails.data) {      
       return new ErrorResponse({
         errorCode: "400",
         errorMessage: currentProgramDetails?.errorMessage,
@@ -216,7 +246,7 @@ export class ALTLessonTrackingService {
     const paramData = new TermsProgramtoRulesDto(currentProgramDetails.data);
 
     let progTermData: any = {};
-    progTermData = await this.altProgramAssociationService.getRules({
+    progTermData = await this.altProgramAssociationService.getRules(request,{
       programId: programId,
       board: paramData[0].board,
       medium: paramData[0].medium,
@@ -233,7 +263,7 @@ export class ALTLessonTrackingService {
       for (const course of programRules?.prog) {
         if (course.contentId == altLessonTrackingDto.courseId) {
           flag = true;
-          const numberOfRecords = parseInt(recordList.length);
+          const numberOfRecords = parseInt(recordList?.data.length);
           const allowedAttempts = parseInt(course.allowedAttempts);
           if (course.contentType == "assessment" && allowedAttempts === 1) {
             if (numberOfRecords === 0) {
@@ -248,7 +278,6 @@ export class ALTLessonTrackingService {
             ) {
               return await this.updateALTLessonTracking(
                 request,
-                altLessonTrackingDto.userId,
                 altLessonTrackingDto.lessonId,
                 altLessonTrackingDto,
                 0
@@ -273,6 +302,7 @@ export class ALTLessonTrackingService {
               altLessonTrackingDto.attempts = 1;
               if (altLessonTrackingDto.status === "completed") {
                 tracklessonModule = await this.lessonToModuleTracking(
+                  request,
                   altLessonTrackingDto,
                   programId,
                   subject
@@ -284,7 +314,7 @@ export class ALTLessonTrackingService {
               );
             } else if (numberOfRecords >= 1) {
               const lastRecord = await this.getLastLessonTrackingRecord(
-                altLessonTrackingDto.userId,
+                request,
                 altLessonTrackingDto.lessonId,
                 altLessonTrackingDto.moduleId,
                 numberOfRecords
@@ -310,6 +340,7 @@ export class ALTLessonTrackingService {
                   lastRecord[0].attempts === 1
                 ) {
                   tracklessonModule = await this.lessonToModuleTracking(
+                    request,
                     altLessonTrackingDto,
                     programId,
                     subject
@@ -318,7 +349,6 @@ export class ALTLessonTrackingService {
 
                 return await this.updateALTLessonTracking(
                   request,
-                  altLessonTrackingDto.userId,
                   altLessonTrackingDto.lessonId,
                   altLessonTrackingDto,
                   lastRecord[0]?.attempts
@@ -352,7 +382,10 @@ export class ALTLessonTrackingService {
     request: any,
     altLessonTrackingDto: ALTLessonTrackingDto
   ) {
-    const altLessonTracking = new ALTLessonTrackingDto(altLessonTrackingDto);
+    const decoded: any = jwt_decode(request.headers.authorization);
+    altLessonTrackingDto.userId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+
+    const altLessonTracking = new ALTLessonTrackingDto(altLessonTrackingDto);    
     let newAltLessonTracking = "";
     Object.keys(altLessonTrackingDto).forEach((key) => {
       if (
@@ -391,7 +424,7 @@ export class ALTLessonTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altLessonTrackingData,
@@ -417,11 +450,13 @@ export class ALTLessonTrackingService {
 
   public async updateALTLessonTracking(
     request: any,
-    userId: string,
     lessonId: string,
     updateAltLessonTrackDto: UpdateALTLessonTrackingDto,
     lastAttempt: number
   ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const userId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+
     const updateAltLessonTracking = new UpdateALTLessonTrackingDto(
       updateAltLessonTrackDto
     );
@@ -475,7 +510,7 @@ export class ALTLessonTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altLessonUpdateTrackingData,
@@ -505,6 +540,10 @@ export class ALTLessonTrackingService {
   ) {
     var axios = require("axios");
 
+    const decoded: any = jwt_decode(request.headers.authorization);
+    altLessonTrackingSearch.filters.userId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+
+
     let query = "";
     Object.keys(altLessonTrackingSearch.filters).forEach((e) => {
       if (
@@ -516,7 +555,7 @@ export class ALTLessonTrackingService {
     });
 
     var searchData = {
-      query: `query SearchALTSchoolTracking($limit:Int) {
+      query: `query SearchALTLessonTracking($limit:Int) {
         LessonProgressTracking(limit: $limit, where: {${query}}) {
           userId
           courseId
@@ -537,7 +576,7 @@ export class ALTLessonTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: searchData,
@@ -563,6 +602,7 @@ export class ALTLessonTrackingService {
   }
 
   public async lessonToModuleTracking(
+    request : any,
     altLessonTrackingDto: ALTLessonTrackingDto,
     programId: string,
     subject: string
@@ -598,7 +638,6 @@ export class ALTLessonTrackingService {
 
     const altModuleTrackingDto = new ALTModuleTrackingDto(altModuleTracking);
 
-    let request: Request;
     const moduleTracking =
       this.altModuleTrackingService.checkAndAddALTModuleTracking(
         request,

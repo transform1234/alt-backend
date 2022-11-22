@@ -1,15 +1,11 @@
 import { Exclude, Expose } from "class-transformer";
-import { IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { IsNotEmpty, IsNumber, IsString, IsUUID } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class ALTLessonTrackingDto {
   @Expose()
   @IsNotEmpty()
-  @IsString()
-  @ApiProperty({
-    type: String,
-    description: "UserId of the user",
-  })
+  @IsUUID()
   userId: string;
 
   @Expose()
