@@ -43,12 +43,11 @@ export class ALTModuleTrackingController {
   @ApiQuery({ name: "moduleid" })
   public async getModuleTrackingRecords(
     @Req() request: Request,
-    @Query("userid") userId: string,
     @Query("courseid") courseId: string,
     @Query("moduleid") moduleId: string
   ) {
     return this.altModuleTrackingService.getExistingModuleTrackingRecords(
-      userId,
+      request,
       moduleId,
       courseId
     );
@@ -62,10 +61,9 @@ export class ALTModuleTrackingController {
   @ApiQuery({ name: "moduleid" })
   public async getLessonDetails(
     @Req() request: Request,
-    @Query("userid") userId: string,
     @Query("moduleid") moduleId: string
   ) {
-    return this.altModuleTrackingService.getALTModuleTracking(moduleId, userId);
+    return this.altModuleTrackingService.getALTModuleTracking(request,moduleId);
   }
 
   @Post("/altcheckandaddmoduletracking")
@@ -102,13 +100,12 @@ export class ALTModuleTrackingController {
   @ApiForbiddenResponse({ description: "Forbidden" })
   public async updateALTModuleTracking(
     @Req() request: Request,
-    @Param("userid") userId: string,
     @Query("moduleid") moduleId: string,
     @Query("courseid") courseId: string,
     @Body() updateAltModuleTrackingDto: UpdateALTModuleTrackingDto
   ) {
     return this.altModuleTrackingService.updateALTModuleTracking(
-      userId,
+      request,
       moduleId,
       courseId,
       updateAltModuleTrackingDto

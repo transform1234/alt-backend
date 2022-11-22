@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
+import jwt_decode from "jwt-decode";
 import { SuccessResponse } from "src/success-response";
 import { ErrorResponse } from "src/error-response";
 import { ProgramService } from "./altProgram.adapter";
@@ -48,10 +49,13 @@ export class ALTModuleTrackingService {
   }
 
   public async getExistingModuleTrackingRecords(
-    userId: string,
+    request: any,
     moduleId: string,
     courseId: string
   ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+    
     const altModuleTrackingRecord = {
       query: `query GetModuleTrackingData ($userId:uuid!, $moduleId:String, $courseId:String) {
           ModuleProgressTracking(where: {userId: {_eq: $userId}, moduleId: {_eq: $moduleId}, courseId: {_eq: $courseId}}) {
@@ -68,7 +72,7 @@ export class ALTModuleTrackingService {
             updatedBy
         } }`,
       variables: {
-        userId: userId,
+        userId: altUserId,
         moduleId: moduleId,
         courseId: courseId,
       },
@@ -78,7 +82,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altModuleTrackingRecord,
@@ -102,7 +106,10 @@ export class ALTModuleTrackingService {
     });
   }
 
-  public async getALTModuleTracking(altModuleId: string, altUserId: string) {
+  public async getALTModuleTracking(request: any,altModuleId: string) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+
     const ALTModuleTrackingData = {
       query: `
             query GetModuleTracking($altUserId: uuid!, $altModuleId: String) {
@@ -131,7 +138,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: ALTModuleTrackingData,
@@ -164,15 +171,22 @@ export class ALTModuleTrackingService {
     noOfModules: number,
     altModuleTrackingDto: ALTModuleTrackingDto
   ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    altModuleTrackingDto.userId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
     let errorExRec = "";
+
+    // userId=""
     let recordList: any = {};
     recordList = await this.getExistingModuleTrackingRecords(
-      altModuleTrackingDto.userId,
+      request,
       altModuleTrackingDto.moduleId,
       altModuleTrackingDto.courseId
     ).catch(function (error) {
       errorExRec = error;
     });
+
+    console.log(recordList,"rec L");
+    
 
     if (!recordList?.data) {
       return new ErrorResponse({
@@ -183,6 +197,7 @@ export class ALTModuleTrackingService {
 
     let currentProgramDetails: any = {};
     currentProgramDetails = await this.programService.getProgramDetailsById(
+      request,
       programId
     );
 
@@ -196,7 +211,7 @@ export class ALTModuleTrackingService {
     const paramData = new TermsProgramtoRulesDto(currentProgramDetails.data);
 
     let progTermData: any = {};
-    progTermData = await this.altProgramAssociationService.getRules({
+    progTermData = await this.altProgramAssociationService.getRules(request,{
       programId: programId,
       board: paramData[0].board,
       medium: paramData[0].medium,
@@ -228,7 +243,7 @@ export class ALTModuleTrackingService {
               altModuleTrackingDto,
               noOfModules
             );
-            return await this.createALTModuleTracking(altModuleTrackingDto);
+            return await this.createALTModuleTracking(request,altModuleTrackingDto);
           } else if (
             numberOfRecords === 1 &&
             recordList.data[0].status !== "completed"
@@ -273,6 +288,7 @@ export class ALTModuleTrackingService {
   }
 
   public async createALTModuleTracking(
+    request: any,
     altModuleTrackingDto: ALTModuleTrackingDto
   ) {
     const altModuleTracking = new ALTModuleTrackingDto(altModuleTrackingDto);
@@ -315,7 +331,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altLessonTrackingData,
@@ -340,11 +356,14 @@ export class ALTModuleTrackingService {
   }
 
   public async updateALTModuleTracking(
-    userId: string,
+    request: any,
     moduleId: string,
     courseId: string,
     updateAltModuleTrackDto: UpdateALTModuleTrackingDto
   ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+
     const updateAltModuleTracking = new UpdateALTModuleTrackingDto(
       updateAltModuleTrackDto
     );
@@ -374,7 +393,7 @@ export class ALTModuleTrackingService {
             }
         }`,
       variables: {
-        userId: userId,
+        userId: altUserId,
         moduleId: moduleId,
         courseId: courseId,
       },
@@ -384,7 +403,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altModuleUpdateTrackingData,
@@ -413,6 +432,9 @@ export class ALTModuleTrackingService {
     altModuleTrackingSearch: ALTModuleTrackingSearch
   ) {
     var axios = require("axios");
+
+    const decoded: any = jwt_decode(request.headers.authorization);
+    altModuleTrackingSearch.filters.userId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
 
     let query = "";
     Object.keys(altModuleTrackingSearch.filters).forEach((e) => {
@@ -449,7 +471,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: searchData,
