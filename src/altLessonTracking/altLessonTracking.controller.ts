@@ -42,10 +42,9 @@ export class ALTLessonTrackingController {
   @ApiQuery({ name: "lessonid" })
   public async getLessonDetails(
     @Req() request: Request,
-    @Query("userid") userId: string,
     @Query("lessonid") lessonId: string
   ) {
-    return this.altLessonTrackingService.getALTLessonTracking(lessonId, userId);
+    return this.altLessonTrackingService.getALTLessonTracking(request,lessonId);
   }
 
   @Post("/altcheckandaddlessontracking")
@@ -80,13 +79,11 @@ export class ALTLessonTrackingController {
   @ApiForbiddenResponse({ description: "Forbidden" })
   public async updateALTLessonTracking(
     @Req() request: Request,
-    @Param("userid") userId: string,
     @Query("lessonid") lessonId: string,
     @Body() updateALTLessonTrackingDto: UpdateALTLessonTrackingDto
   ) {
     return this.altLessonTrackingService.updateALTLessonTracking(
       request,
-      userId,
       lessonId,
       updateALTLessonTrackingDto,
       0

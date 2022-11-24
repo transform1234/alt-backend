@@ -29,7 +29,7 @@ export class ALTProgramAssociationService {
     return programResponse;
   }
 
-  public async getSubjectList(altSubjectListDto: ALTSubjectListDto) {
+  public async getSubjectList(request: any,altSubjectListDto: ALTSubjectListDto) {
     const subjectListData = {
       query: `query GetSubjectList ($board:String,$medium:String,$grade:String,$programId:uuid!){
                 ProgramTermAssoc(where: 
@@ -53,7 +53,7 @@ export class ALTProgramAssociationService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: subjectListData,
@@ -77,7 +77,7 @@ export class ALTProgramAssociationService {
     });
   }
 
-  public async getRules(altTermsProgramDto: TermsProgramtoRulesDto) {
+  public async getRules(request: any, altTermsProgramDto: TermsProgramtoRulesDto) {
     const TermsProgramtoRulesData = {
       query: `query GetRules ($board:String,$medium:String,$grade:String,$subject:String,$programId:uuid!){
                 ProgramTermAssoc(where: 
@@ -103,7 +103,7 @@ export class ALTProgramAssociationService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: TermsProgramtoRulesData,
@@ -128,6 +128,7 @@ export class ALTProgramAssociationService {
   }
 
   public async createProgramAssociation(
+    request: any,
     programAssociationDto: ProgramAssociationDto
   ) {
     const programSchema = new ProgramAssociationDto(programAssociationDto);
@@ -158,7 +159,7 @@ export class ALTProgramAssociationService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: programData,
@@ -183,6 +184,7 @@ export class ALTProgramAssociationService {
   }
 
   // public async updateProgramAssociation(
+  //   request: any,
   //   programAssocNo: string,
   //   updateProgramAssociationDto: UpdateALTProgramAssociationDto
   // ) {
@@ -226,7 +228,7 @@ export class ALTProgramAssociationService {
   //     method: "post",
   //     url: process.env.ALTHASURA,
   //     headers: {
-  //       "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+  //       "Authorization": request.headers.authorization,
   //       "Content-Type": "application/json",
   //     },
   //     altProgramUpdateData,
@@ -252,6 +254,7 @@ export class ALTProgramAssociationService {
   // }
 
   public async searchALTProgramAssociation(
+    request: any,
     altProgramAssociationSearch: ALTProgramAssociationSearch
   ) {
     var axios = require("axios");
@@ -287,7 +290,7 @@ export class ALTProgramAssociationService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: searchData,

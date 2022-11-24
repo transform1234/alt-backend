@@ -45,7 +45,10 @@ export class ALTProgramAssociationController {
     @Req() request: Request,
     @Body() altSubjectListDto: ALTSubjectListDto
   ) {
-    return this.altProgramAssociationService.getSubjectList(altSubjectListDto);
+    return this.altProgramAssociationService.getSubjectList(
+      request,
+      altSubjectListDto
+    );
   }
 
   @Post("/altrules")
@@ -57,7 +60,10 @@ export class ALTProgramAssociationController {
     @Req() request: Request,
     @Body() altTermstoRulesDto: TermsProgramtoRulesDto
   ) {
-    return this.altProgramAssociationService.getRules(altTermstoRulesDto);
+    return this.altProgramAssociationService.getRules(
+      request,
+      altTermstoRulesDto
+    );
   }
 
   @Post("/create-program")
@@ -67,9 +73,11 @@ export class ALTProgramAssociationController {
   @ApiForbiddenResponse({ description: "Forbidden" })
   @UseInterceptors(ClassSerializerInterceptor)
   public async createProgram(
+    @Req() request: Request,
     @Body() programAssociationDto: ProgramAssociationDto
   ) {
     return this.altProgramAssociationService.createProgramAssociation(
+      request,
       programAssociationDto
     );
   }
@@ -94,21 +102,22 @@ export class ALTProgramAssociationController {
     // );
   }
 
-    @Post("/search")
-    @ApiBasicAuth("access-token")
-    @ApiCreatedResponse({ description: "School list." })
-    @ApiBody({ type: ALTProgramAssociationSearch })
-    @ApiForbiddenResponse({ description: "Forbidden" })
-    @UseInterceptors(ClassSerializerInterceptor)
-    @SerializeOptions({
-      strategy: "excludeAll",
-    })
-    public async searchALTProgramAssociation(
-      @Req() request: Request,
-      @Body() altProgramSearch: ALTProgramAssociationSearch
-    ) {
-      return this.altProgramAssociationService.searchALTProgramAssociation(
-        altProgramSearch
-      );
-    }
+  @Post("/search")
+  @ApiBasicAuth("access-token")
+  @ApiCreatedResponse({ description: "School list." })
+  @ApiBody({ type: ALTProgramAssociationSearch })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @UseInterceptors(ClassSerializerInterceptor)
+  @SerializeOptions({
+    strategy: "excludeAll",
+  })
+  public async searchALTProgramAssociation(
+    @Req() request: Request,
+    @Body() altProgramSearch: ALTProgramAssociationSearch
+  ) {
+    return this.altProgramAssociationService.searchALTProgramAssociation(
+      request,
+      altProgramSearch
+    );
+  }
 }

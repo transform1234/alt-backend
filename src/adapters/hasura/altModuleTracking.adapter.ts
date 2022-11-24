@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
+import jwt_decode from "jwt-decode";
 import { SuccessResponse } from "src/success-response";
 import { ErrorResponse } from "src/error-response";
 import { ProgramService } from "./altProgram.adapter";
@@ -48,10 +49,14 @@ export class ALTModuleTrackingService {
   }
 
   public async getExistingModuleTrackingRecords(
-    userId: string,
+    request: any,
     moduleId: string,
     courseId: string
   ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
     const altModuleTrackingRecord = {
       query: `query GetModuleTrackingData ($userId:uuid!, $moduleId:String, $courseId:String) {
           ModuleProgressTracking(where: {userId: {_eq: $userId}, moduleId: {_eq: $moduleId}, courseId: {_eq: $courseId}}) {
@@ -68,7 +73,7 @@ export class ALTModuleTrackingService {
             updatedBy
         } }`,
       variables: {
-        userId: userId,
+        userId: altUserId,
         moduleId: moduleId,
         courseId: courseId,
       },
@@ -78,7 +83,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altModuleTrackingRecord,
@@ -102,7 +107,11 @@ export class ALTModuleTrackingService {
     });
   }
 
-  public async getALTModuleTracking(altModuleId: string, altUserId: string) {
+  public async getALTModuleTracking(request: any, altModuleId: string) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
     const ALTModuleTrackingData = {
       query: `
             query GetModuleTracking($altUserId: uuid!, $altModuleId: String) {
@@ -131,7 +140,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: ALTModuleTrackingData,
@@ -164,10 +173,15 @@ export class ALTModuleTrackingService {
     noOfModules: number,
     altModuleTrackingDto: ALTModuleTrackingDto
   ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    altModuleTrackingDto.userId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
     let errorExRec = "";
+
+    // userId=""
     let recordList: any = {};
     recordList = await this.getExistingModuleTrackingRecords(
-      altModuleTrackingDto.userId,
+      request,
       altModuleTrackingDto.moduleId,
       altModuleTrackingDto.courseId
     ).catch(function (error) {
@@ -183,6 +197,7 @@ export class ALTModuleTrackingService {
 
     let currentProgramDetails: any = {};
     currentProgramDetails = await this.programService.getProgramDetailsById(
+      request,
       programId
     );
 
@@ -196,7 +211,7 @@ export class ALTModuleTrackingService {
     const paramData = new TermsProgramtoRulesDto(currentProgramDetails.data);
 
     let progTermData: any = {};
-    progTermData = await this.altProgramAssociationService.getRules({
+    progTermData = await this.altProgramAssociationService.getRules(request, {
       programId: programId,
       board: paramData[0].board,
       medium: paramData[0].medium,
@@ -207,6 +222,7 @@ export class ALTModuleTrackingService {
     const programRules = JSON.parse(progTermData.data[0].rules);
 
     let flag = false;
+    let courseAck: any;
 
     if (altModuleTrackingDto.userId) {
       for (const course of programRules?.prog) {
@@ -223,12 +239,22 @@ export class ALTModuleTrackingService {
             } else {
               altModuleTrackingDto.status = "ongoing";
             }
-            this.moduleToCourseTracking(
+            courseAck = await this.moduleToCourseTracking(
               request,
               altModuleTrackingDto,
               noOfModules
             );
-            return await this.createALTModuleTracking(altModuleTrackingDto);
+            if (courseAck.statusCode != 200) {
+              return new ErrorResponse({
+                errorCode: "400",
+                errorMessage: courseAck.errorMessage,
+              });
+            } else {
+              return await this.createALTModuleTracking(
+                request,
+                altModuleTrackingDto
+              );
+            }
           } else if (
             numberOfRecords === 1 &&
             recordList.data[0].status !== "completed"
@@ -243,14 +269,21 @@ export class ALTModuleTrackingService {
               recordList.data[0].totalNumberOfLessonsCompleted + 1;
 
             if (altModuleTrackingDto.status === "completed") {
-              await this.moduleToCourseTracking(
+              courseAck = await this.moduleToCourseTracking(
                 request,
                 altModuleTrackingDto,
                 noOfModules
               );
+
+              if (courseAck.statusCode != 200) {
+                return new ErrorResponse({
+                  errorCode: "400",
+                  errorMessage: courseAck.errorMessage,
+                });
+              }
             }
             return await this.updateALTModuleTracking(
-              altModuleTrackingDto.userId,
+              request,
               altModuleTrackingDto.moduleId,
               altModuleTrackingDto.courseId,
               altModuleTrackingDto
@@ -273,6 +306,7 @@ export class ALTModuleTrackingService {
   }
 
   public async createALTModuleTracking(
+    request: any,
     altModuleTrackingDto: ALTModuleTrackingDto
   ) {
     const altModuleTracking = new ALTModuleTrackingDto(altModuleTrackingDto);
@@ -315,7 +349,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altLessonTrackingData,
@@ -340,11 +374,15 @@ export class ALTModuleTrackingService {
   }
 
   public async updateALTModuleTracking(
-    userId: string,
+    request: any,
     moduleId: string,
     courseId: string,
     updateAltModuleTrackDto: UpdateALTModuleTrackingDto
   ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
     const updateAltModuleTracking = new UpdateALTModuleTrackingDto(
       updateAltModuleTrackDto
     );
@@ -374,7 +412,7 @@ export class ALTModuleTrackingService {
             }
         }`,
       variables: {
-        userId: userId,
+        userId: altUserId,
         moduleId: moduleId,
         courseId: courseId,
       },
@@ -384,7 +422,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altModuleUpdateTrackingData,
@@ -413,6 +451,10 @@ export class ALTModuleTrackingService {
     altModuleTrackingSearch: ALTModuleTrackingSearch
   ) {
     var axios = require("axios");
+
+    const decoded: any = jwt_decode(request.headers.authorization);
+    altModuleTrackingSearch.filters.userId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
     let query = "";
     Object.keys(altModuleTrackingSearch.filters).forEach((e) => {
@@ -449,7 +491,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: searchData,
@@ -477,13 +519,13 @@ export class ALTModuleTrackingService {
   public async moduleToCourseTracking(
     request: any,
     altModuleTrackingDto: ALTModuleTrackingDto,
-    noOfModules: number
+    tnoOfModules: number
   ) {
     let altCourseTracking = {
       userId: altModuleTrackingDto.userId,
       courseId: altModuleTrackingDto.courseId,
       totalNumberOfModulesCompleted: 0,
-      totalNumberOfModules: noOfModules,
+      totalNumberOfModules: tnoOfModules,
       calculatedScore: 0,
       status: altModuleTrackingDto.status,
       createdBy: altModuleTrackingDto.createdBy,
@@ -492,18 +534,32 @@ export class ALTModuleTrackingService {
 
     const altCourseTrackingDto = new ALTCourseTrackingDto(altCourseTracking);
 
-    let moduleTracking: any;
-    moduleTracking = await this.altCourseTrackingService.addALTCourseTracking(
+    let courseTracking: any;
+    courseTracking = await this.altCourseTrackingService.addALTCourseTracking(
       request,
       altCourseTrackingDto,
       altModuleTrackingDto.status
     );
 
-    if (moduleTracking?.errorCode) {
+    if (courseTracking?.statusCode != 200) {
       return new ErrorResponse({
-        errorCode: "${moduleTracking?.errorCode}",
-        errorMessage: "${moduleTracking?.errorMessage}",
+        errorCode: courseTracking?.statusCode,
+        errorMessage: "Error in creating Course Tracking",
       });
+    } else {
+      if (courseTracking?.data?.courseProgressId) {
+        return new SuccessResponse({
+          statusCode: courseTracking?.statusCode,
+          message: "Ok.",
+          data: { ack: "Course Tracking created" },
+        });
+      } else {
+        return new SuccessResponse({
+          statusCode: courseTracking?.statusCode,
+          message: "Ok.",
+          data: { ack: "Course Tracking updated" },
+        });
+      }
     }
   }
 }

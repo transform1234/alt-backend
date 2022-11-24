@@ -45,7 +45,7 @@ export class SelfAssessmentController {
     @Req() request: Request,
     @Param("id") id: string
   ) {
-    return this.programService.getProgramDetailsById(id.trim());
+    return this.programService.getProgramDetailsById(request,id.trim());
   }
 
   @Post("/bmgs")
@@ -56,9 +56,9 @@ export class SelfAssessmentController {
   @UseInterceptors(ClassSerializerInterceptor)
   public async getProgramByBMGS(
     @Req() request: Request,
-    @Body() fbgmstoprogramdto: BMGStoProgramDto
+    @Body() bgmstoprogramdto: BMGStoProgramDto
   ) {
-    return this.programService.getCurrentProgramId(request, fbgmstoprogramdto);
+    return this.programService.getCurrentProgramId(request, bgmstoprogramdto);
   }
 
   @Post("/create-program")
@@ -104,6 +104,6 @@ export class SelfAssessmentController {
     @Req() request: Request,
     @Body() altProgramSearch: ALTProgramSearch
   ) {
-    return this.programService.searchALTProgram(altProgramSearch);
+    return this.programService.searchALTProgram(request,altProgramSearch);
   }
 }

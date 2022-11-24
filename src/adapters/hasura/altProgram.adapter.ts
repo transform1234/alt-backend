@@ -32,7 +32,7 @@ export class ProgramService implements IProgramServicelocator {
     return programResponse;
   }
 
-  public async getProgramDetailsById(programId: string) {
+  public async getProgramDetailsById(request: any,programId: string) {
     const programData = {
       query: `query GetProgramDetailsById ($programId:uuid!) {
               AssessProgram_by_pk(programId:$programId) {
@@ -55,7 +55,7 @@ export class ProgramService implements IProgramServicelocator {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: programData,
@@ -83,7 +83,7 @@ export class ProgramService implements IProgramServicelocator {
 
   public async getCurrentProgramId(
     request: any,
-    fbmgstoprogramdto: BMGStoProgramDto
+    bmgstoprogramdto: BMGStoProgramDto
   ) {
     const programData = {
       query: `query GetCurrentProgramId ($board:String,$medium:String,$grade:String,$currentDate:date){
@@ -100,10 +100,10 @@ export class ProgramService implements IProgramServicelocator {
             }
           }`,
       variables: {
-        board: fbmgstoprogramdto.board,
-        medium: fbmgstoprogramdto.medium,
-        grade: fbmgstoprogramdto.grade,
-        currentDate: fbmgstoprogramdto.currentDate,
+        board: bmgstoprogramdto.board,
+        medium: bmgstoprogramdto.medium,
+        grade: bmgstoprogramdto.grade,
+        currentDate: bmgstoprogramdto.currentDate,
       },
     };
 
@@ -111,7 +111,7 @@ export class ProgramService implements IProgramServicelocator {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: programData,
@@ -165,7 +165,7 @@ export class ProgramService implements IProgramServicelocator {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: programData,
@@ -190,6 +190,7 @@ export class ProgramService implements IProgramServicelocator {
   }
 
   // public async updateProgram(
+    // request: any,
   //   programId: string,
   //   updateAltProgramDto: UpdateALTProgramDto
   // ) {
@@ -258,7 +259,7 @@ export class ProgramService implements IProgramServicelocator {
   //   });
   // }
 
-  public async searchALTProgram(altProgramSearch: ALTProgramSearch) {
+  public async searchALTProgram(request: any,altProgramSearch: ALTProgramSearch) {
     var axios = require("axios");
 
     let query = "";
@@ -294,7 +295,7 @@ export class ProgramService implements IProgramServicelocator {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: searchData,
