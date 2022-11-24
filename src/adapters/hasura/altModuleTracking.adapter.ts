@@ -543,19 +543,19 @@ export class ALTModuleTrackingService {
 
     if (courseTracking?.statusCode != 200) {
       return new ErrorResponse({
-        errorCode: "400",
+        errorCode: courseTracking?.statusCode,
         errorMessage: "Error in creating Course Tracking",
       });
     } else {
       if (courseTracking?.data?.courseProgressId) {
         return new SuccessResponse({
-          statusCode: 200,
+          statusCode: courseTracking?.statusCode,
           message: "Ok.",
           data: { ack: "Course Tracking created" },
         });
       } else {
         return new SuccessResponse({
-          statusCode: 200,
+          statusCode: courseTracking?.statusCode,
           message: "Ok.",
           data: { ack: "Course Tracking updated" },
         });

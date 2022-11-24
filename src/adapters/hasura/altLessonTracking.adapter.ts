@@ -668,26 +668,26 @@ export class ALTLessonTrackingService {
 
     if (moduleTracking?.statusCode != 200) {
       return new ErrorResponse({
-        errorCode: "400",
+        errorCode: moduleTracking?.statusCode,
         errorMessage:
           moduleTracking.errorMessage + "Could not create Module Tracking",
       });
     } else {
       if (moduleTracking.data.moduleProgressId) {
         return new SuccessResponse({
-          statusCode: 200,
+          statusCode: moduleTracking?.statusCode,
           message: "Ok.",
           data: { ack: "Module and Course Tracking created" },
         });
       } else if (moduleTracking.data.affected_rows){
         return new SuccessResponse({
-          statusCode: 200,
+          statusCode: moduleTracking?.statusCode,
           message: "Ok.",
           data: { ack: "Module and Course Tracking updated" },
         });
       } else {
         return new SuccessResponse({
-          statusCode: 200,
+          statusCode: moduleTracking?.statusCode,
           message: "Ok.",
           data: { ack: "Course completed" },
         });
