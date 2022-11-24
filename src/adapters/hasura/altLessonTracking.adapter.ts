@@ -46,9 +46,9 @@ export class ALTLessonTrackingService {
     lessonId: string,
     moduleId: string
   ) {
-
     const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
     const altLessonTrackingRecord = {
       query: `query GetLessonTrackingData ($userId:uuid!, $lessonId:String, $moduleId:String) {
@@ -103,7 +103,7 @@ export class ALTLessonTrackingService {
     attemptNumber: number
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    const userId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+    const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
     const altLastLessonTrackingRecord = {
       query: `query GetLastLessonTrackingRecord ($userId:uuid!, $lessonId:String, $moduleId:String, $attemptNumber: Int) {
@@ -143,10 +143,10 @@ export class ALTLessonTrackingService {
     return resLessonTracking.data.data.LessonProgressTracking;
   }
 
-  public async getALTLessonTracking(request: any,altLessonId: string) {
-
+  public async getALTLessonTracking(request: any, altLessonId: string) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
     const ALTLessonTrackingData = {
       query: `
@@ -206,7 +206,10 @@ export class ALTLessonTrackingService {
     altLessonTrackingDto: ALTLessonTrackingDto
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    altLessonTrackingDto.userId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+    altLessonTrackingDto.userId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    altLessonTrackingDto.createdBy = altLessonTrackingDto.userId;
+    altLessonTrackingDto.updatedBy = altLessonTrackingDto.userId;
 
     let errorExRec = "";
     let recordList: any;
@@ -222,7 +225,7 @@ export class ALTLessonTrackingService {
       }
     });
 
-    if (!recordList?.data) {      
+    if (!recordList?.data) {
       return new ErrorResponse({
         errorCode: "400",
         errorMessage: errorExRec,
@@ -236,7 +239,7 @@ export class ALTLessonTrackingService {
       programId
     );
 
-    if (!currentProgramDetails.data) {      
+    if (!currentProgramDetails.data) {
       return new ErrorResponse({
         errorCode: "400",
         errorMessage: currentProgramDetails?.errorMessage,
@@ -246,7 +249,7 @@ export class ALTLessonTrackingService {
     const paramData = new TermsProgramtoRulesDto(currentProgramDetails.data);
 
     let progTermData: any = {};
-    progTermData = await this.altProgramAssociationService.getRules(request,{
+    progTermData = await this.altProgramAssociationService.getRules(request, {
       programId: programId,
       board: paramData[0].board,
       medium: paramData[0].medium,
@@ -308,10 +311,15 @@ export class ALTLessonTrackingService {
                   subject
                 );
               }
-              return await this.createALTLessonTracking(
+              const lessonTrack = await this.createALTLessonTracking(
                 request,
                 altLessonTrackingDto
               );
+
+              return {
+                lessonTrack: lessonTrack,
+                tracking: tracklessonModule,
+              };
             } else if (numberOfRecords >= 1) {
               const lastRecord = await this.getLastLessonTrackingRecord(
                 request,
@@ -347,18 +355,27 @@ export class ALTLessonTrackingService {
                   );
                 }
 
-                return await this.updateALTLessonTracking(
+                const lessonTrack = await this.updateALTLessonTracking(
                   request,
                   altLessonTrackingDto.lessonId,
                   altLessonTrackingDto,
                   lastRecord[0]?.attempts
                 );
+
+                return {
+                  lessonTrack: lessonTrack,
+                  tracking: tracklessonModule,
+                };
               } else if (lastRecord[0]?.status === "completed") {
                 altLessonTrackingDto.attempts = numberOfRecords + 1;
-                return await this.createALTLessonTracking(
+                const lessonTrack = await this.createALTLessonTracking(
                   request,
                   altLessonTrackingDto
                 );
+                return {
+                  lessonTrack: lessonTrack,
+                  tracking: "Multiple attempt for lesson added",
+                };
               } else {
                 return new ErrorResponse({
                   errorCode: "400",
@@ -383,9 +400,10 @@ export class ALTLessonTrackingService {
     altLessonTrackingDto: ALTLessonTrackingDto
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    altLessonTrackingDto.userId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+    altLessonTrackingDto.userId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
-    const altLessonTracking = new ALTLessonTrackingDto(altLessonTrackingDto);    
+    const altLessonTracking = new ALTLessonTrackingDto(altLessonTrackingDto);
     let newAltLessonTracking = "";
     Object.keys(altLessonTrackingDto).forEach((key) => {
       if (
@@ -455,7 +473,7 @@ export class ALTLessonTrackingService {
     lastAttempt: number
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    const userId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+    const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
     const updateAltLessonTracking = new UpdateALTLessonTrackingDto(
       updateAltLessonTrackDto
@@ -541,8 +559,8 @@ export class ALTLessonTrackingService {
     var axios = require("axios");
 
     const decoded: any = jwt_decode(request.headers.authorization);
-    altLessonTrackingSearch.filters.userId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
-
+    altLessonTrackingSearch.filters.userId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
     let query = "";
     Object.keys(altLessonTrackingSearch.filters).forEach((e) => {
@@ -602,7 +620,7 @@ export class ALTLessonTrackingService {
   }
 
   public async lessonToModuleTracking(
-    request : any,
+    request: any,
     altLessonTrackingDto: ALTLessonTrackingDto,
     programId: string,
     subject: string
@@ -632,19 +650,48 @@ export class ALTLessonTrackingService {
       totalNumberOfLessonsCompleted: 1,
       totalNumberOfLessons: currentModule.children.length,
       calculatedScore: 0,
-      createdBy: altLessonTrackingDto.createdBy,
-      updatedBy: altLessonTrackingDto.updatedBy,
+      createdBy: altLessonTrackingDto.userId,
+      updatedBy: altLessonTrackingDto.userId,
     };
 
     const altModuleTrackingDto = new ALTModuleTrackingDto(altModuleTracking);
 
-    const moduleTracking =
-      this.altModuleTrackingService.checkAndAddALTModuleTracking(
+    let moduleTracking: any;
+    moduleTracking =
+      await this.altModuleTrackingService.checkAndAddALTModuleTracking(
         request,
         programId,
         subject,
         noOfModules,
         altModuleTrackingDto
       );
+
+    if (moduleTracking?.statusCode != 200) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage:
+          moduleTracking.errorMessage + "Could not create Module Tracking",
+      });
+    } else {
+      if (moduleTracking.data.moduleProgressId) {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "Ok.",
+          data: { ack: "Module and Course Tracking created" },
+        });
+      } else if (moduleTracking.data.affected_rows){
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "Ok.",
+          data: { ack: "Module and Course Tracking updated" },
+        });
+      } else {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "Ok.",
+          data: { ack: "Course completed" },
+        });
+      }
+    }
   }
 }

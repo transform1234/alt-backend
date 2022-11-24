@@ -62,17 +62,9 @@ export class ALTModuleTrackingDto {
   })
   status: string;
 
-  @ApiProperty({
-    type: String,
-    description: "Created by uuid",
-  })
   @Expose()
   createdBy: string;
 
-  @ApiProperty({
-    type: String,
-    description: "Updated by uuid",
-  })
   @Expose()
   updatedBy: string;
 
