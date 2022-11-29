@@ -38,7 +38,6 @@ export class ALTCourseTrackingController {
   @ApiBasicAuth("access-token")
   @ApiOkResponse({ description: "ALT Course Tracking Details" })
   @ApiForbiddenResponse({ description: "Forbidden" })
-  @ApiQuery({ name: "userid" })
   @ApiQuery({ name: "courseid" })
   public async getCourseDetails(
     @Req() request: Request,

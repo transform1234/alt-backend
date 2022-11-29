@@ -38,7 +38,6 @@ export class ALTLessonTrackingController {
   @ApiBasicAuth("access-token")
   @ApiOkResponse({ description: "ALT Lesson Tracking Details" })
   @ApiForbiddenResponse({ description: "Forbidden" })
-  @ApiQuery({ name: "userid" })
   @ApiQuery({ name: "lessonid" })
   public async getLessonDetails(
     @Req() request: Request,
@@ -99,7 +98,7 @@ export class ALTLessonTrackingController {
   @SerializeOptions({
     strategy: "excludeAll",
   })
-  public async searchSchool(
+  public async searchaltLessonTracking(
     @Req() request: Request,
     @Body() altLessonTrackingSearch: ALTLessonTrackingSearch
   ) {
