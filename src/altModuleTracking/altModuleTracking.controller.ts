@@ -38,7 +38,6 @@ export class ALTModuleTrackingController {
   @ApiBasicAuth("access-token")
   @ApiOkResponse({ description: "ALT Module Tracking Records" })
   @ApiForbiddenResponse({ description: "Forbidden" })
-  @ApiQuery({ name: "userid" })
   @ApiQuery({ name: "courseid" })
   @ApiQuery({ name: "moduleid" })
   public async getModuleTrackingRecords(
@@ -57,7 +56,6 @@ export class ALTModuleTrackingController {
   @ApiBasicAuth("access-token")
   @ApiOkResponse({ description: "ALT Module Tracking Details" })
   @ApiForbiddenResponse({ description: "Forbidden" })
-  @ApiQuery({ name: "userid" })
   @ApiQuery({ name: "moduleid" })
   public async getLessonDetails(
     @Req() request: Request,
