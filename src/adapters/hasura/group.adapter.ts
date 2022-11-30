@@ -1,7 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { GroupInterface } from "../../group/interfaces/group.interface";
 import { HttpService } from "@nestjs/axios";
+import jwt_decode from "jwt-decode";
 import { SuccessResponse } from "src/success-response";
+import { ErrorResponse } from "src/error-response";
 const resolvePath = require("object-resolve-path");
 import { GroupDto } from "src/group/dto/group.dto";
 import { GroupSearchDto } from "src/group/dto/group-search.dto";
@@ -12,17 +14,16 @@ export const HasuraGroupToken = "HasuraGroup";
 @Injectable()
 export class HasuraGroupService implements IServicelocatorgroup {
   private group: GroupInterface;
+  axios = require("axios");
+  url = `${process.env.BASEAPIURL}`;
 
   constructor(private httpService: HttpService) {}
 
-  url = `${process.env.BASEAPIURL}`;
+  public async getGroup(request: any, groupId: any) {
 
-  public async getGroup(groupId: any, request: any) {
-    var axios = require("axios");
-
-    var data = {
+    var groupDetails = {
       query: `query GetGroup($groupId:uuid!) {
-        group_by_pk(groupId: $groupId) {
+        Group_by_pk(groupId: $groupId) {
         groupId
         deactivationReason
         created_at
@@ -48,18 +49,27 @@ export class HasuraGroupService implements IServicelocatorgroup {
 
     var config = {
       method: "post",
-      url: process.env.REGISTRYHASURA,
+      url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
-      data: data,
+      data: groupDetails,
     };
 
-    const response = await axios(config);
+    const resGroupDetails = await this.axios(config);
 
-    let result = [response?.data?.data?.group_by_pk];
+    if (resGroupDetails?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: resGroupDetails.data.errors[0].extensions,
+        errorMessage: resGroupDetails.data.errors[0].message,
+      });
+    }
+    
+    let result = [resGroupDetails.data.data.Group_by_pk];
     const groupResponse = await this.mappedResponse(result);
+    console.log(groupResponse,"groupResponse");
+    
     return new SuccessResponse({
       statusCode: 200,
       message: "Ok.",
@@ -68,7 +78,6 @@ export class HasuraGroupService implements IServicelocatorgroup {
   }
 
   public async createGroup(request: any, groupDto: GroupDto) {
-    var axios = require("axios");
 
     let query = "";
     Object.keys(groupDto).forEach((e) => {
@@ -83,7 +92,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
 
     var data = {
       query: `mutation CreateGroup {
-        insert_group_one(object: {${query}}) {
+        insert_Group_one(object: {${query}}) {
          groupId
         }
       }
@@ -95,15 +104,22 @@ export class HasuraGroupService implements IServicelocatorgroup {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: data,
     };
 
-    const response = await axios(config);
+    const response = await this.axios(config);
 
-    const result = response.data.data.insert_group_one;
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const result = response.data.data.insert_Group_one;
 
     return new SuccessResponse({
       statusCode: 200,
@@ -113,8 +129,6 @@ export class HasuraGroupService implements IServicelocatorgroup {
   }
 
   public async updateGroup(groupId: string, request: any, groupDto: GroupDto) {
-    var axios = require("axios");
-    var axios = require("axios");
 
     let query = "";
     Object.keys(groupDto).forEach((e) => {
@@ -129,7 +143,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
 
     var data = {
       query: `mutation UpdateGroup($groupId:uuid) {
-          update_group(where: {groupId: {_eq: $groupId}}, _set: {${query}}) {
+          update_Group(where: {groupId: {_eq: $groupId}}, _set: {${query}}) {
           affected_rows
         }
 }`,
@@ -142,14 +156,22 @@ export class HasuraGroupService implements IServicelocatorgroup {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: data,
     };
 
-    const response = await axios(config);
-    const result = response.data.data;
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const result = response.data.data.update_Group;
 
     return new SuccessResponse({
       statusCode: 200,
@@ -159,26 +181,26 @@ export class HasuraGroupService implements IServicelocatorgroup {
   }
 
   public async searchGroup(request: any, groupSearchDto: GroupSearchDto) {
-    var axios = require("axios");
 
     let offset = 0;
     if (groupSearchDto.page > 1) {
-      offset = parseInt(groupSearchDto.limit) * (groupSearchDto.page - 1);
+      offset = groupSearchDto.limit * (groupSearchDto.page - 1);
     }
 
-    let filters = groupSearchDto.filters;
-
-    Object.keys(groupSearchDto.filters).forEach((item) => {
-      Object.keys(groupSearchDto.filters[item]).forEach((e) => {
-        if (!e.startsWith("_")) {
-          filters[item][`_${e}`] = filters[item][e];
-          delete filters[item][e];
+    let query = "";
+    Object.keys(groupSearchDto.filters).forEach((e) => {
+      if (groupSearchDto.filters[e] && groupSearchDto.filters[e] != "") {
+        if (e === "name") {
+          query += `${e}:{_ilike: "%${groupSearchDto.filters[e]}%"}`;
+        } else {
+          query += `${e}:{_eq:"${groupSearchDto.filters[e]}"}`;
         }
-      });
+      }
     });
+
     var data = {
-      query: `query SearchGroup($filters:group_bool_exp,$limit:Int, $offset:Int) {
-           group(where:$filters, limit: $limit, offset: $offset,) {
+      query: `query SearchGroup($limit:Int, $offset:Int) {
+           Group(where:{${query}}, limit: $limit, offset: $offset,) {
                 groupId
                 deactivationReason
                 created_at
@@ -198,25 +220,33 @@ export class HasuraGroupService implements IServicelocatorgroup {
             }
           }`,
       variables: {
-        limit: parseInt(groupSearchDto.limit),
-        offset: offset,
-        filters: groupSearchDto.filters,
+        limit: groupSearchDto.limit,
+        offset: offset
       },
     };
     var config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: data,
     };
 
-    const response = await axios(config);
+    const response = await this.axios(config);
 
-    let result = response.data.data.group;
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    let result = response.data.data.Group;
+
     const groupResponse = await this.mappedResponse(result);
+
     return new SuccessResponse({
       statusCode: 200,
       message: "Ok.",
@@ -229,7 +259,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
     let userData = [];
     var findMember = {
       query: `query GetGroupMembership($groupId:uuid,$role:String) {
-       groupmembership(where: {groupId: {_eq: $groupId}, role: {_eq: $role}}) {
+       GroupMembership(where: {groupId: {_eq: $groupId}, role: {_eq: $role}}) {
         userId
         role
         }
@@ -251,7 +281,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
     };
 
     const response = await axios(getMemberData);
-    let result = response.data.data.groupmembership;
+    let result = response.data.data.GroupMembership;
     if (Array.isArray(result)) {
       let userIds = result.map((e: any) => {
         return e.userId;

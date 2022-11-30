@@ -45,7 +45,7 @@ export class GroupController {
     strategy: "excludeAll",
   })
   public async getGroup(@Param("id") groupId: string, @Req() request: Request) {
-    return this.groupAdapter.buildGroupAdapter().getGroup(groupId, request);
+    return this.groupAdapter.buildGroupAdapter().getGroup(request, groupId);
   }
 
   @Post()
