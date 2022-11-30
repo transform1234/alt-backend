@@ -100,7 +100,7 @@ export class ALTCourseTrackingController {
   @SerializeOptions({
     strategy: "excludeAll",
   })
-  public async searchSchool(
+  public async searchaltCourseTracking(
     @Req() request: Request,
     @Body() altCourseTrackingSearch: ALTCourseTrackingSearch
   ) {
