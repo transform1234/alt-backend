@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
 import { SuccessResponse } from "src/success-response";
+import { ErrorResponse } from "src/error-response";
 import { SchoolDto } from "src/school/dto/school.dto";
 import { SchoolSearchDto } from "src/school/dto/school-search.dto";
 import { IServicelocator } from "../schoolservicelocator";
@@ -29,7 +30,7 @@ export class SchoolHasuraService implements IServicelocator {
 
     var data = {
       query: `mutation CreateSchool {
-        insert_school_one(object: {${query}}) {
+        insert_School_one(object: {${query}}) {
          schoolId
         }
       }
@@ -41,7 +42,7 @@ export class SchoolHasuraService implements IServicelocator {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: data,
@@ -49,7 +50,14 @@ export class SchoolHasuraService implements IServicelocator {
 
     const response = await axios(config);
 
-    const result = response.data.data.insert_school_one;
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const result = response.data.data.insert_School_one;
 
     return new SuccessResponse({
       statusCode: 200,
@@ -78,7 +86,7 @@ export class SchoolHasuraService implements IServicelocator {
 
     var data = {
       query: `mutation UpdateSchool($schoolId:uuid) {
-          update_school(where: {schoolId: {_eq: $schoolId}}, _set: {${query}}) {
+          update_School(where: {schoolId: {_eq: $schoolId}}, _set: {${query}}) {
           affected_rows
         }}`,
       variables: {
@@ -90,14 +98,22 @@ export class SchoolHasuraService implements IServicelocator {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: data,
     };
 
     const response = await axios(config);
-    const result = response.data.data;
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const result = response.data.data.update_School;
 
     return new SuccessResponse({
       statusCode: 200,
@@ -111,7 +127,7 @@ export class SchoolHasuraService implements IServicelocator {
 
     var data = {
       query: `query GetSchool($schoolId:uuid!) {
-        school_by_pk(schoolId: $schoolId) {
+        School_by_pk(schoolId: $schoolId) {
             address
             block
             created_at
@@ -148,7 +164,7 @@ export class SchoolHasuraService implements IServicelocator {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: data,
@@ -156,7 +172,14 @@ export class SchoolHasuraService implements IServicelocator {
 
     const response = await axios(config);
 
-    let result = [response.data.data.school_by_pk];
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    let result = [response.data.data.School_by_pk];
     const schoolDto = await this.mappedResponse(result);
     return new SuccessResponse({
       statusCode: 200,
@@ -164,6 +187,7 @@ export class SchoolHasuraService implements IServicelocator {
       data: schoolDto[0],
     });
   }
+
   public async searchSchool(request: any, schoolSearchDto: SchoolSearchDto) {
     var axios = require("axios");
 
@@ -176,13 +200,17 @@ export class SchoolHasuraService implements IServicelocator {
     let query = "";
     Object.keys(schoolSearchDto.filters).forEach((e) => {
       if (schoolSearchDto.filters[e] && schoolSearchDto.filters[e] != "") {
-        query += `${e}:{_eq:"${schoolSearchDto.filters[e]}"}`;
+        if (e === "schoolName") {
+          query += `${e}:{_ilike: "%${schoolSearchDto.filters[e]}%"}`;
+        } else {
+          query += `${e}:{_eq:"${schoolSearchDto.filters[e]}"}`;
+        }
       }
     });
 
     var data = {
       query: `query SearchSchool($limit:Int, $offset:Int) {
-            school(where:{ ${query}}, limit: $limit, offset: $offset,) {
+            School(where:{ ${query}}, limit: $limit, offset: $offset,) {
                 address
                 block
                 created_at
@@ -208,7 +236,7 @@ export class SchoolHasuraService implements IServicelocator {
                 website
                 cluster
                 headMaster
-                 board
+                board
             }
           }`,
       variables: {
@@ -220,7 +248,7 @@ export class SchoolHasuraService implements IServicelocator {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: data,
@@ -228,14 +256,24 @@ export class SchoolHasuraService implements IServicelocator {
 
     const response = await axios(config);
 
-    let result = response.data.data.school;
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    let result = response.data.data.School;
+
     const schoolDto = await this.mappedResponse(result);
+
     return new SuccessResponse({
       statusCode: 200,
       message: "Ok.",
       data: schoolDto,
     });
   }
+
   public async mappedResponse(result: any) {
     const schoolResponse = result.map((item: any) => {
       const schoolMapping = {
