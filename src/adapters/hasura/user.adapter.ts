@@ -86,7 +86,9 @@ export class HasuraUserService implements IServicelocator {
         userDto[e] != "" && e != "password" &&
         Object.keys(userSchema).includes(e)
       ) {
-        if (Array.isArray(userDto[e])) {
+        if (e === "role") {
+          query += `${e}: ${userDto[e]},`;
+        } else if (Array.isArray(userDto[e])) {
           query += `${e}: ${JSON.stringify(userDto[e])}, `;
         } else {
           query += `${e}: ${JSON.stringify(userDto[e])}, `;
@@ -226,7 +228,9 @@ export class HasuraUserService implements IServicelocator {
         userDto[e] != "" &&
         Object.keys(userSchema).includes(e)
       ) {
-        if (Array.isArray(userDto[e])) {
+        if (e === "role") {
+          userUpdate += `${e}: ${userDto[e]},`;
+        } else if (Array.isArray(userDto[e])) {
           userUpdate += `${e}: ${JSON.stringify(userDto[e])}, `;
         } else {
           userUpdate += `${e}: ${JSON.stringify(userDto[e])}, `;
@@ -282,22 +286,25 @@ export class HasuraUserService implements IServicelocator {
 
     let filters = userSearchDto.filters;
 
-    Object.keys(userSearchDto.filters).forEach((item) => {
-      Object.keys(userSearchDto.filters[item]).forEach((e) => {
-        if (!e.startsWith("_")) {
-          filters[item][`_${e}`] = filters[item][e];
-          delete filters[item][e];
+    let query = "";
+    Object.keys(userSearchDto.filters).forEach((e) => {
+      if (userSearchDto.filters[e] && userSearchDto.filters[e] != "") {
+        if (e === "name" || e === "username") {
+          query += `${e}:{_ilike: "%${userSearchDto.filters[e]}%"}`;
+        } else {
+          query += `${e}:{_eq:"${userSearchDto.filters[e]}"}`;
         }
-      });
+      }
     });
+
     var data = {
-      query: `query SearchUser($filters:Users_bool_exp,$limit:Int, $offset:Int) {
+      query: `query SearchUser($limit:Int, $offset:Int) {
         Users_aggregate {
           aggregate {
             count
           }
         }
-        Users(where:$filters, limit: $limit, offset: $offset,) {          
+        Users(where:{${query}}, limit: $limit, offset: $offset,) {          
             userId
             name
             username
@@ -321,12 +328,15 @@ export class HasuraUserService implements IServicelocator {
             section
             status
             image
+            createdBy
+            updatedBy
+            created_at
+            updated_at
             }
           }`,
       variables: {
         limit: userSearchDto.limit,
         offset: offset,
-        filters: userSearchDto.filters,
       },
     };
     var config = {
@@ -384,10 +394,10 @@ export class HasuraUserService implements IServicelocator {
         district: item?.district ? `${item.district}` : "",
         state: item?.state ? `${item.state}` : "",
         role: item?.role ? `${item.role}` : "",
-        created_at: item?.created_at ? `${item.created_at}` : "",
-        updated_at: item?.updated_at ? `${item.updated_at}` : "",
-        created_by: item?.created_by ? `${item.created_by}` : "",
-        updated_by: item?.updated_by ? `${item.updated_by}` : "",
+        createdAt: item?.created_at ? `${item.created_at}` : "",
+        updatedAt: item?.updated_at ? `${item.updated_at}` : "",
+        createdBy: item?.createdBy ? `${item.createdBy}` : "",
+        updatedBy: item?.updatedBy ? `${item.updatedBy}` : "",
       };
       return new UserDto(userMapping);
     });
@@ -456,6 +466,7 @@ export class HasuraUserService implements IServicelocator {
     const response = await axios(config);
 
     let result = response.data.data.Users;
+   
     const userData = await this.mappedResponse(result);
     return new SuccessResponse({
       statusCode: 200,
