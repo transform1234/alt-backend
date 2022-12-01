@@ -20,7 +20,6 @@ export class HasuraGroupService implements IServicelocatorgroup {
   constructor(private httpService: HttpService) {}
 
   public async getGroup(request: any, groupId: any) {
-
     var groupDetails = {
       query: `query GetGroup($groupId:uuid!) {
         Group_by_pk(groupId: $groupId) {
@@ -65,10 +64,10 @@ export class HasuraGroupService implements IServicelocatorgroup {
         errorMessage: resGroupDetails.data.errors[0].message,
       });
     }
-    
+
     let result = [resGroupDetails.data.data.Group_by_pk];
     const groupResponse = await this.mappedResponse(result);
-    
+
     return new SuccessResponse({
       statusCode: 200,
       message: "Ok.",
@@ -77,11 +76,12 @@ export class HasuraGroupService implements IServicelocatorgroup {
   }
 
   public async createGroup(request: any, groupDto: GroupDto) {
-
     let query = "";
     Object.keys(groupDto).forEach((e) => {
       if (groupDto[e] && groupDto[e] != "") {
-        if (Array.isArray(groupDto[e])) {
+        if (e === "role") {
+          query += `${e}: ${groupDto[e]},`;
+        } else if (Array.isArray(groupDto[e])) {
           query += `${e}: ${JSON.stringify(groupDto[e])}, `;
         } else {
           query += `${e}: "${groupDto[e]}", `;
@@ -128,11 +128,12 @@ export class HasuraGroupService implements IServicelocatorgroup {
   }
 
   public async updateGroup(groupId: string, request: any, groupDto: GroupDto) {
-
     let query = "";
     Object.keys(groupDto).forEach((e) => {
       if (groupDto[e] && groupDto[e] != "") {
-        if (Array.isArray(groupDto[e])) {
+        if (e === "role") {
+          query += `${e}: ${groupDto[e]},`;
+        } else if (Array.isArray(groupDto[e])) {
           query += `${e}: ${JSON.stringify(groupDto[e])}, `;
         } else {
           query += `${e}: ${groupDto[e]}, `;
@@ -180,7 +181,6 @@ export class HasuraGroupService implements IServicelocatorgroup {
   }
 
   public async searchGroup(request: any, groupSearchDto: GroupSearchDto) {
-
     let offset = 0;
     if (groupSearchDto.page > 1) {
       offset = groupSearchDto.limit * (groupSearchDto.page - 1);
@@ -220,14 +220,14 @@ export class HasuraGroupService implements IServicelocatorgroup {
           }`,
       variables: {
         limit: groupSearchDto.limit,
-        offset: offset
+        offset: offset,
       },
     };
     var config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: data,
@@ -256,12 +256,41 @@ export class HasuraGroupService implements IServicelocatorgroup {
   public async findMembersOfGroup(groupId: string, role: string, request: any) {
     let axios = require("axios");
     let userData = [];
+    
     var findMember = {
       query: `query GetGroupMembership($groupId:uuid,$role:String) {
        GroupMembership(where: {groupId: {_eq: $groupId}, role: {_eq: $role}}) {
-        userId
-        role
+        User {
+          birthDate
+          block
+          bloodGroup
+          board
+          createdBy
+          created_at
+          district
+          email
+          father
+          grade
+          gender
+          image
+          medium
+          mobileNumber
+          mother
+          name
+          role
+          school
+          section
+          serialNo
+          state
+          status
+          udise
+          uniqueId
+          updatedBy
+          updated_at
+          userId
+          username
         }
+      }
       }`,
       variables: {
         groupId: groupId,
@@ -273,72 +302,51 @@ export class HasuraGroupService implements IServicelocatorgroup {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: findMember,
     };
 
     const response = await axios(getMemberData);
-    let result = response.data.data.GroupMembership;
-    if (Array.isArray(result)) {
-      let userIds = result.map((e: any) => {
-        return e.userId;
-      });
-      if (result[0].role == "Student") {
-        for (let value of userIds) {
-          let studentSearch = {
-            method: "get",
-            url: `${this.url}/Student/${value}`,
-            headers: {
-              Authorization: request.headers.authorization,
-            },
-          };
 
-          const response = await axios(studentSearch);
-          let responseData = await this.StudentMappedResponse([response.data]);
-          let studentData = responseData[0];
-
-          userData.push(studentData);
-        }
-      } else {
-        for (let value of userIds) {
-          let classFinal = {
-            method: "get",
-            url: `${this.url}/User/${value}`,
-            headers: {
-              Authorization: request.headers.authorization,
-            },
-          };
-
-          const responseData = await axios(classFinal);
-
-          let response = await this.userMappedResponse([responseData.data]);
-          let teacherDetailDto = response[0];
-          userData.push(teacherDetailDto);
-        }
-      }
-
-      return new SuccessResponse({
-        statusCode: 200,
-        message: "ok",
-        data: userData,
-      });
-    } else {
-      return new SuccessResponse({
-        statusCode: 200,
-        message: "ok",
-        data: { msg: "Unable to get data !!" },
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
       });
     }
+
+    let result = response.data.data.GroupMembership; 
+
+    const userList = result.map((e: any) => {
+      return e.User;
+    });
+    
+    if (!userList.length) {      
+      return new SuccessResponse({
+        statusCode: 200,
+        message: "ok",
+        data: { msg: "No data found for given inputs!" },
+      });
+    } 
+    
+    const groupResponse = await this.userMappedResponse(userList);
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "ok",
+      data: groupResponse,
+    });
+
   }
 
   public async findGroupsByUserId(userId: string, role: string, request: any) {
     let axios = require("axios");
     var findMember = {
-      query: `query GetGroup($userId:String,$role:String) {
-        groupmembership(where: {userId: {_eq: $userId}, role: {_eq: $role}}) {
-          group {
+      query: `query GetGroup($userId:uuid!,$role:String) {
+        GroupMembership(where: {userId: {_eq: $userId}, role: {_eq: $role}}) {
+          Group {
             created_at
             deactivationReason
             gradeLevel
@@ -369,19 +377,26 @@ export class HasuraGroupService implements IServicelocatorgroup {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: findMember,
     };
     const response = await axios(getMemberData);
-
-    let groupData = response.data.data.groupmembership;
+    
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+    
+    let groupData = response.data.data.GroupMembership;
 
     const groupList = groupData.map((e: any) => {
-      return e.group;
+      return e.Group;
     });
-
+    
     const groupResponse = await this.mappedResponse(groupList);
     return new SuccessResponse({
       statusCode: 200,
@@ -519,9 +534,10 @@ export class HasuraGroupService implements IServicelocatorgroup {
       };
       return new GroupDto(groupMapping);
     });
-
+    
     return groupResponse;
   }
+
   public async StudentMappedResponse(result: any) {
     const studentResponse = result.map((item: any) => {
       const studentMapping = {
@@ -609,60 +625,36 @@ export class HasuraGroupService implements IServicelocatorgroup {
 
     return studentResponse;
   }
+
   public async userMappedResponse(result: any) {
     const userResponse = result.map((item: any) => {
       const userMapping = {
-        userId: item?.osid ? `${item.osid}` : "",
-        refId1: item?.refId1 ? `${item.refId1}` : "",
-        refId2: item?.refId2 ? `${item.refId2}` : "",
-        refId3: item?.refId3 ? `${item.refId3}` : "",
-        firstName: item?.firstName ? `${item.firstName}` : "",
-        middleName: item?.middleName ? `${item.middleName}` : "",
-        lastName: item?.lastName ? `${item.lastName}` : "",
-        phoneNumber: item?.phoneNumber ? `${item.phoneNumber}` : "",
+        userId: item?.userId ? `${item.userId}` : "",
+        name: item?.name ? `${item.name}` : "",
+        username: item?.username ? `${item.username}` : "",
+        father: item?.father ? `${item.father}` : "",
+        mother: item?.mother ? `${item.mother}` : "",
+        uniqueId: item?.uniqueId ? `${item.uniqueId}` : "",
+        school: item?.school ? `${item.school}` : "",
         email: item?.email ? `${item.email}` : "",
-        aadhaar: item?.aadhaar ? `${item.aadhaar}` : "",
+        mobileNumber: item?.mobileNumber ? item.mobileNumber : "",
         gender: item?.gender ? `${item.gender}` : "",
-        socialCategory: item?.socialCategory ? `${item.socialCategory}` : "",
+        udise: item?.udise ? `${item.udise}` : "",
+        board: item?.board ? `${item.board}` : "",
+        medium: item?.medium ? `${item.medium}` : "",
+        grade: item?.grade ? `${item.grade}` : "",
+        section: item?.section ? `${item.section}` : "",
         birthDate: item?.birthDate ? `${item.birthDate}` : "",
-        designation: item?.designation ? `${item.designation}` : "",
-        cadre: item?.cadre ? `${item.cadre}` : "",
-        profQualification: item?.profQualification
-          ? `${item.profQualification}`
-          : "",
-        joiningDate: item?.joiningDate ? `${item.joiningDate}` : "",
-        subjectIds: item.subjectIds ? item.subjectIds : [],
-        bloodGroup: item?.bloodGroup ? `${item.bloodGroup}` : "",
-        maritalStatus: item?.maritalStatus ? `${item.maritalStatus}` : "",
-        compSkills: item?.compSkills ? `${item.compSkills}` : "",
-        disability: item?.disability ? `${item.disability}` : "",
-        religion: item?.religion ? `${item.religion}` : "",
-        homeDistance: item?.homeDistance ? `${item.homeDistance}` : "",
-        employmentType: item?.employmentType ? `${item.employmentType}` : "",
-        schoolId: item?.schoolId ? `${item.schoolId}` : "",
-        address: item?.address ? `${item.address}` : "",
-        village: item?.village ? `${item.village}` : "",
+        status: item?.status ? `${item.status}` : "",
+        image: item?.image ? `${item.image}` : "",
         block: item?.block ? `${item.block}` : "",
         district: item?.district ? `${item.district}` : "",
-        stateId: item?.stateId ? `${item.stateId}` : "",
-        pincode: item?.pincode ? item.pincode : "",
-        locationId: item?.locationId ? `${item.locationId}` : "",
-        image: item?.image ? `${item.image}` : "",
-        status: item?.status ? `${item.status}` : "",
-        deactivationReason: item?.deactivationReason
-          ? `${item.deactivationReason}`
-          : "",
-        reportsTo: item?.reportsTo ? `${item.reportsTo}` : "",
-        retirementDate: item?.retirementDate ? `${item.retirementDate}` : "",
-        workingStatus: item?.workingStatus ? `${item.workingStatus}` : "",
-        fcmToken: item?.fcmToken ? `${item.fcmToken}` : "",
+        state: item?.state ? `${item.state}` : "",
         role: item?.role ? `${item.role}` : "",
-        employeeCode: item?.employeeCode ? `${item.employeeCode}` : "",
-        metaData: item?.metaData ? item.metaData : [],
-        createdAt: item?.osCreatedAt ? `${item.osCreatedAt}` : "",
-        updatedAt: item?.osUpdatedAt ? `${item.osUpdatedAt}` : "",
-        createdBy: item?.osCreatedBy ? `${item.osCreatedBy}` : "",
-        updatedBy: item?.osUpdatedBy ? `${item.osUpdatedBy}` : "",
+        created_at: item?.created_at ? `${item.created_at}` : "",
+        updated_at: item?.updated_at ? `${item.updated_at}` : "",
+        createdBy: item?.createdBy ? `${item.createdBy}` : "",
+        updatedBy: item?.updatedBy ? `${item.updatedBy}` : "",
       };
       return new UserDto(userMapping);
     });
