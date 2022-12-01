@@ -59,7 +59,7 @@ export class GroupDto {
     description: "Parent Id of Group",
   })
   @Expose()
-  parentId: string;
+  parentGroupId: string;
 
   @ApiPropertyOptional()
   @Expose()
@@ -91,10 +91,10 @@ export class GroupDto {
   gradeLevel: string;
 
   @Expose()
-  createdAt: string;
+  created_at: string;
 
   @Expose()
-  updatedAt: string;
+  updated_at: string;
 
   constructor(obj: any) {
     Object.assign(this, obj);

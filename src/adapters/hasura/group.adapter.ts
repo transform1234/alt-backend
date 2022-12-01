@@ -39,7 +39,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
         status
         type
         updated_at
-        parentId
+        parentGroupId
       }
     }`,
       variables: {
@@ -68,12 +68,11 @@ export class HasuraGroupService implements IServicelocatorgroup {
     
     let result = [resGroupDetails.data.data.Group_by_pk];
     const groupResponse = await this.mappedResponse(result);
-    console.log(groupResponse,"groupResponse");
     
     return new SuccessResponse({
       statusCode: 200,
       message: "Ok.",
-      data: groupResponse[0],
+      data: groupResponse,
     });
   }
 
@@ -216,7 +215,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
                 gradeLevel
                 type
                 updated_at
-                parentId
+                parentGroupId
             }
           }`,
       variables: {
@@ -355,7 +354,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
             teacherId
             type
             updated_at
-            parentId
+            parentGroupId
           }
         }
       }
@@ -392,35 +391,35 @@ export class HasuraGroupService implements IServicelocatorgroup {
   }
 
   public async findMembersOfChildGroup(
-    parentId: string,
+    parentGroupId: string,
     role: string,
     request: any
   ) {
     let axios = require("axios");
     let userData = [];
     let userIds = [];
-    var findParentId = {
-      query: `query GetGroupParentId($parentId:String) {
-       group(where: {parentId: {_eq: $parentId}}) {
+    var findParentGroupId = {
+      query: `query GetGroupParentId($parentGroupId:String) {
+       group(where: {parentGroupId: {_eq: $parentGroupId}}) {
         groupId
         }
       }`,
       variables: {
-        parentId: parentId,
+        parentGroupId: parentGroupId,
       },
     };
 
-    var getParentId = {
+    var getParentGroupId = {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
         "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
         "Content-Type": "application/json",
       },
-      data: findParentId,
+      data: findParentGroupId,
     };
 
-    const groupResponse = await axios(getParentId);
+    const groupResponse = await axios(getParentGroupId);
     let groupIds = groupResponse.data.data.group.map((e: any) => {
       return e.groupId;
     });
@@ -510,7 +509,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
           ? `${item.mediumOfInstruction}`
           : "",
         teacherId: item?.teacherId ? `${item.teacherId}` : "",
-        parentId: item?.parentId ? `${item.parentId}` : "",
+        parentGroupId: item?.parentGroupId ? `${item.parentGroupId}` : "",
         image: item?.image ? `${item.image}` : "",
         metaData: item?.metaData ? item.metaData : [],
         option: item?.option ? item.option : [],

@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
 import { SuccessResponse } from "src/success-response";
+import { ErrorResponse } from "src/error-response";
+import jwt_decode from "jwt-decode";
 const resolvePath = require("object-resolve-path");
 import { GroupMembershipDto } from "src/groupMembership/dto/groupMembership.dto";
 import { GroupMembershipSearchDto } from "src/groupMembership/dto/groupMembership-search.dto";
@@ -8,22 +10,22 @@ import { GroupMembershipSearchDto } from "src/groupMembership/dto/groupMembershi
 @Injectable()
 export class GroupMembershipService {
   constructor(private httpService: HttpService) {}
-
+  axios = require("axios");
   url = `${process.env.BASEAPIURL}`;
 
   public async getGroupMembership(groupMembershipId: any, request: any) {
-    var axios = require("axios");
-
     var data = {
       query: `query GetGroupMembership($groupMembershipId:uuid!) {
-        groupmembership_by_pk(groupMembershipId: $groupMembershipId) {
-            created_at
+        GroupMembership_by_pk(groupMembershipId: $groupMembershipId) {
             groupId
             groupMembershipId
             schoolId
             role
-            updated_at
             userId
+            updatedBy
+            createdBy
+            updated_at
+            created_at
       }
     }`,
       variables: {
@@ -35,20 +37,29 @@ export class GroupMembershipService {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: data,
     };
 
-    const response = await axios(config);
+    const resGroupMemberDetails = await this.axios(config);
 
-    let result = [response?.data?.data?.groupmembership_by_pk];
+    if (resGroupMemberDetails?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: resGroupMemberDetails.data.errors[0].extensions,
+        errorMessage: resGroupMemberDetails.data.errors[0].message,
+      });
+    }
+
+    let result = [resGroupMemberDetails.data.data.GroupMembership_by_pk];
+
     let groupMembershipResponse = await this.mappedResponse(result);
+
     return new SuccessResponse({
       statusCode: 200,
       message: "Ok.",
-      data: groupMembershipResponse[0],
+      data: groupMembershipResponse,
     });
   }
 
@@ -56,7 +67,12 @@ export class GroupMembershipService {
     request: any,
     groupMembership: GroupMembershipDto
   ) {
-    var axios = require("axios");
+    const decoded: any = jwt_decode(request.headers.authorization);
+    groupMembership.userId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    groupMembership.createdBy = groupMembership.userId;
+    groupMembership.updatedBy = groupMembership.userId;
 
     let query = "";
     Object.keys(groupMembership).forEach((e) => {
@@ -71,7 +87,7 @@ export class GroupMembershipService {
 
     var data = {
       query: `mutation CreateGroupMembership {
-        insert_groupmembership_one(object: {${query}}) {
+        insert_GroupMembership_one(object: {${query}}) {
          groupMembershipId
         }
       }
@@ -83,15 +99,22 @@ export class GroupMembershipService {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: data,
     };
 
-    const response = await axios(config);
+    const response = await this.axios(config);
 
-    const result = response.data.data.insert_groupmembership_one;
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const result = response.data.data.insert_GroupMembership_one;
 
     return new SuccessResponse({
       statusCode: 200,
@@ -105,7 +128,11 @@ export class GroupMembershipService {
     request: any,
     groupMembershipDto: GroupMembershipDto
   ) {
-    var axios = require("axios");
+    const decoded: any = jwt_decode(request.headers.authorization);
+    groupMembershipDto.userId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    groupMembershipDto.updatedBy = groupMembershipDto.userId;
 
     let query = "";
     Object.keys(groupMembershipDto).forEach((e) => {
@@ -118,12 +145,12 @@ export class GroupMembershipService {
       }
     });
 
-    var data = {
+    const groupMembershipUpdate = {
       query: `mutation UpdateGroupMembership($groupMembershipId:uuid) {
-          update_groupmembership(where: { groupMembershipId: {_eq: $ groupMembershipId}}, _set: {${query}}) {
+          update_GroupMembership(where: { groupMembershipId: {_eq: $ groupMembershipId}}, _set: {${query}}) {
           affected_rows
         }
-}`,
+      }`,
       variables: {
         groupMembershipId: groupMembershipId,
       },
@@ -133,15 +160,22 @@ export class GroupMembershipService {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
-      data: data,
+      data: groupMembershipUpdate,
     };
 
-    const response = await axios(config);
+    const response = await this.axios(config);
 
-    const result = response.data.data;
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const result = response.data.data.update_GroupMembership;
 
     return new SuccessResponse({
       statusCode: 200,
@@ -154,8 +188,6 @@ export class GroupMembershipService {
     request: any,
     groupMembershipSearchDto: GroupMembershipSearchDto
   ) {
-    var axios = require("axios");
-
     let offset = 0;
     if (groupMembershipSearchDto.page > 1) {
       offset =
@@ -163,19 +195,23 @@ export class GroupMembershipService {
         (groupMembershipSearchDto.page - 1);
     }
 
-    let filters = groupMembershipSearchDto.filters;
+    const decoded: any = jwt_decode(request.headers.authorization);
+    groupMembershipSearchDto.filters.userId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
-    Object.keys(groupMembershipSearchDto.filters).forEach((item) => {
-      Object.keys(groupMembershipSearchDto.filters[item]).forEach((e) => {
-        if (!e.startsWith("_")) {
-          filters[item][`_${e}`] = filters[item][e];
-          delete filters[item][e];
-        }
-      });
+    let query = "";
+    Object.keys(groupMembershipSearchDto.filters).forEach((e) => {
+      if (
+        groupMembershipSearchDto.filters[e] &&
+        groupMembershipSearchDto.filters[e] != ""
+      ) {
+        query += `${e}:{_eq:"${groupMembershipSearchDto.filters[e]}"}`;
+      }
     });
+
     var data = {
-      query: `query SearchGroupMembership($filters:groupmembership_bool_exp,$limit:Int, $offset:Int) {
-           groupmembership(where:$filters, limit: $limit, offset: $offset,) {
+      query: `query SearchGroupMembership($limit:Int, $offset:Int) {
+           GroupMembership(where:{${query}}, limit: $limit, offset: $offset,) {
             created_at
             groupId
             groupMembershipId
@@ -183,27 +219,35 @@ export class GroupMembershipService {
             role
             updated_at
             userId
+            createdBy
+            updatedBy
             }
           }`,
       variables: {
         limit: parseInt(groupMembershipSearchDto.limit),
         offset: offset,
-        filters: groupMembershipSearchDto.filters,
       },
     };
     var config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: data,
     };
 
-    const response = await axios(config);
+    const response = await this.axios(config);
 
-    let result = response.data.data.groupmembership;
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    let result = response.data.data.GroupMembership;
     let groupMembershipResponse = await this.mappedResponse(result);
     return new SuccessResponse({
       statusCode: 200,
@@ -224,6 +268,8 @@ export class GroupMembershipService {
         role: obj?.role ? `${obj.role}` : "",
         created_at: obj?.created_at ? `${obj.created_at}` : "",
         updated_at: obj?.updated_at ? `${obj.updated_at}` : "",
+        createdBy: obj?.createdBy ? `${obj.createdBy}` : "",
+        updatedBy: obj?.updatedBy ? `${obj.updatedBy}` : "",
       };
       return new GroupMembershipDto(groupMembershipMapping);
     });

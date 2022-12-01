@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { GroupMembershipDto } from "./groupMembership.dto";
 
 export class GroupMembershipSearchDto {
   @ApiProperty({
@@ -14,11 +15,11 @@ export class GroupMembershipSearchDto {
   page: number;
 
   @ApiProperty({
-    type: Object,
+    type: GroupMembershipDto,
     description: "Filters",
   })
   @ApiPropertyOptional()
-  filters: object;
+  filters: GroupMembershipDto;
 
   constructor(partial: Partial<GroupMembershipSearchDto>) {
     Object.assign(this, partial);
