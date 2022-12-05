@@ -258,7 +258,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
     let userData = [];
     
     var findMember = {
-      query: `query GetGroupMembership($groupId:uuid,$role:String) {
+      query: `query GetGroupMembership($groupId:uuid,$role:UserRole_enum) {
        GroupMembership(where: {groupId: {_eq: $groupId}, role: {_eq: $role}}) {
         User {
           birthDate
