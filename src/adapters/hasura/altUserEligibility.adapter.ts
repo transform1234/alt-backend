@@ -57,8 +57,6 @@ export class ALTUserCourseEligibilityService {
 
     const programRules = JSON.parse(progTermData.data[0].rules);
 
-    console.log(programRules);
-
     const baselineAssessmentId = programRules.prog[0].contentId;
     const totalAssessmentScore = programRules.prog[0].totalScore;
 
@@ -78,10 +76,14 @@ export class ALTUserCourseEligibilityService {
         },
       });
     } else if (baselineAssessmentRecord?.data?.length === 1) {
-      //   const scorePercentage = Math.floor(
-      //     (baselineAssessmentRecord.data[0].score / totalAssessmentScore) * 100
-      //   );
+      let scorePercentage;
+      if (baselineAssessmentRecord.data[0].status === "completed") {
+        scorePercentage = Math.floor(
+          (baselineAssessmentRecord.data[0].score / totalAssessmentScore) * 100
+        );
+      }
       let courseFound = false;
+      let baselineCriteriaFulfilled = false;
       if (altUserId) {
         for (const course of programRules?.prog) {
           const courseDate = new Date(course.startDate);
@@ -91,18 +93,39 @@ export class ALTUserCourseEligibilityService {
             courseDate.getTime() <= currentDate.getTime()
           ) {
             courseFound = true;
-            let scorePercentage = 70; // scp
-            console.log(course.criteria);
 
-            if (course.criteria["0"].contentId === baselineAssessmentId) {
+            if (course.criteria["0"]?.contentId === baselineAssessmentId) {
               if (
-                scorePercentage >= Number(course.criteria["1"].minScorePerc) &&
-                scorePercentage <= Number(course.criteria["1"].maxScorePerc)
+                scorePercentage >= Number(course.criteria["0"].minScorePerc) &&
+                scorePercentage <= Number(course.criteria["0"].maxScorePerc)
               ) {
+                baselineCriteriaFulfilled = true;
+
                 return new SuccessResponse({
                   statusCode: 200,
                   message: "Ok.",
                   data: {
+                    msg: "Course " + courseId + " unlocked",
+                    status: true,
+                  },
+                });
+              }
+            }
+            if (course.criteria["1"].contentId && !baselineCriteriaFulfilled) {
+              let recordList: any = {};
+              recordList =
+                await this.altCourseTrackingService.getExistingCourseTrackingRecords(
+                  request,
+                  course.criteria["1"].contentId
+                );
+
+              if (recordList.data[0]?.status === "completed") {
+                return new SuccessResponse({
+                  statusCode: 200,
+                  message: "Ok.",
+                  data: {
+                    previousCourse: course.criteria["1"].contentId,
+                    previousCourseCompleted: true,
                     msg: "Course " + courseId + " unlocked",
                     status: true,
                   },
@@ -112,50 +135,27 @@ export class ALTUserCourseEligibilityService {
                   statusCode: 200,
                   message: "Ok.",
                   data: {
-                    msg: "Course " + courseId + " locked",
+                    previousCourse: course.criteria["1"].contentId,
+                    previousCourseCompleted: false,
+                    msg:
+                      "Course " +
+                      courseId +
+                      " locked. Please complete previous course first",
                     status: false,
                   },
                 });
               }
             } else {
-              console.log(courseId, course.criteria["0"].contentId);
-              let recordList: any = {};
-              recordList =
-                await this.altCourseTrackingService.getExistingCourseTrackingRecords(
-                  request,
-                  course.criteria["0"].contentId
-                );
-
-                console.log(recordList);
-                
-              if (recordList.data[0]?.status === "completed") {
-                return new SuccessResponse({
-                    statusCode: 200,
-                    message: "Ok.",
-                    data: {
-                      msg: "Course " + courseId + " unlocked",
-                      status: true,
-                    },
-                  });
-              } else if (
-                course.criteria["1"].contentId === baselineAssessmentId &&
-                scorePercentage >= Number(course.criteria["1"].minScorePerc) &&
-                scorePercentage <= Number(course.criteria["1"].maxScorePerc)
-              ) {
-                return new SuccessResponse({
-                    statusCode: 200,
-                    message: "Ok.",
-                    data: {
-                      msg: "Course " + courseId + " unlocked",
-                      status: true,
-                    },
-                  });
-              }
+              return new ErrorResponse({
+                errorCode: "400",
+                errorMessage:
+                  "Criteria for previous course completion not found in rules",
+              });
             }
           }
         }
 
-        if (courseFound === false) {
+        if (!courseFound) {
           return new SuccessResponse({
             statusCode: 200,
             message: "Ok.",
