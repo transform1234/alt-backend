@@ -1,5 +1,6 @@
 import { Exclude, Expose } from "class-transformer";
 import { ApiProperty } from "@nestjs/swagger";
+import { IsNotEmpty, IsUUID } from "class-validator";
 
 export class GroupMembershipDto {
   @Expose()
@@ -13,13 +14,20 @@ export class GroupMembershipDto {
   @Expose()
   schoolId: string;
 
-  @ApiProperty()
   @Expose()
+  @IsNotEmpty()
+  @IsUUID()
   userId: string;
 
   @ApiProperty()
   @Expose()
   role: string;
+
+  @Expose()
+  createdBy: string;
+
+  @Expose()
+  updatedBy: string;
 
   @Expose()
   created_at: string;

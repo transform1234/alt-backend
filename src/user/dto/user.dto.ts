@@ -176,22 +176,14 @@ export class UserDto {
   image: string;
 
   @Expose()
-  created_at: string;
+  createdAt: string;
 
   @Expose()
-  updated_at: string;
+  updatedAt: string;
 
-  @ApiProperty({
-    type: String,
-    description: "Created by name",
-  })
   @Expose()
   createdBy: string;
 
-  @ApiProperty({
-    type: String,
-    description: "Updated by name",
-  })
   @Expose()
   updatedBy: string;
 

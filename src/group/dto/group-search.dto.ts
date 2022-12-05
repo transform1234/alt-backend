@@ -1,11 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-
+import { GroupDto } from "./group.dto";
 export class GroupSearchDto {
   @ApiProperty({
-    type: String,
+    type: Number,
     description: "Limit",
   })
-  limit: string;
+  limit: number;
 
   @ApiProperty({
     type: Number,
@@ -14,11 +14,11 @@ export class GroupSearchDto {
   page: number;
 
   @ApiProperty({
-    type: Object,
+    type: GroupDto,
     description: "Filters",
   })
   @ApiPropertyOptional()
-  filters: object;
+  filters: GroupDto;
 
   constructor(partial: Partial<GroupSearchDto>) {
     Object.assign(this, partial);

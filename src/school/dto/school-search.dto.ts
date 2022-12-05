@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-
+import { SchoolDto } from "./school.dto";
 export class SchoolSearchDto {
   @ApiProperty({
     type: String,
@@ -14,11 +14,11 @@ export class SchoolSearchDto {
   page: number;
 
   @ApiProperty({
-    type: Object,
+    type: SchoolDto,
     description: "Filters",
   })
   @ApiPropertyOptional()
-  filters: object;
+  filters: SchoolDto;
 
   constructor(partial: Partial<SchoolSearchDto>) {
     Object.assign(this, partial);

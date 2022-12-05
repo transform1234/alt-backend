@@ -45,7 +45,7 @@ export class GroupController {
     strategy: "excludeAll",
   })
   public async getGroup(@Param("id") groupId: string, @Req() request: Request) {
-    return this.groupAdapter.buildGroupAdapter().getGroup(groupId, request);
+    return this.groupAdapter.buildGroupAdapter().getGroup(request, groupId);
   }
 
   @Post()
@@ -157,18 +157,18 @@ export class GroupController {
       .findGroupsByUserId(id, role, request);
   }
 
-  @Get(":groupId/child")
-  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
-  @ApiBasicAuth("access-token")
-  @ApiOkResponse({ description: "Group detail." })
-  @ApiForbiddenResponse({ description: "Forbidden" })
-  public async findMembersOfChildGroup(
-    @Param("groupId") id: string,
-    @Query("role") role: string,
-    @Req() request: Request
-  ) {
-    return this.groupAdapter
-      .buildGroupAdapter()
-      .findMembersOfChildGroup(id, role, request);
-  }
+  // @Get(":groupId/child")
+  // @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
+  // @ApiBasicAuth("access-token")
+  // @ApiOkResponse({ description: "Group detail." })
+  // @ApiForbiddenResponse({ description: "Forbidden" })
+  // public async findMembersOfChildGroup(
+  //   @Param("groupId") id: string,
+  //   @Query("role") role: string,
+  //   @Req() request: Request
+  // ) {
+  //   return this.groupAdapter
+  //     .buildGroupAdapter()
+  //     .findMembersOfChildGroup(id, role, request);
+  // }
 }

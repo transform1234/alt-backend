@@ -88,7 +88,7 @@ export class ALTModuleTrackingController {
     );
   }
 
-  @Patch("/altupdatemoduletracking/:userid")
+  @Patch("/altupdatemoduletracking/")
   @ApiBasicAuth("access-token")
   @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
   @ApiBody({ type: UpdateALTModuleTrackingDto })

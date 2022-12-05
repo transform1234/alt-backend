@@ -59,7 +59,7 @@ export class GroupDto {
     description: "Parent Id of Group",
   })
   @Expose()
-  parentId: string;
+  parentGroupId: string;
 
   @ApiPropertyOptional()
   @Expose()

@@ -61,21 +61,21 @@ export class GroupMembershipController {
 
   @Put("/:id")
   @ApiBasicAuth("access-token")
+  @UseInterceptors(ClassSerializerInterceptor)
+  @ApiBody({ type: GroupMembershipDto })
   @ApiCreatedResponse({
     description: "Group Membership has been updated successfully.",
   })
-  @ApiBody({ type: GroupMembershipDto })
   @ApiForbiddenResponse({ description: "Forbidden" })
-  @UseInterceptors(ClassSerializerInterceptor)
   public async updateGroupMembership(
     @Param("id") groupMembershipId: string,
     @Req() request: Request,
-    @Body() groupMembersipDto: GroupMembershipDto
+    @Body() groupMembershipDto: GroupMembershipDto
   ) {
     return this.service.updateGroupMembership(
       groupMembershipId,
       request,
-      groupMembersipDto
+      groupMembershipDto
     );
   }
 

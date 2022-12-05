@@ -93,14 +93,14 @@ export class ALTCourseTrackingController {
 
   @Post("/search")
   @ApiBasicAuth("access-token")
-  @ApiCreatedResponse({ description: "School list." })
+  @ApiCreatedResponse({ description: "Course list." })
   @ApiBody({ type: ALTCourseTrackingSearch })
   @ApiForbiddenResponse({ description: "Forbidden" })
   @UseInterceptors(ClassSerializerInterceptor)
   @SerializeOptions({
     strategy: "excludeAll",
   })
-  public async searchSchool(
+  public async searchaltCourseTracking(
     @Req() request: Request,
     @Body() altCourseTrackingSearch: ALTCourseTrackingSearch
   ) {
