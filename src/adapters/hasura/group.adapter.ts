@@ -258,7 +258,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
     let userData = [];
     
     var findMember = {
-      query: `query GetGroupMembership($groupId:uuid,$role:String) {
+      query: `query GetGroupMembership($groupId:uuid,$role:UserRole_enum) {
        GroupMembership(where: {groupId: {_eq: $groupId}, role: {_eq: $role}}) {
         User {
           birthDate
@@ -344,7 +344,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
   public async findGroupsByUserId(userId: string, role: string, request: any) {
     let axios = require("axios");
     var findMember = {
-      query: `query GetGroup($userId:uuid!,$role:String) {
+      query: `query GetGroup($userId:uuid!,$role:UserRole_enum) {
         GroupMembership(where: {userId: {_eq: $userId}, role: {_eq: $role}}) {
           Group {
             created_at
