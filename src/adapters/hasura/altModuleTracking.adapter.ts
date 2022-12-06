@@ -448,21 +448,27 @@ export class ALTModuleTrackingService {
 
   public async searchALTModuleTracking(
     request: any,
+    userId: string,
     altModuleTrackingSearch: ALTModuleTrackingSearch
   ) {
     var axios = require("axios");
 
     const decoded: any = jwt_decode(request.headers.authorization);
-    altModuleTrackingSearch.filters.userId =
+    const altUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
+    altModuleTrackingSearch.filters.userId = userId;
     let query = "";
     Object.keys(altModuleTrackingSearch.filters).forEach((e) => {
       if (
         altModuleTrackingSearch.filters[e] &&
         altModuleTrackingSearch.filters[e] != ""
       ) {
-        query += `${e}:{_eq:"${altModuleTrackingSearch.filters[e]}"}`;
+        if (e === "status") {
+          query += `${e}:{_eq: ${altModuleTrackingSearch.filters[e]}},`;
+        } else {
+          query += `${e}:{_eq:"${altModuleTrackingSearch.filters[e]}"}`;
+        }
       }
     });
 

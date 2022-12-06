@@ -43,7 +43,10 @@ export class ALTLessonTrackingController {
     @Req() request: Request,
     @Query("lessonid") lessonId: string
   ) {
-    return this.altLessonTrackingService.getALTLessonTracking(request,lessonId);
+    return this.altLessonTrackingService.getALTLessonTracking(
+      request,
+      lessonId
+    );
   }
 
   @Post("/altcheckandaddlessontracking")
@@ -89,7 +92,7 @@ export class ALTLessonTrackingController {
     );
   }
 
-  @Post("/search")
+  @Post("/search/:userid")
   @ApiBasicAuth("access-token")
   @ApiCreatedResponse({ description: "Lesson list." })
   @ApiBody({ type: ALTLessonTrackingSearch })
@@ -100,10 +103,12 @@ export class ALTLessonTrackingController {
   })
   public async searchaltLessonTracking(
     @Req() request: Request,
+    @Param("userid") userId: string,
     @Body() altLessonTrackingSearch: ALTLessonTrackingSearch
   ) {
     return this.altLessonTrackingService.searchALTLessonTracking(
       request,
+      userId,
       altLessonTrackingSearch
     );
   }
