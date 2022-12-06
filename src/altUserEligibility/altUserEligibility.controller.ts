@@ -23,13 +23,13 @@ import {
   ApiBasicAuth,
   ApiQuery,
 } from "@nestjs/swagger";
-import { ALTUserCourseEligibilityService } from "src/adapters/hasura/altUserEligibility.adapter";
+import { ALTUserEligibilityService } from "src/adapters/hasura/altUserEligibility.adapter";
 
-@ApiTags("ALT User Course Eligibility")
-@Controller("altusercourseeligibility")
-export class ALTUserCourseEligibilityController {
+@ApiTags("ALT User Eligibility")
+@Controller("altusereligibility")
+export class ALTUserEligibilityController {
   constructor(
-    private altUserCourseEligibilityService: ALTUserCourseEligibilityService
+    private altUserEligibilityService: ALTUserEligibilityService
   ) {}
 
   @Post("/altusercourseeligibility")
@@ -43,10 +43,27 @@ export class ALTUserCourseEligibilityController {
     @Query("courseId") courseId: string,
     @Query("subject") subject: string
   ) {
-    return this.altUserCourseEligibilityService.checkEligibility(
+    return this.altUserEligibilityService.checkEligibilityforCourse(
       request,
       programId,
       courseId,
+      subject
+    );
+  }
+
+  @Post("/altuserprogrameligibility")
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "ALT User Program Eligibility" })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @UseInterceptors(ClassSerializerInterceptor)
+  public async getALTUserProgramEligibility(
+    @Req() request: Request,
+    @Query("programId") programId: string,
+    @Query("subject") subject: string
+  ) {
+    return this.altUserEligibilityService.checkEligibilityforProgram(
+      request,
+      programId,
       subject
     );
   }

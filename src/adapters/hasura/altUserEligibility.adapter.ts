@@ -10,7 +10,7 @@ import { ALTModuleTrackingService } from "./altModuleTracking.adapter";
 import { ALTCourseTrackingService } from "./altCourseTracking.adapter";
 
 @Injectable()
-export class ALTUserCourseEligibilityService {
+export class ALTUserEligibilityService {
   axios = require("axios");
 
   constructor(
@@ -21,7 +21,7 @@ export class ALTUserCourseEligibilityService {
     private altCourseTrackingService: ALTCourseTrackingService
   ) {}
 
-  public async checkEligibility(
+  public async checkEligibilityforCourse(
     request: any,
     programId: string,
     courseId: string,
@@ -105,6 +105,21 @@ export class ALTUserCourseEligibilityService {
                   statusCode: 200,
                   message: "Ok.",
                   data: {
+                    contentId: courseId,
+                    msg: "Course " + courseId + " unlocked",
+                    status: true,
+                  },
+                });
+              } else if (
+                scorePercentage > Number(course.criteria["0"].maxScorePerc)
+              ) {
+                baselineCriteriaFulfilled = true;
+
+                return new SuccessResponse({
+                  statusCode: 200,
+                  message: "Ok.",
+                  data: {
+                    contentId: courseId,
                     msg: "Course " + courseId + " unlocked",
                     status: true,
                   },
@@ -124,10 +139,11 @@ export class ALTUserCourseEligibilityService {
                   statusCode: 200,
                   message: "Ok.",
                   data: {
-                    previousCourse: course.criteria["1"].contentId,
-                    previousCourseCompleted: true,
+                    contentId: courseId,
                     msg: "Course " + courseId + " unlocked",
                     status: true,
+                    previousCourse: course.criteria["1"].contentId,
+                    previousCourseCompleted: true,
                   },
                 });
               } else {
@@ -135,13 +151,14 @@ export class ALTUserCourseEligibilityService {
                   statusCode: 200,
                   message: "Ok.",
                   data: {
-                    previousCourse: course.criteria["1"].contentId,
-                    previousCourseCompleted: false,
+                    contentId: courseId,
                     msg:
                       "Course " +
                       courseId +
                       " locked. Please complete previous course first",
                     status: false,
+                    previousCourse: course.criteria["1"].contentId,
+                    previousCourseCompleted: false,
                   },
                 });
               }
@@ -160,6 +177,7 @@ export class ALTUserCourseEligibilityService {
             statusCode: 200,
             message: "Ok.",
             data: {
+              contentId: courseId,
               msg:
                 "Course " +
                 courseId +
@@ -174,6 +192,63 @@ export class ALTUserCourseEligibilityService {
         errorCode: "400",
         errorMessage:
           "Duplicate entry found in DataBase for Baseline Assessment",
+      });
+    }
+  }
+
+  public async checkEligibilityforProgram(
+    request: any,
+    programId: string,
+    subject: string
+  ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    let currentProgramDetails: any = {};
+    currentProgramDetails = await this.programService.getProgramDetailsById(
+      request,
+      programId
+    );
+
+    if (!currentProgramDetails.data) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: currentProgramDetails?.errorMessage,
+      });
+    }
+
+    const paramData = new TermsProgramtoRulesDto(currentProgramDetails.data);
+
+    let progTermData: any = {};
+    progTermData = await this.altProgramAssociationService.getRules(request, {
+      programId: programId,
+      board: paramData[0].board,
+      medium: paramData[0].medium,
+      grade: paramData[0].grade,
+      subject: subject,
+    });
+
+    const programRules = JSON.parse(progTermData.data[0].rules);
+
+    let courseStatusList = [];
+    if (programRules.prog) {
+      for await (const content of programRules.prog) {
+        if (JSON.stringify(content.criteria) !== JSON.stringify({})) {
+          const courseEligibility: any = await this.checkEligibilityforCourse(
+            request,
+            programId,
+            content.contentId,
+            subject
+          );
+          courseStatusList.push(courseEligibility.data);
+        }
+      }
+
+      return new SuccessResponse({
+        statusCode: 200,
+        message: "Ok.",
+        data: courseStatusList,
       });
     }
   }
