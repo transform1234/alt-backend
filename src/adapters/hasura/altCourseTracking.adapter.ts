@@ -331,10 +331,10 @@ export class ALTCourseTrackingService {
       ) {
         altCourseTrackingDto.status = "completed";
       } else if (moduleStatus === "completed") {
-        altCourseTrackingDto.totalNumberOfModulesCompleted =
-          altCourseTrackingDto.totalNumberOfModulesCompleted + 1;
         altCourseTrackingDto.status = "ongoing";
       }
+      altCourseTrackingDto.totalNumberOfModulesCompleted =
+        altCourseTrackingDto.totalNumberOfModulesCompleted + 1;
       return this.createALTCourseTracking(request, altCourseTrackingDto);
     } else if (
       numberOfRecords === 1 &&

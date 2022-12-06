@@ -277,7 +277,7 @@ export class ALTLessonTrackingService {
               );
             } else if (
               numberOfRecords === 1 &&
-              recordList[0].status !== "completed"
+              recordList.data[0].status !== "completed"
             ) {
               return await this.updateALTLessonTracking(
                 request,
@@ -287,17 +287,17 @@ export class ALTLessonTrackingService {
               );
             } else if (
               numberOfRecords === 1 &&
-              recordList[0].status === "completed"
+              recordList.data[0].status === "completed"
             ) {
               return new ErrorResponse({
                 errorCode: "400",
-                errorMessage: "Record for Baseline Assessment already exists!",
+                errorMessage: "Record for Assessment already exists!",
               });
             } else {
               return new ErrorResponse({
                 errorCode: "400",
                 errorMessage:
-                  "Duplicate entry found in DataBase for Baseline Assessment",
+                  "Duplicate entry found in DataBase for Assessment",
               });
             }
           } else if (course.contentType == "course" && allowedAttempts === 0) {
