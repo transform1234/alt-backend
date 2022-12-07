@@ -382,7 +382,6 @@ export class ALTCourseTrackingService {
   public async getOngoingCourses(request: any, courseIdList:string[]){
     var axios = require("axios");
 
-    courseIdList = ["do_11368272706010316811319", "do_113649165772840960153"];
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
