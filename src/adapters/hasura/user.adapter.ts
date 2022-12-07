@@ -165,6 +165,7 @@ export class HasuraUserService implements IServicelocator {
       email: query?.email,
       enabled: "true",
       username: query.username,
+      groups:["hasura-user"],
       credentials: [
         {
           temporary: "false",
