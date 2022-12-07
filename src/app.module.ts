@@ -35,6 +35,7 @@ import { ALTLessonTrackingModule } from "./altLessonTracking/altLessonTracking.m
 import { ALTProgramAssociationModule } from "./altProgramAssociation/altProgramAssociation.module";
 import { ALTModuleTrackingModule } from "./altModuleTracking/altModuleTracking.module";
 import { ALTUserCourseEligibilityModule } from "./altUserEligibility/altUserEligibility.module";
+import { ALTCurrentPhaseModule } from "./altCurrentPhase/altCurrentPhase.module";
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { ALTUserCourseEligibilityModule } from "./altUserEligibility/altUserElig
     ALTProgramAssociationModule,
     ALTModuleTrackingModule,
     ALTUserCourseEligibilityModule,
+    ALTCurrentPhaseModule
   ],
   controllers: [AppController],
   providers: [AppService],
