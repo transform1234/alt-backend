@@ -60,10 +60,10 @@ export class ALTCourseTrackingDto {
   updatedBy: string;
 
   @Expose()
-  created_at: string;
+  createdAt: string;
 
   @Expose()
-  updated_at: string;
+  updatedAt: string;
 
   constructor(obj: any) {
     Object.assign(this, obj);
