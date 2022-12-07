@@ -91,7 +91,7 @@ export class ALTCourseTrackingController {
     return res;
   }
 
-  @Post("/search")
+  @Post("/search/:userid")
   @ApiBasicAuth("access-token")
   @ApiCreatedResponse({ description: "Course list." })
   @ApiBody({ type: ALTCourseTrackingSearch })
@@ -102,10 +102,12 @@ export class ALTCourseTrackingController {
   })
   public async searchaltCourseTracking(
     @Req() request: Request,
+    @Param("userid") userId: string,
     @Body() altCourseTrackingSearch: ALTCourseTrackingSearch
   ) {
     return this.altCourseTrackingService.searchALTCourseTracking(
       request,
+      userId,
       altCourseTrackingSearch
     );
   }

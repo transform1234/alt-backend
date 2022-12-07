@@ -29,7 +29,10 @@ export class ALTProgramAssociationService {
     return programResponse;
   }
 
-  public async getSubjectList(request: any,altSubjectListDto: ALTSubjectListDto) {
+  public async getSubjectList(
+    request: any,
+    altSubjectListDto: ALTSubjectListDto
+  ) {
     const subjectListData = {
       query: `query GetSubjectList ($board:String,$medium:String,$grade:String,$programId:uuid!){
                 ProgramTermAssoc(where: 
@@ -39,7 +42,12 @@ export class ALTProgramAssociationService {
                     grade: {_eq: $grade},
                     programId: {_eq: $programId},    
                 }) 
-                { subject }
+                { 
+                  subject
+                  rules
+                  created_at
+                  updated_at
+                 }
             }`,
       variables: {
         board: altSubjectListDto.board,
@@ -77,7 +85,10 @@ export class ALTProgramAssociationService {
     });
   }
 
-  public async getRules(request: any, altTermsProgramDto: TermsProgramtoRulesDto) {
+  public async getRules(
+    request: any,
+    altTermsProgramDto: TermsProgramtoRulesDto
+  ) {
     const TermsProgramtoRulesData = {
       query: `query GetRules ($board:String,$medium:String,$grade:String,$subject:String,$programId:uuid!){
                 ProgramTermAssoc(where: 

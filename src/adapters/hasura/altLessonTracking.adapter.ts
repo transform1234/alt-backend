@@ -554,21 +554,27 @@ export class ALTLessonTrackingService {
 
   public async searchALTLessonTracking(
     request: any,
+    userId: string,
     altLessonTrackingSearch: ALTLessonTrackingSearch
   ) {
     var axios = require("axios");
 
     const decoded: any = jwt_decode(request.headers.authorization);
-    altLessonTrackingSearch.filters.userId =
+    const altUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
+    altLessonTrackingSearch.filters.userId = userId;
     let query = "";
     Object.keys(altLessonTrackingSearch.filters).forEach((e) => {
       if (
         altLessonTrackingSearch.filters[e] &&
         altLessonTrackingSearch.filters[e] != ""
       ) {
-        query += `${e}:{_eq:"${altLessonTrackingSearch.filters[e]}"}`;
+        if (e === "status") {
+          query += `${e}:{_eq: ${altLessonTrackingSearch.filters[e]}},`;
+        } else {
+          query += `${e}:{_eq:"${altLessonTrackingSearch.filters[e]}"}`;
+        }
       }
     });
 
@@ -679,7 +685,7 @@ export class ALTLessonTrackingService {
           message: "Ok.",
           data: { ack: "Module and Course Tracking created" },
         });
-      } else if (moduleTracking.data.affected_rows){
+      } else if (moduleTracking.data.affected_rows) {
         return new SuccessResponse({
           statusCode: moduleTracking?.statusCode,
           message: "Ok.",

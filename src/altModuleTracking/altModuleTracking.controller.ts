@@ -61,7 +61,10 @@ export class ALTModuleTrackingController {
     @Req() request: Request,
     @Query("moduleid") moduleId: string
   ) {
-    return this.altModuleTrackingService.getALTModuleTracking(request,moduleId);
+    return this.altModuleTrackingService.getALTModuleTracking(
+      request,
+      moduleId
+    );
   }
 
   @Post("/altcheckandaddmoduletracking")
@@ -110,7 +113,7 @@ export class ALTModuleTrackingController {
     );
   }
 
-  @Post("/search")
+  @Post("/search/:userid")
   @ApiBasicAuth("access-token")
   @ApiCreatedResponse({ description: "Module list." })
   @ApiBody({ type: ALTModuleTrackingSearch })
@@ -121,10 +124,12 @@ export class ALTModuleTrackingController {
   })
   public async searchALTModuleTracking(
     @Req() request: Request,
+    @Param("userid") userId: string,
     @Body() altModuleTrackingSearch: ALTModuleTrackingSearch
   ) {
     return this.altModuleTrackingService.searchALTModuleTracking(
       request,
+      userId,
       altModuleTrackingSearch
     );
   }

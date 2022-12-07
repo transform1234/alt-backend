@@ -42,7 +42,8 @@ export class ALTCourseTrackingService {
     altCourseId: string
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
     const ALTCourseTrackingData = {
       query: `
@@ -65,7 +66,7 @@ export class ALTCourseTrackingService {
         altCourseId: altCourseId,
         altUserId: altUserId,
       },
-    };    
+    };
 
     const configData = {
       method: "post",
@@ -78,7 +79,7 @@ export class ALTCourseTrackingService {
     };
 
     const response = await this.axios(configData);
-  
+
     if (response?.data?.errors) {
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
@@ -102,8 +103,9 @@ export class ALTCourseTrackingService {
     altCourseTrackingDto: ALTCourseTrackingDto
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    altCourseTrackingDto.userId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
-    
+    altCourseTrackingDto.userId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
     const altCourseTracking = new ALTCourseTrackingDto(altCourseTrackingDto);
     let newAltCourseTracking = "";
     Object.keys(altCourseTrackingDto).forEach((key) => {
@@ -172,11 +174,12 @@ export class ALTCourseTrackingService {
     updateCourseTrackingDto: UpdateALTCourseTrackingDto
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    updateCourseTrackingDto.userId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
-    
+    updateCourseTrackingDto.userId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
     const updateAltCourseTracking = new UpdateALTCourseTrackingDto(
       updateCourseTrackingDto
-    );    
+    );
     let newUpdateAltCourseTracking = "";
     Object.keys(updateCourseTrackingDto).forEach((key) => {
       if (
@@ -215,7 +218,7 @@ export class ALTCourseTrackingService {
       },
       data: altCourseUpdateTrackingQuery,
     };
-    
+
     const response = await this.axios(configData);
 
     if (response?.data?.errors) {
@@ -236,12 +239,16 @@ export class ALTCourseTrackingService {
 
   public async searchALTCourseTracking(
     request: any,
+    userId: string,
     altCourseTrackingSearch: ALTCourseTrackingSearch
   ) {
     var axios = require("axios");
 
     const decoded: any = jwt_decode(request.headers.authorization);
-    altCourseTrackingSearch.filters.userId = (decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    altCourseTrackingSearch.filters.userId = userId;
 
     let query = "";
     Object.keys(altCourseTrackingSearch.filters).forEach((e) => {
@@ -249,7 +256,11 @@ export class ALTCourseTrackingService {
         altCourseTrackingSearch.filters[e] &&
         altCourseTrackingSearch.filters[e] != ""
       ) {
-        query += `${e}:{_eq:"${altCourseTrackingSearch.filters[e]}"}`;
+        if (e === "status") {
+          query += `${e}:{_eq: ${altCourseTrackingSearch.filters[e]}},`;
+        } else {
+          query += `${e}:{_eq:"${altCourseTrackingSearch.filters[e]}"}`;
+        }
       }
     });
 
@@ -310,7 +321,7 @@ export class ALTCourseTrackingService {
     let recordList: any = {};
     recordList = await this.getExistingCourseTrackingRecords(
       request,
-      altCourseTrackingDto.courseId,
+      altCourseTrackingDto.courseId
     ).catch(function (error) {
       errorExRec = error;
     });
@@ -354,10 +365,7 @@ export class ALTCourseTrackingService {
           parseInt(recordList.data[0].totalNumberOfModulesCompleted) + 1;
       }
 
-      return await this.updateALTCourseTracking(
-        request,
-        altCourseTrackingDto
-      );
+      return await this.updateALTCourseTracking(request, altCourseTrackingDto);
     } else if (numberOfRecords > 1) {
       return new ErrorResponse({
         errorCode: "400",
