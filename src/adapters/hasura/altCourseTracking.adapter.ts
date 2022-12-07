@@ -28,8 +28,8 @@ export class ALTCourseTrackingService {
         status: item?.status ? `${item.status}` : "",
         createdBy: item?.createdBy ? `${item.createdBy}` : "",
         updatedBy: item?.updatedBy ? `${item.updatedBy}` : "",
-        created_at: item?.created_at ? `${item.created_at}` : "",
-        updated_at: item?.updated_at ? `${item.updated_at}` : "",
+        createdAt: item?.created_at ? `${item.created_at}` : "",
+        updatedAt: item?.updated_at ? `${item.updated_at}` : "",
       };
       return new ALTCourseTrackingDto(altCourseMapping);
     });
@@ -377,5 +377,68 @@ export class ALTCourseTrackingService {
         message: "Course is completed.",
       });
     }
+  }
+
+  public async getOngoingCourses(request: any, courseIdList:string[]){
+    var axios = require("axios");
+
+    courseIdList = ["do_11368272706010316811319", "do_113649165772840960153"];
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    
+      const ALTCourseTrackingData = {
+        query: `
+              query MyQuery($altUserId: uuid!, $altCourseIdList: [String!]) {
+                  CourseProgressTracking(where: {courseId: {_in: $altCourseIdList}, userId: {_eq: $altUserId}, status: {_eq: ongoing}}) {
+                    userId
+                    courseId
+                    status
+                    totalNumberOfModulesCompleted
+                    totalNumberOfModules
+                    calculatedScore
+                    status
+                    createdBy
+                    updatedBy
+                    created_at
+                    updated_at
+                  }
+                }                 
+              `,
+        variables: {
+          altCourseIdList: courseIdList,
+          altUserId: altUserId,
+        },
+      };
+
+      const configData = {
+        method: "post",
+        url: process.env.ALTHASURA,
+        headers: {
+          "Authorization": request.headers.authorization,
+          "Content-Type": "application/json",
+        },
+        data: ALTCourseTrackingData,
+      };
+  
+      const response = await this.axios(configData);
+  
+      if (response?.data?.errors) {
+        return new ErrorResponse({
+          errorCode: response.data.errors[0].extensions,
+          errorMessage: response.data.errors[0].message,
+        });
+      }
+  
+      const result = response.data.data.CourseProgressTracking;
+  
+      const data = await this.mappedResponse(result);
+  
+      return new SuccessResponse({
+        statusCode: 200,
+        message: "Ok.",
+        data: data,
+      });
   }
 }
