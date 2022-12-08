@@ -72,7 +72,10 @@ export class ALTCurrentPhaseService {
           );
 
         if (ongoingCourses.data.length) {
-          const item = { [content.subject]: ongoingCourses.data };
+          const item = {
+            subjectName: content.subject,
+            ongoingCourses: ongoingCourses.data,
+          };
           ongoingCourseList.push(item);
         }
       }
