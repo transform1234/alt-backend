@@ -72,7 +72,9 @@ export class ALTUserEligibilityService {
         statusCode: 200,
         message: "Ok.",
         data: {
+          contentId: courseId,
           msg: "Data for Baseline Assessment not found. Please attempt Baseline Assessment.",
+          status: true,
         },
       });
     } else if (baselineAssessmentRecord?.data?.length === 1) {
@@ -82,6 +84,19 @@ export class ALTUserEligibilityService {
           (baselineAssessmentRecord.data[0].score / totalAssessmentScore) * 100
         );
       }
+
+      if (courseId === baselineAssessmentId && scorePercentage) {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "Ok.",
+          data: {
+            contentId: courseId,
+            msg: "Course " + courseId + " completed.",
+            status: false,
+          },
+        });
+      }
+
       let courseFound = false;
       let baselineCriteriaFulfilled = false;
       if (altUserId) {
@@ -126,7 +141,7 @@ export class ALTUserEligibilityService {
                 });
               }
             }
-            if (course.criteria["1"].contentId && !baselineCriteriaFulfilled) {
+            if (course.criteria["1"]?.contentId && !baselineCriteriaFulfilled) {
               let recordList: any = {};
               recordList =
                 await this.altCourseTrackingService.getExistingCourseTrackingRecords(
@@ -234,15 +249,13 @@ export class ALTUserEligibilityService {
     let courseStatusList = [];
     if (programRules.prog) {
       for await (const content of programRules.prog) {
-        if (JSON.stringify(content.criteria) !== JSON.stringify({})) {
-          const courseEligibility: any = await this.checkEligibilityforCourse(
-            request,
-            programId,
-            content.contentId,
-            subject
-          );
-          courseStatusList.push(courseEligibility.data);
-        }
+        const courseEligibility: any = await this.checkEligibilityforCourse(
+          request,
+          programId,
+          content.contentId,
+          subject
+        );
+        courseStatusList.push(courseEligibility.data);
       }
 
       return new SuccessResponse({
