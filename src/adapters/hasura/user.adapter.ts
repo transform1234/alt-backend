@@ -484,8 +484,6 @@ export class HasuraUserService implements IServicelocator {
     const userData: any = await this.getUserByUsername(username, request);
     let userId;
 
-    console.log(userData);
-
     if (userData?.data?.userId) {
       userId = userData.data.userId;
     } else {
