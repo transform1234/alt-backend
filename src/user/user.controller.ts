@@ -34,6 +34,7 @@ import { IServicelocator } from "src/adapters/userservicelocator";
 import { EsamwadUserToken } from "src/adapters/esamwad/user.adapter";
 import { UserAdapter } from "./useradapter";
 import { HasuraUserService } from "src/adapters/hasura/user.adapter";
+import { UserUpdateDto } from "./dto/user-update.dto";
 @ApiTags("User")
 @Controller("user")
 export class UserController {
@@ -85,11 +86,9 @@ export class UserController {
   public async updateUser(
     @Param("id") id: string,
     @Req() request: Request,
-    @Body() userDto: UserDto
+    @Body() userUpdateDto: UserUpdateDto
   ) {
-    return await this.userAdapter
-      .buildUserAdapter()
-      .updateUser(id, request, userDto);
+    return await this.hasuraUserService.updateUser(id, request, userUpdateDto);
   }
 
   @Post("/search")

@@ -6,6 +6,7 @@ import { UserDto } from "src/user/dto/user.dto";
 import jwt_decode from "jwt-decode";
 import { UserSearchDto } from "src/user/dto/user-search.dto";
 import { ErrorResponse } from "src/error-response";
+import { UserUpdateDto } from "src/user/dto/user-update.dto";
 
 @Injectable()
 export class HasuraUserService implements IServicelocator {
@@ -217,23 +218,23 @@ export class HasuraUserService implements IServicelocator {
     return axios(config);
   }
 
-  public async updateUser(userId: string, request: any, userDto: UserDto) {
+  public async updateUser(userId: string, request: any, userUpdateDto: UserUpdateDto) {
     var axios = require("axios");
 
-    const userSchema = new UserDto(userDto);
+    const userSchema = new UserUpdateDto(userUpdateDto);
     let userUpdate = "";
-    Object.keys(userDto).forEach((e) => {
+    Object.keys(userUpdateDto).forEach((e) => {
       if (
-        userDto[e] &&
-        userDto[e] != "" &&
+        userUpdateDto[e] &&
+        userUpdateDto[e] != "" &&
         Object.keys(userSchema).includes(e)
       ) {
         if (e === "role") {
-          userUpdate += `${e}: ${userDto[e]},`;
-        } else if (Array.isArray(userDto[e])) {
-          userUpdate += `${e}: ${JSON.stringify(userDto[e])}, `;
+          userUpdate += `${e}: ${userUpdateDto[e]},`;
+        } else if (Array.isArray(userUpdateDto[e])) {
+          userUpdate += `${e}: ${JSON.stringify(userUpdateDto[e])}, `;
         } else {
-          userUpdate += `${e}: ${JSON.stringify(userDto[e])}, `;
+          userUpdate += `${e}: ${JSON.stringify(userUpdateDto[e])}, `;
         }
       }
     });
@@ -267,7 +268,7 @@ export class HasuraUserService implements IServicelocator {
         errorMessage: response.data.errors[0].message,
       });
     } else {
-      const result = response.data.data.insert_user_one;
+      const result = response.data.data.update_Users;
       return new SuccessResponse({
         statusCode: 200,
         message: "Ok.",
