@@ -77,7 +77,9 @@ export class GroupMembershipService {
     let query = "";
     Object.keys(groupMembership).forEach((e) => {
       if (groupMembership[e] && groupMembership[e] != "") {
-        if (Array.isArray(groupMembership[e])) {
+        if (e === "role") {
+          query += `${e}: ${groupMembership[e]},`;
+        } else if (Array.isArray(groupMembership[e])) {
           query += `${e}: ${JSON.stringify(groupMembership[e])}, `;
         } else {
           query += `${e}: "${groupMembership[e]}", `;
@@ -137,17 +139,19 @@ export class GroupMembershipService {
     let query = "";
     Object.keys(groupMembershipDto).forEach((e) => {
       if (groupMembershipDto[e] && groupMembershipDto[e] != "") {
-        if (Array.isArray(groupMembershipDto[e])) {
+        if (e === "role") {
+          query += `${e}: ${groupMembershipDto[e]},`;
+        } else if (Array.isArray(groupMembershipDto[e])) {
           query += `${e}: ${JSON.stringify(groupMembershipDto[e])}, `;
         } else {
-          query += `${e}: ${groupMembershipDto[e]}, `;
+          query += `${e}: ${JSON.stringify(groupMembershipDto[e])}, `;
         }
       }
     });
-
+    
     const groupMembershipUpdate = {
       query: `mutation UpdateGroupMembership($groupMembershipId:uuid) {
-          update_GroupMembership(where: { groupMembershipId: {_eq: $ groupMembershipId}}, _set: {${query}}) {
+          update_GroupMembership(where: { groupMembershipId: {_eq: $groupMembershipId}}, _set: {${query}}) {
           affected_rows
         }
       }`,
