@@ -74,7 +74,7 @@ export class ALTUserEligibilityService {
         data: {
           contentId: courseId,
           msg: "Data for Baseline Assessment not found. Please attempt Baseline Assessment.",
-          status: true,
+          status: "unlocked",
         },
       });
     } else if (baselineAssessmentRecord?.data?.length === 1) {
@@ -92,7 +92,7 @@ export class ALTUserEligibilityService {
           data: {
             contentId: courseId,
             msg: "Course " + courseId + " completed.",
-            status: false,
+            status: "completed",
           },
         });
       }
@@ -122,7 +122,9 @@ export class ALTUserEligibilityService {
                   data: {
                     contentId: courseId,
                     msg: "Course " + courseId + " unlocked",
-                    status: true,
+                    status: "unlocked",
+                    previousCourse: course.criteria["0"].contentId,
+                    previousCourseCompleted: true,
                   },
                 });
               } else if (
@@ -136,7 +138,9 @@ export class ALTUserEligibilityService {
                   data: {
                     contentId: courseId,
                     msg: "Course " + courseId + " unlocked",
-                    status: true,
+                    status: "unlocked",
+                    previousCourse: course.criteria["0"].contentId,
+                    previousCourseCompleted: true,
                   },
                 });
               }
@@ -156,7 +160,7 @@ export class ALTUserEligibilityService {
                   data: {
                     contentId: courseId,
                     msg: "Course " + courseId + " unlocked",
-                    status: true,
+                    status: "unlocked",
                     previousCourse: course.criteria["1"].contentId,
                     previousCourseCompleted: true,
                   },
@@ -171,7 +175,7 @@ export class ALTUserEligibilityService {
                       "Course " +
                       courseId +
                       " locked. Please complete previous course first",
-                    status: false,
+                    status: "locked",
                     previousCourse: course.criteria["1"].contentId,
                     previousCourseCompleted: false,
                   },
@@ -197,7 +201,7 @@ export class ALTUserEligibilityService {
                 "Course " +
                 courseId +
                 " is not available at the moment. Please try again later!",
-              status: false,
+              status: "locked",
             },
           });
         }
