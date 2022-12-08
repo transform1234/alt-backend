@@ -33,12 +33,14 @@ import { UserSearchDto } from "./dto/user-search.dto";
 import { IServicelocator } from "src/adapters/userservicelocator";
 import { EsamwadUserToken } from "src/adapters/esamwad/user.adapter";
 import { UserAdapter } from "./useradapter";
+import { HasuraUserService } from "src/adapters/hasura/user.adapter";
 @ApiTags("User")
 @Controller("user")
 export class UserController {
   constructor(
     private readonly service: UserService,
-    private userAdapter: UserAdapter
+    private userAdapter: UserAdapter,
+    private hasuraUserService: HasuraUserService
   ) {}
 
   @Get("/:id")
@@ -89,6 +91,7 @@ export class UserController {
       .buildUserAdapter()
       .updateUser(id, request, userDto);
   }
+
   @Post("/search")
   @ApiBasicAuth("access-token")
   @ApiCreatedResponse({ description: "User list." })
@@ -121,5 +124,26 @@ export class UserController {
     return await this.userAdapter
       .buildUserAdapter()
       .teacherSegment(schoolId, templateId, request);
+  }
+
+  @Post("/reset-password")
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "Password reset successfully." })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @ApiBody({ type: Object })
+  @UseInterceptors(ClassSerializerInterceptor)
+  public async resetUserPassword(
+    @Req() request: Request,
+    @Body()
+    reqBody: {
+      userName: string;
+      newPassword: string;
+    }
+  ) {
+    return this.hasuraUserService.resetUserPassword(
+      request,
+      reqBody.userName,
+      reqBody.newPassword
+    );
   }
 }
