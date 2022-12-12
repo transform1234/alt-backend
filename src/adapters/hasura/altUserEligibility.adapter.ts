@@ -67,7 +67,7 @@ export class ALTUserEligibilityService {
         baselineAssessmentId
       );
 
-    if (!baselineAssessmentRecord?.data?.length) {
+    if (!baselineAssessmentRecord?.data?.length && courseId === baselineAssessmentId) {
       return new SuccessResponse({
         statusCode: 200,
         message: "Ok.",
@@ -75,6 +75,16 @@ export class ALTUserEligibilityService {
           contentId: courseId,
           msg: "Data for Baseline Assessment not found. Please attempt Baseline Assessment.",
           status: "unlocked",
+        },
+      });
+    } else if (!baselineAssessmentRecord?.data?.length && courseId !== baselineAssessmentId) {
+      return new SuccessResponse({
+        statusCode: 200,
+        message: "Ok.",
+        data: {
+          contentId: courseId,
+          msg: "Data for Baseline Assessment not found. Please attempt Baseline Assessment.",
+          status: "locked",
         },
       });
     } else if (baselineAssessmentRecord?.data?.length === 1) {
@@ -206,7 +216,7 @@ export class ALTUserEligibilityService {
           });
         }
       }
-    } else {
+    } else {      
       return new ErrorResponse({
         errorCode: "400",
         errorMessage:
@@ -259,7 +269,12 @@ export class ALTUserEligibilityService {
           content.contentId,
           subject
         );
-        courseStatusList.push(courseEligibility.data);
+
+        if (courseEligibility.errorCode) {
+          courseStatusList.push({msg : courseEligibility.errorMessage});
+        } else {
+          courseStatusList.push(courseEligibility.data);
+        }
       }
 
       return new SuccessResponse({
