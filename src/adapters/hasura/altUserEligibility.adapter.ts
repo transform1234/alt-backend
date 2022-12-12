@@ -55,19 +55,33 @@ export class ALTUserEligibilityService {
       subject: subject,
     });
 
-    const programRules = JSON.parse(progTermData.data[0].rules);
+    let programRules: any;
+
+    if (progTermData?.data[0]?.rules) {
+      programRules = JSON.parse(progTermData.data[0].rules);
+    } else {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Program Rules not found for given subject!",
+      });
+    }
 
     const baselineAssessmentId = programRules.prog[0].contentId;
     const totalAssessmentScore = programRules.prog[0].totalScore;
+    const endlineAssessmentId =
+      programRules.prog[programRules.prog.length - 1].contentId;
 
-    let baselineAssessmentRecord: any;
+    let baselineAssessmentRecord, endlineAssessmentRecord: any;
     baselineAssessmentRecord =
       await this.altLessonTrackingService.getALTLessonTracking(
         request,
         baselineAssessmentId
       );
 
-    if (!baselineAssessmentRecord?.data?.length && courseId === baselineAssessmentId) {
+    if (
+      !baselineAssessmentRecord?.data?.length &&
+      courseId === baselineAssessmentId
+    ) {
       return new SuccessResponse({
         statusCode: 200,
         message: "Ok.",
@@ -77,7 +91,10 @@ export class ALTUserEligibilityService {
           status: "unlocked",
         },
       });
-    } else if (!baselineAssessmentRecord?.data?.length && courseId !== baselineAssessmentId) {
+    } else if (
+      !baselineAssessmentRecord?.data?.length &&
+      courseId !== baselineAssessmentId
+    ) {
       return new SuccessResponse({
         statusCode: 200,
         message: "Ok.",
@@ -125,14 +142,18 @@ export class ALTUserEligibilityService {
                 scorePercentage <= Number(course.criteria["0"].maxScorePerc)
               ) {
                 baselineCriteriaFulfilled = true;
-
+                const currentCourseCompletion =
+                  await this.getCurrentCourseCompletionStatus(
+                    request,
+                    course.contentId
+                  );
                 return new SuccessResponse({
                   statusCode: 200,
                   message: "Ok.",
                   data: {
                     contentId: courseId,
-                    msg: "Course " + courseId + " unlocked",
-                    status: "unlocked",
+                    msg: "Course " + courseId + " " + currentCourseCompletion,
+                    status: currentCourseCompletion,
                     previousCourse: course.criteria["0"].contentId,
                     previousCourseCompleted: true,
                   },
@@ -141,14 +162,18 @@ export class ALTUserEligibilityService {
                 scorePercentage > Number(course.criteria["0"].maxScorePerc)
               ) {
                 baselineCriteriaFulfilled = true;
-
+                const currentCourseCompletion =
+                  await this.getCurrentCourseCompletionStatus(
+                    request,
+                    course.contentId
+                  );
                 return new SuccessResponse({
                   statusCode: 200,
                   message: "Ok.",
                   data: {
                     contentId: courseId,
-                    msg: "Course " + courseId + " unlocked",
-                    status: "unlocked",
+                    msg: "Course " + courseId + " " + currentCourseCompletion,
+                    status: currentCourseCompletion,
                     previousCourse: course.criteria["0"].contentId,
                     previousCourseCompleted: true,
                   },
@@ -163,14 +188,34 @@ export class ALTUserEligibilityService {
                   course.criteria["1"].contentId
                 );
 
+              let currentCourseCompletion: any;
+
               if (recordList.data[0]?.status === "completed") {
+                if (course.contentId === endlineAssessmentId) {
+                  endlineAssessmentRecord =
+                    await this.altLessonTrackingService.getALTLessonTracking(
+                      request,
+                      endlineAssessmentId
+                    );
+                  if (endlineAssessmentRecord.data[0].status === "completed") {
+                    currentCourseCompletion = "completed";
+                  } else {
+                    currentCourseCompletion = "unlocked";
+                  }
+                } else {
+                  currentCourseCompletion =
+                    await this.getCurrentCourseCompletionStatus(
+                      request,
+                      course.contentId
+                    );
+                }
                 return new SuccessResponse({
                   statusCode: 200,
                   message: "Ok.",
                   data: {
                     contentId: courseId,
-                    msg: "Course " + courseId + " unlocked",
-                    status: "unlocked",
+                    msg: "Course " + courseId + " " + currentCourseCompletion,
+                    status: currentCourseCompletion,
                     previousCourse: course.criteria["1"].contentId,
                     previousCourseCompleted: true,
                   },
@@ -191,6 +236,25 @@ export class ALTUserEligibilityService {
                   },
                 });
               }
+            }
+            if (
+              JSON.stringify(course.criteria) === JSON.stringify({}) &&
+              course.contentType !== "assessment"
+            ) {
+              const currentCourseCompletion =
+                await this.getCurrentCourseCompletionStatus(
+                  request,
+                  course.contentId
+                );
+              return new SuccessResponse({
+                statusCode: 200,
+                message: "Ok.",
+                data: {
+                  contentId: courseId,
+                  msg: "Course " + courseId + " " + currentCourseCompletion,
+                  status: currentCourseCompletion,
+                },
+              });
             } else {
               return new ErrorResponse({
                 errorCode: "400",
@@ -216,7 +280,7 @@ export class ALTUserEligibilityService {
           });
         }
       }
-    } else {      
+    } else {
       return new ErrorResponse({
         errorCode: "400",
         errorMessage:
@@ -271,7 +335,10 @@ export class ALTUserEligibilityService {
         );
 
         if (courseEligibility.errorCode) {
-          courseStatusList.push({msg : courseEligibility.errorMessage});
+          courseStatusList.push({
+            msg: courseEligibility.errorMessage,
+            status: "locked",
+          });
         } else {
           courseStatusList.push(courseEligibility.data);
         }
@@ -282,6 +349,24 @@ export class ALTUserEligibilityService {
         message: "Ok.",
         data: courseStatusList,
       });
+    }
+  }
+
+  public async getCurrentCourseCompletionStatus(
+    request: any,
+    courseId: string
+  ) {
+    let recordList: any = {};
+    recordList =
+      await this.altCourseTrackingService.getExistingCourseTrackingRecords(
+        request,
+        courseId
+      );
+
+    if (recordList.data[0]?.status === "completed") {
+      return "completed";
+    } else {
+      return "unlocked";
     }
   }
 }
