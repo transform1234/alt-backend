@@ -257,7 +257,16 @@ export class ALTLessonTrackingService {
       subject: subject,
     });
 
-    const programRules = JSON.parse(progTermData.data[0].rules);
+    let programRules: any;
+
+    if (progTermData?.data[0]?.rules){
+      programRules = JSON.parse(progTermData.data[0].rules);
+    } else {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Program Rules not found for given subject!",
+      });
+    }
 
     let flag = false;
     let tracklessonModule;
