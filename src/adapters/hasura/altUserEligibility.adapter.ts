@@ -87,6 +87,7 @@ export class ALTUserEligibilityService {
         message: "Ok.",
         data: {
           contentId: courseId,
+          contentType: programRules.prog[0].contentType,
           msg: "Data for Baseline Assessment not found. Please attempt Baseline Assessment.",
           status: "unlocked",
         },
@@ -100,6 +101,7 @@ export class ALTUserEligibilityService {
         message: "Ok.",
         data: {
           contentId: courseId,
+          contentType: programRules.prog[0].contentType,
           msg: "Data for Baseline Assessment not found. Please attempt Baseline Assessment.",
           status: "locked",
         },
@@ -118,6 +120,7 @@ export class ALTUserEligibilityService {
           message: "Ok.",
           data: {
             contentId: courseId,
+            contentType: programRules.prog[0].contentType,
             msg: "Course " + courseId + " completed.",
             status: "completed",
           },
@@ -152,6 +155,7 @@ export class ALTUserEligibilityService {
                   message: "Ok.",
                   data: {
                     contentId: courseId,
+                    contentType: course.contentType,
                     msg: "Course " + courseId + " " + currentCourseCompletion,
                     status: currentCourseCompletion,
                     previousCourse: course.criteria["0"].contentId,
@@ -172,6 +176,7 @@ export class ALTUserEligibilityService {
                   message: "Ok.",
                   data: {
                     contentId: courseId,
+                    contentType: course.contentType,
                     msg: "Course " + courseId + " " + currentCourseCompletion,
                     status: currentCourseCompletion,
                     previousCourse: course.criteria["0"].contentId,
@@ -214,6 +219,7 @@ export class ALTUserEligibilityService {
                   message: "Ok.",
                   data: {
                     contentId: courseId,
+                    contentType: course.contentType,
                     msg: "Course " + courseId + " " + currentCourseCompletion,
                     status: currentCourseCompletion,
                     previousCourse: course.criteria["1"].contentId,
@@ -226,6 +232,7 @@ export class ALTUserEligibilityService {
                   message: "Ok.",
                   data: {
                     contentId: courseId,
+                    contentType: course.contentType,
                     msg:
                       "Course " +
                       courseId +
@@ -251,6 +258,7 @@ export class ALTUserEligibilityService {
                 message: "Ok.",
                 data: {
                   contentId: courseId,
+                  contentType: course.contentType,
                   msg: "Course " + courseId + " " + currentCourseCompletion,
                   status: currentCourseCompletion,
                 },
