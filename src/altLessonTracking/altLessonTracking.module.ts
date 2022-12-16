@@ -6,6 +6,7 @@ import { ProgramService } from "../adapters/hasura/altProgram.adapter";
 import { ALTProgramAssociationService } from "../adapters/hasura/altProgramAssociation.adapter";
 import { ALTCourseTrackingService } from "../adapters/hasura/altCourseTracking.adapter";
 import { ALTModuleTrackingService } from "../adapters/hasura/altModuleTracking.adapter";
+import { HasuraUserService } from "src/adapters/hasura/user.adapter";
 const ttl = process.env.TTL as never;
 
 @Module({
@@ -22,6 +23,7 @@ const ttl = process.env.TTL as never;
     ALTProgramAssociationService,
     ALTCourseTrackingService,
     ALTModuleTrackingService,
+    HasuraUserService,
   ],
 })
 export class ALTLessonTrackingModule {}

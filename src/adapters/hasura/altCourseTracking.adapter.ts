@@ -6,12 +6,16 @@ import { ALTCourseTrackingDto } from "src/altCourseTracking/dto/altCourseTrackin
 import { UpdateALTCourseTrackingDto } from "src/altCourseTracking/dto/updatealtCourseTracking.dto";
 import { ALTCourseTrackingSearch } from "src/altCourseTracking/dto/searchaltCourseTracking.dto";
 import { ErrorResponse } from "src/error-response";
+import { HasuraUserService } from "./user.adapter";
 
 @Injectable()
 export class ALTCourseTrackingService {
   axios = require("axios");
 
-  constructor(private httpService: HttpService) {}
+  constructor(
+    private httpService: HttpService,
+    private hasuraUserService: HasuraUserService
+  ) {}
 
   public async mappedResponse(data: any) {
     const altCourseTrackingResponse = data.map((item: any) => {
@@ -39,11 +43,30 @@ export class ALTCourseTrackingService {
 
   public async getExistingCourseTrackingRecords(
     request: any,
-    altCourseId: string
+    altCourseId: string,
+    userId?: string
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserId =
-      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    let altUserId: string;
+
+    if (userId) {
+      const userRes: any = await this.hasuraUserService.getUser(
+        userId,
+        request
+      );
+      if (userRes.data.username) {
+        altUserId = userId;
+      } else {
+        return new ErrorResponse({
+          errorCode: "400",
+          errorMessage: "Invalid User Id",
+        });
+      }
+    } else {
+      const decoded: any = jwt_decode(request.headers.authorization);
+      altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    }
 
     const ALTCourseTrackingData = {
       query: `
@@ -321,7 +344,8 @@ export class ALTCourseTrackingService {
     let recordList: any = {};
     recordList = await this.getExistingCourseTrackingRecords(
       request,
-      altCourseTrackingDto.courseId
+      altCourseTrackingDto.courseId,
+      null
     ).catch(function (error) {
       errorExRec = error;
     });
@@ -379,16 +403,15 @@ export class ALTCourseTrackingService {
     }
   }
 
-  public async getOngoingCourses(request: any, courseIdList:string[]){
+  public async getOngoingCourses(request: any, courseIdList: string[]) {
     var axios = require("axios");
 
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
-    
-      const ALTCourseTrackingData = {
-        query: `
+    const ALTCourseTrackingData = {
+      query: `
               query MyQuery($altUserId: uuid!, $altCourseIdList: [String!]) {
                   CourseProgressTracking(where: {courseId: {_in: $altCourseIdList}, userId: {_eq: $altUserId}, status: {_eq: ongoing}}) {
                     userId
@@ -405,16 +428,16 @@ export class ALTCourseTrackingService {
                   }
                 }                 
               `,
-        variables: {
-          altCourseIdList: courseIdList,
-          altUserId: altUserId,
-        },
-      };
+      variables: {
+        altCourseIdList: courseIdList,
+        altUserId: altUserId,
+      },
+    };
 
-      const configData = {
-        method: "post",
-        url: process.env.ALTHASURA,
-        headers: {
+    const configData = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
           "Authorization": request.headers.authorization,
           "Content-Type": "application/json",
         },

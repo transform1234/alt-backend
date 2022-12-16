@@ -39,13 +39,21 @@ export class ALTLessonTrackingController {
   @ApiOkResponse({ description: "ALT Lesson Tracking Details" })
   @ApiForbiddenResponse({ description: "Forbidden" })
   @ApiQuery({ name: "lessonid" })
+  @ApiQuery({
+    name: "userId",
+    type: String,
+    description: "A parameter. Optional",
+    required: false,
+  })
   public async getLessonDetails(
     @Req() request: Request,
-    @Query("lessonid") lessonId: string
+    @Query("lessonid") lessonId: string,
+    @Query("userId") userId?: string
   ) {
     return this.altLessonTrackingService.getALTLessonTracking(
       request,
-      lessonId
+      lessonId,
+      userId
     );
   }
 

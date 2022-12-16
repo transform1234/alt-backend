@@ -11,6 +11,7 @@ import { ALTModuleTrackingService } from "../../adapters/hasura/altModuleTrackin
 import { ErrorResponse } from "src/error-response";
 import { TermsProgramtoRulesDto } from "src/altProgramAssociation/dto/altTermsProgramtoRules.dto";
 import { ALTModuleTrackingDto } from "src/altModuleTracking/dto/altModuleTracking.dto";
+import { HasuraUserService } from "./user.adapter";
 
 @Injectable()
 export class ALTLessonTrackingService {
@@ -20,7 +21,8 @@ export class ALTLessonTrackingService {
     private httpService: HttpService,
     private programService: ProgramService,
     private altProgramAssociationService: ALTProgramAssociationService,
-    private altModuleTrackingService: ALTModuleTrackingService
+    private altModuleTrackingService: ALTModuleTrackingService,
+    private hasuraUserService: HasuraUserService
   ) {}
 
   public async mappedResponse(data: any) {
@@ -143,10 +145,31 @@ export class ALTLessonTrackingService {
     return resLessonTracking.data.data.LessonProgressTracking;
   }
 
-  public async getALTLessonTracking(request: any, altLessonId: string) {
+  public async getALTLessonTracking(
+    request: any,
+    altLessonId: string,
+    userId?: string
+  ) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserId =
-      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    let altUserId: string;
+
+    if (userId) {
+      const userRes: any = await this.hasuraUserService.getUser(
+        userId,
+        request
+      );
+      if (userRes.data.username) {
+        altUserId = userId;
+      } else {
+        return new ErrorResponse({
+          errorCode: "400",
+          errorMessage: "Invalid User Id",
+        });
+      }
+    } else {
+      altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    }
 
     const ALTLessonTrackingData = {
       query: `
@@ -259,7 +282,7 @@ export class ALTLessonTrackingService {
 
     let programRules: any;
 
-    if (progTermData?.data[0]?.rules){
+    if (progTermData?.data[0]?.rules) {
       programRules = JSON.parse(progTermData.data[0].rules);
     } else {
       return new ErrorResponse({
