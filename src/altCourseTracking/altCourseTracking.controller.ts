@@ -38,14 +38,22 @@ export class ALTCourseTrackingController {
   @ApiBasicAuth("access-token")
   @ApiOkResponse({ description: "ALT Course Tracking Details" })
   @ApiForbiddenResponse({ description: "Forbidden" })
+  @ApiQuery({
+    name: "userId",
+    type: String,
+    description: "A parameter. Optional",
+    required: false,
+  })
   @ApiQuery({ name: "courseid" })
   public async getCourseDetails(
     @Req() request: Request,
-    @Query("courseid") courseId: string
+    @Query("courseid") courseId: string,
+    @Query("userId") userId?: string
   ) {
     return this.altCourseTrackingService.getExistingCourseTrackingRecords(
       request,
-      courseId
+      courseId,
+      userId
     );
   }
 

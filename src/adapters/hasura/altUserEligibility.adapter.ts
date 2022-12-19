@@ -8,6 +8,7 @@ import { TermsProgramtoRulesDto } from "src/altProgramAssociation/dto/altTermsPr
 import { ALTLessonTrackingService } from "./altLessonTracking.adapter";
 import { ALTModuleTrackingService } from "./altModuleTracking.adapter";
 import { ALTCourseTrackingService } from "./altCourseTracking.adapter";
+import { HasuraUserService } from "src/adapters/hasura/user.adapter";
 
 @Injectable()
 export class ALTUserEligibilityService {
@@ -18,18 +19,37 @@ export class ALTUserEligibilityService {
     private altProgramAssociationService: ALTProgramAssociationService,
     private altLessonTrackingService: ALTLessonTrackingService,
     private altModuleTrackingService: ALTModuleTrackingService,
-    private altCourseTrackingService: ALTCourseTrackingService
+    private altCourseTrackingService: ALTCourseTrackingService,
+    private hasuraUserService: HasuraUserService
   ) {}
 
   public async checkEligibilityforCourse(
     request: any,
     programId: string,
     courseId: string,
-    subject: string
+    subject: string,
+    userId?: string
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserId =
-      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    let altUserId: string;
+
+    if (userId) {
+      const userRes: any = await this.hasuraUserService.getUser(
+        userId,
+        request
+      );
+      if (userRes.data.username) {
+        altUserId = userId;
+      } else {
+        return new ErrorResponse({
+          errorCode: "400",
+          errorMessage: "Invalid User Id",
+        });
+      }
+    } else {
+      altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    }
 
     let currentProgramDetails: any = {};
     currentProgramDetails = await this.programService.getProgramDetailsById(
@@ -75,7 +95,8 @@ export class ALTUserEligibilityService {
     baselineAssessmentRecord =
       await this.altLessonTrackingService.getALTLessonTracking(
         request,
-        baselineAssessmentId
+        baselineAssessmentId,
+        userId
       );
 
     if (
@@ -148,7 +169,8 @@ export class ALTUserEligibilityService {
                 const currentCourseCompletion =
                   await this.getCurrentCourseCompletionStatus(
                     request,
-                    course.contentId
+                    course.contentId,
+                    altUserId
                   );
                 return new SuccessResponse({
                   statusCode: 200,
@@ -169,7 +191,8 @@ export class ALTUserEligibilityService {
                 const currentCourseCompletion =
                   await this.getCurrentCourseCompletionStatus(
                     request,
-                    course.contentId
+                    course.contentId,
+                    altUserId
                   );
                 return new SuccessResponse({
                   statusCode: 200,
@@ -190,7 +213,8 @@ export class ALTUserEligibilityService {
               recordList =
                 await this.altCourseTrackingService.getExistingCourseTrackingRecords(
                   request,
-                  course.criteria["1"].contentId
+                  course.criteria["1"].contentId,
+                  userId
                 );
 
               let currentCourseCompletion: any;
@@ -200,7 +224,8 @@ export class ALTUserEligibilityService {
                   endlineAssessmentRecord =
                     await this.altLessonTrackingService.getALTLessonTracking(
                       request,
-                      endlineAssessmentId
+                      endlineAssessmentId,
+                      altUserId
                     );
                   if (endlineAssessmentRecord.data[0].status === "completed") {
                     currentCourseCompletion = "completed";
@@ -211,7 +236,8 @@ export class ALTUserEligibilityService {
                   currentCourseCompletion =
                     await this.getCurrentCourseCompletionStatus(
                       request,
-                      course.contentId
+                      course.contentId,
+                      altUserId
                     );
                 }
                 return new SuccessResponse({
@@ -251,7 +277,8 @@ export class ALTUserEligibilityService {
               const currentCourseCompletion =
                 await this.getCurrentCourseCompletionStatus(
                   request,
-                  course.contentId
+                  course.contentId,
+                  altUserId
                 );
               return new SuccessResponse({
                 statusCode: 200,
@@ -300,11 +327,28 @@ export class ALTUserEligibilityService {
   public async checkEligibilityforProgram(
     request: any,
     programId: string,
-    subject: string
+    subject: string,
+    userId?: string
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserId =
-      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    let altUserId: string;
+
+    if (userId) {
+      const userRes: any = await this.hasuraUserService.getUser(
+        userId,
+        request
+      );
+      if (userRes.data.username) {
+        altUserId = userId;
+      } else {
+        return new ErrorResponse({
+          errorCode: "400",
+          errorMessage: "Invalid User Id",
+        });
+      }
+    } else {
+      altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    }
 
     let currentProgramDetails: any = {};
     currentProgramDetails = await this.programService.getProgramDetailsById(
@@ -333,13 +377,14 @@ export class ALTUserEligibilityService {
     const programRules = JSON.parse(progTermData.data[0].rules);
 
     let courseStatusList = [];
-    if (programRules.prog) {
+    if (programRules?.prog) {
       for await (const content of programRules.prog) {
         const courseEligibility: any = await this.checkEligibilityforCourse(
           request,
           programId,
           content.contentId,
-          subject
+          subject,
+          altUserId
         );
 
         if (courseEligibility.errorCode) {
@@ -357,18 +402,45 @@ export class ALTUserEligibilityService {
         message: "Ok.",
         data: courseStatusList,
       });
+    } else {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Program Rules not found for given subject!",
+      });
     }
   }
 
   public async getCurrentCourseCompletionStatus(
     request: any,
-    courseId: string
+    courseId: string,
+    userId: string
   ) {
     let recordList: any = {};
+    let altUserId: string;
+
+    if (userId) {
+      const userRes: any = await this.hasuraUserService.getUser(
+        userId,
+        request
+      );
+      if (userRes.data.username) {
+        altUserId = userId;
+      } else {
+        return new ErrorResponse({
+          errorCode: "400",
+          errorMessage: "Invalid User Id",
+        });
+      }
+    } else {
+      const decoded: any = jwt_decode(request.headers.authorization);
+      altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    }
+
     recordList =
       await this.altCourseTrackingService.getExistingCourseTrackingRecords(
         request,
-        courseId
+        courseId,
+        userId
       );
 
     if (recordList.data[0]?.status === "completed") {

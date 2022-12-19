@@ -59,21 +59,10 @@ export class ALTCurrentPhaseService {
         }
       );
 
-      let programRules: any;
-
-      if (!progTermData?.data[0]?.rules) {
-        return new ErrorResponse({
-          errorCode: "400",
-          errorMessage: "Program Rules not found for given subject!",
-        });
-      }
-
       if (progTermData.data[0].rules) {
+        courseIdList = [];
         JSON.parse(progTermData.data[0].rules).prog.map((content: any) => {
-          if (
-            JSON.stringify(content.criteria) !== JSON.stringify({}) &&
-            content.contentType !== "assessment"
-          ) {
+          if (content.contentType !== "assessment") {
             courseIdList.push(content.contentId);
           }
         });

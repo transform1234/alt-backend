@@ -7,6 +7,7 @@ import { ALTUserEligibilityService } from "src/adapters/hasura/altUserEligibilit
 import { ALTLessonTrackingService } from "src/adapters/hasura/altLessonTracking.adapter";
 import { ALTModuleTrackingService } from "src/adapters/hasura/altModuleTracking.adapter";
 import { ALTCourseTrackingService } from "src/adapters/hasura/altCourseTracking.adapter";
+import { HasuraUserService } from "src/adapters/hasura/user.adapter";
 const ttl = process.env.TTL as never;
 
 @Module({
@@ -24,6 +25,7 @@ const ttl = process.env.TTL as never;
     ALTLessonTrackingService,
     ALTModuleTrackingService,
     ALTCourseTrackingService,
+    HasuraUserService,
   ],
 })
 export class ALTUserCourseEligibilityModule {}
