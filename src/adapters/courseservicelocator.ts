@@ -1,5 +1,6 @@
 export interface IServicelocator {
   getAllCourse(
+    channel: [string],
     subject: [string],
     audience: [string],
     className: [string],
