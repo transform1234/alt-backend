@@ -8,6 +8,7 @@ export class KhanAcadermyCourseService implements IServicelocator {
   constructor(private httpService: HttpService) {}
 
   public async getAllCourse(
+    channel: [string],
     subject: [string],
     audience: [string],
     className: [string],

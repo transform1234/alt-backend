@@ -5,6 +5,7 @@ import { QuestionsetlistResponse } from "src/questionsetlist-response";
 import { IServicelocator } from "../courseservicelocator";
 import { questionsetSearchDto } from "src/course/dto/questionset.response.dto";
 import { questionSearchDto } from "src/course/dto/question.response.dto";
+import { lastValueFrom } from "rxjs";
 
 export const DikshaCourseToken = "DikshaCourse";
 @Injectable()
@@ -12,6 +13,7 @@ export class DikshaCourseService implements IServicelocator {
   constructor(private httpService: HttpService) {}
   currentUrl = process.env.SUNBIRDURL;
   public async getAllCourse(
+    channel: [string],
     subject: [string],
     audience: [string],
     className: [string],
@@ -23,17 +25,47 @@ export class DikshaCourseService implements IServicelocator {
     var data = {
       request: {
         filters: {
+          channel: channel,
           subject: [subject],
           audience: [audience],
-          contentType: ["Course"],
-          primaryCategory: ["Course"],
-          "batches.enrollmentType": "open",
-          "batches.status": 1,
+          // contentType: ["Course"],
+          // primaryCategory: ["Course"],
+          // "batches.enrollmentType": "open",
+          // "batches.status": 1,
+          primaryCategory: [
+            "Collection",
+            "Resource",
+            "Content Playlist",
+            "Course",
+            "Course Assessment",
+            "Digital Textbook",
+            "eTextbook",
+            "Explanation Content",
+            "Learning Resource",
+            "Lesson Plan Unit",
+            "Practice Question Set",
+            "Teacher Resource",
+            "Textbook Unit",
+            "LessonPlan",
+            "FocusSpot",
+            "Learning Outcome Definition",
+            "Curiosity Questions",
+            "MarkingSchemeRubric",
+            "ExplanationResource",
+            "ExperientialResource",
+            "Practice Resource",
+            "TVLesson",
+            "Course Unit"
+        ],
+        visibility: [
+          "Default",
+          "Parent"
+      ],
           status: ["Live"],
           se_gradeLevels: [className],
           se_mediums: [medium],
         },
-        limit: limit,
+        limit: Number(limit),
         fields: [
           "name",
           "appIcon",
@@ -62,7 +94,7 @@ export class DikshaCourseService implements IServicelocator {
       method: "post",
       url:
         this.currentUrl +
-        "/api/content/v1/search?orgdetails=orgName,email&framework=ekstep_ncert_k-12",
+        "/api/content/v1/search?orgdetails=orgName,email&licenseDetails=name,description,url",//&framework=ekstep_ncert_k-12",
       data: data,
     };
 

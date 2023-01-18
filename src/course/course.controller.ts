@@ -49,6 +49,7 @@ export class CourseController {
   @ApiQuery({ name: "limit", required: false })
   public async getAllCourse(
     @Param("adapter") adapter: string,
+    @Query("channel") channel: [string],
     @Query("subject") subject: [string],
     @Query("audience") audience: [string],
     @Query("className") className: [string],
@@ -58,6 +59,7 @@ export class CourseController {
   ) {
     if (adapter === "diksha") {
       return this.dikshaProvider.getAllCourse(
+        channel,
         subject,
         audience,
         className,
@@ -67,6 +69,7 @@ export class CourseController {
       );
     } else if (adapter === "khanacademy") {
       return this.khanAcademyProvider.getAllCourse(
+        channel,
         subject,
         audience,
         className,
