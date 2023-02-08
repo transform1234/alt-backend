@@ -227,7 +227,7 @@ export class ALTUserEligibilityService {
                       endlineAssessmentId,
                       altUserId
                     );
-                  if (endlineAssessmentRecord.data[0].status === "completed") {
+                  if (endlineAssessmentRecord.data[0]?.status === "completed") {
                     currentCourseCompletion = "completed";
                   } else {
                     currentCourseCompletion = "unlocked";
