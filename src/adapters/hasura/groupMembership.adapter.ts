@@ -130,7 +130,6 @@ export class GroupMembershipService {
     groupMembership: GroupMembershipDtoById
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    console.log(decoded)
     // groupMembership.userId =
     //   decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
@@ -150,7 +149,6 @@ export class GroupMembershipService {
       }
     });
 
-    console.log(query)
     let data = {
       query: `mutation CreateGroupMembership {
         insert_GroupMembership_one(object: {${query}}) {

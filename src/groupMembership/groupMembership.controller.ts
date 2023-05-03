@@ -56,7 +56,6 @@ export class GroupMembershipController {
     @Req() request: Request,
     @Body() groupMembershipDto: GroupMembershipDto
   ) {
-    console.log(groupMembershipDto)
     return this.service.createGroupMembership(request, groupMembershipDto);
   }
 
@@ -72,7 +71,6 @@ export class GroupMembershipController {
     @Req() request: Request,
     @Body() groupMembershipDtoById: GroupMembershipDtoById
   ) {
-    console.log(GroupMembershipDtoById)
     return this.service.createGroupMembershipById(request, groupMembershipDtoById);
   }
 
