@@ -39,3 +39,43 @@ export class GroupMembershipDto {
     Object.assign(this, obj);
   }
 }
+
+export class GroupMembershipDtoById {
+  @Expose()
+  groupMembershipId: string;
+
+  @ApiProperty()
+  @Expose()
+  groupId: string;
+
+  @ApiProperty()
+  @Expose()
+  schoolId: string;
+
+  @ApiProperty()
+  @Expose()
+  @IsNotEmpty()
+  @IsUUID()
+  userId: string;
+
+  @ApiProperty()
+  @Expose()
+  role: string;
+
+  @Expose()
+  createdBy: string;
+
+  @Expose()
+  updatedBy: string;
+
+  @Expose()
+  created_at: string;
+
+  @Expose()
+  updated_at: string;
+
+  constructor(obj: any) {
+    Object.assign(this, obj);
+  }
+}
+

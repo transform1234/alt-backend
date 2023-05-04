@@ -20,7 +20,7 @@ import {
   Request,
 } from "@nestjs/common";
 
-import { GroupMembershipDto } from "./dto/groupMembership.dto";
+import { GroupMembershipDto, GroupMembershipDtoById } from "./dto/groupMembership.dto";
 import { GroupMembershipSearchDto } from "./dto/groupMembership-search.dto";
 import { GroupMembershipService } from "src/adapters/hasura/groupMembership.adapter";
 
@@ -57,6 +57,21 @@ export class GroupMembershipController {
     @Body() groupMembershipDto: GroupMembershipDto
   ) {
     return this.service.createGroupMembership(request, groupMembershipDto);
+  }
+
+  @Post("/byid")
+  @ApiBasicAuth("access-token")
+  @ApiCreatedResponse({
+    description: "Group Membership has been created successfully.",
+  })
+  @ApiBody({ type: GroupMembershipDtoById })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @UseInterceptors(ClassSerializerInterceptor)
+  public async createGroupMembershipById(
+    @Req() request: Request,
+    @Body() groupMembershipDtoById: GroupMembershipDtoById
+  ) {
+    return this.service.createGroupMembershipById(request, groupMembershipDtoById);
   }
 
   @Put("/:id")

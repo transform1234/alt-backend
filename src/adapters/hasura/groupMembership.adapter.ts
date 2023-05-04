@@ -4,7 +4,7 @@ import { SuccessResponse } from "src/success-response";
 import { ErrorResponse } from "src/error-response";
 import jwt_decode from "jwt-decode";
 const resolvePath = require("object-resolve-path");
-import { GroupMembershipDto } from "src/groupMembership/dto/groupMembership.dto";
+import { GroupMembershipDto, GroupMembershipDtoById } from "src/groupMembership/dto/groupMembership.dto";
 import { GroupMembershipSearchDto } from "src/groupMembership/dto/groupMembership-search.dto";
 
 @Injectable()
@@ -98,6 +98,68 @@ export class GroupMembershipService {
     };
 
     var config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: {
+        "Authorization": request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const result = response.data.data.insert_GroupMembership_one;
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: result,
+    });
+  }
+
+  public async createGroupMembershipById(
+    request: any,
+    groupMembership: GroupMembershipDtoById
+  ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    // groupMembership.userId =
+    //   decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    groupMembership.createdBy = groupMembership.userId;
+    groupMembership.updatedBy = groupMembership.userId;
+
+    let query = "";
+    Object.keys(groupMembership).forEach((e) => {
+      if (groupMembership[e] && groupMembership[e] != "") {
+        if (e === "role") {
+          query += `${e}: ${groupMembership[e]},`;
+        } else if (Array.isArray(groupMembership[e])) {
+          query += `${e}: ${JSON.stringify(groupMembership[e])}, `;
+        } else {
+          query += `${e}: "${groupMembership[e]}", `;
+        }
+      }
+    });
+
+    let data = {
+      query: `mutation CreateGroupMembership {
+        insert_GroupMembership_one(object: {${query}}) {
+         groupMembershipId
+        }
+      }
+      `,
+      variables: {},
+    };
+
+    const config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
