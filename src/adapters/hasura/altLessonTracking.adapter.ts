@@ -335,7 +335,16 @@ export class ALTLessonTrackingService {
           } else if (course.contentType == "course" && allowedAttempts === 0) {
             if (numberOfRecords === 0) {
               altLessonTrackingDto.attempts = 1;
-              if (altLessonTrackingDto.status === "completed") {
+
+              const lessonTrack: any = await this.createALTLessonTracking(
+                request,
+                altLessonTrackingDto
+              );
+
+              if (
+                altLessonTrackingDto.status === "completed" &&
+                lessonTrack?.statusCode === 200
+              ) {
                 tracklessonModule = await this.lessonToModuleTracking(
                   request,
                   altLessonTrackingDto,
@@ -343,10 +352,6 @@ export class ALTLessonTrackingService {
                   subject
                 );
               }
-              const lessonTrack = await this.createALTLessonTracking(
-                request,
-                altLessonTrackingDto
-              );
 
               return {
                 lessonTrack: lessonTrack,
@@ -375,9 +380,16 @@ export class ALTLessonTrackingService {
               }
 
               if (lastRecord[0]?.status !== "completed") {
+                const lessonTrack : any = await this.updateALTLessonTracking(
+                  request,
+                  altLessonTrackingDto.lessonId,
+                  altLessonTrackingDto,
+                  lastRecord[0]?.attempts
+                );
+
                 if (
                   altLessonTrackingDto.status === "completed" &&
-                  lastRecord[0].attempts === 1
+                  lastRecord[0].attempts === 1 && lessonTrack?.statusCode === 200
                 ) {
                   tracklessonModule = await this.lessonToModuleTracking(
                     request,
@@ -386,13 +398,6 @@ export class ALTLessonTrackingService {
                     subject
                   );
                 }
-
-                const lessonTrack = await this.updateALTLessonTracking(
-                  request,
-                  altLessonTrackingDto.lessonId,
-                  altLessonTrackingDto,
-                  lastRecord[0]?.attempts
-                );
 
                 return {
                   lessonTrack: lessonTrack,
@@ -708,7 +713,7 @@ export class ALTLessonTrackingService {
       return new ErrorResponse({
         errorCode: moduleTracking?.statusCode,
         errorMessage:
-          moduleTracking.errorMessage + "Could not create Module Tracking",
+          moduleTracking?.errorMessage + "Could not create Module Tracking",
       });
     } else {
       if (moduleTracking.data.moduleProgressId) {
