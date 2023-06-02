@@ -387,6 +387,7 @@ export class ALTLessonTrackingService {
                   lastRecord[0]?.attempts
                 );
 
+                // Adding to module only when its first attempt and increasing count in module for lesson
                 if (
                   altLessonTrackingDto.status === "completed" &&
                   lastRecord[0].attempts === 1 && lessonTrack?.statusCode === 200
