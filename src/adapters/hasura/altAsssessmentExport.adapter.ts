@@ -2,12 +2,13 @@ import { Injectable } from "@nestjs/common";
 import jwt_decode from "jwt-decode";
 import { SuccessResponse } from "src/success-response";
 import { ErrorResponse } from "src/error-response";
+import { DikshaCourseService } from "../diksha/dikshaCourse.adapter";
 
 @Injectable()
 export class ALTAssessmentExportService {
   axios = require("axios");
 
-  constructor() {}
+  constructor(private dikshaCourseService: DikshaCourseService) {}
 
   public async getAssessmentRecords(request: any, lessonId: string) {
     // const decoded: any = jwt_decode(request.headers.authorization);
@@ -16,7 +17,7 @@ export class ALTAssessmentExportService {
 
     const altAssessmentRecords = {
       query: `query GetAssessmentData ($lessonId:String) {
-          LessonProgressTracking(where: {lessonId: {_eq: $lessonId}, attempts: {_eq: 1}}) {
+          LessonProgressTracking(where: {lessonId: {_eq: $lessonId}, attempts: {_eq: 1}, User: {School: {schoolId: {_eq: "5ead2b80-13a9-41fc-a950-76746d21fdbf"}}}}) {
             userId
             score
             moduleId
@@ -25,6 +26,7 @@ export class ALTAssessmentExportService {
             status
             attempts
             User {
+              userId
               name
             }
         } }`,
@@ -65,45 +67,73 @@ export class ALTAssessmentExportService {
 
     const result = resAssessmentRecords.data.data.LessonProgressTracking;
 
-    // console.log(result.length);
-    // console.log(result[0]);
-    const scoreDetails = JSON.parse(result[0].scoreDetails); // first result score details
-    const assessmentSection = scoreDetails.length;
-    // console.log(assessmentSection, "sec"); // no of sections
+    const questionsArray = [
+      { id: "uid", title: "User's Id" },
+      { id: "uname", title: "User's Name" },
+      { id: "score", title: "User's Score" },
+    ]; // header
 
-    const questionsArray = ["User's Name", "User's Score"]; // header
+    const assessmentDetail: any =
+      await this.dikshaCourseService.getCourseHierarchy(lessonId, "assessment");
 
-    scoreDetails.forEach((detail) => {
+    if (assessmentDetail.statusCode !== 200) {
+      return new ErrorResponse({
+        errorCode: "404",
+        errorMessage: "Assessment Not found",
+      });
+    }
+
+    // no of sections
+    const assessmentSections = assessmentDetail.data?.children?.length;
+
+    console.log(assessmentSections);
+
+    assessmentDetail.data?.children.forEach((detail) => {
       // iterating on each section
-      detail.data.forEach((data) => {
+      detail.children.forEach(({ identifier, name }) => {
         // iterating each question in section
-        questionsArray.push(data.item.title);
+        questionsArray.push({ id: identifier, title: name });
       });
     });
 
-    // console.log(questionsArray);
+    console.log(questionsArray);
 
     // users data
 
     const exportData: [] = result
       .map((user) => {
-        // const record = [];
         const scoreDetail = JSON.parse(user.scoreDetails);
-        if (scoreDetail.length === assessmentSection) {
-          // console.log(user.lessonId, user.userId);
-          const record = [user.User.name, user.score];
-          // console.log(scoreDetail, "l");
+        if (scoreDetail.length === assessmentSections) {
+          const record = {
+            uid: user.User.userId,
+            uname: user.User.name,
+            score: user.score,
+          };
           scoreDetail.forEach((detail) => {
             detail.data.forEach((data) => {
-              record.push(data.pass);
+              record[data.item.id] = data.pass;
             });
           });
+          if ("d499bcee-6119-478b-8356-0768074bafdf" === user.User.userId)
+            console.log(record);
           return record;
         }
       })
       .filter((notUndefined) => notUndefined !== undefined);
 
     // console.log(exportData);
+
+    const createCsvWriter = require("csv-writer").createObjectCsvWriter;
+    const csvWriter = createCsvWriter({
+      path: `./exports/${lessonId}.csv`,
+      header: questionsArray,
+    });
+
+    csvWriter
+      .writeRecords(exportData) // returns a promise
+      .then(() => {
+        console.log("...Done");
+      });
 
     return new SuccessResponse({
       statusCode: 200,
