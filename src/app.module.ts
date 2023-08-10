@@ -37,7 +37,7 @@ import { ALTModuleTrackingModule } from "./altModuleTracking/altModuleTracking.m
 import { ALTUserCourseEligibilityModule } from "./altUserEligibility/altUserEligibility.module";
 import { ALTCurrentPhaseModule } from "./altCurrentPhase/altCurrentPhase.module";
 import { ALTAssessmentExportModule } from "./altAssessmentExport/altAssessmentExport.module";
-
+import { ALTTimeSpentExportModule } from "./altTimeSpentExport/altTimeSpentExport.module";
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -78,6 +78,7 @@ import { ALTAssessmentExportModule } from "./altAssessmentExport/altAssessmentEx
     ALTUserCourseEligibilityModule,
     ALTCurrentPhaseModule,
     ALTAssessmentExportModule,
+    ALTTimeSpentExportModule,
   ],
   controllers: [AppController],
   providers: [AppService],
