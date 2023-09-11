@@ -14,68 +14,38 @@ export class SchoolDto {
 
   @ApiProperty({
     type: String,
-    description: "The schoolName of the school",
-  })
-  @Expose()
-  schoolName: string;
-
-  @ApiProperty({
-    type: String,
-    description: "The email of the school",
-  })
-  @IsEmail()
-  @Expose()
-  email: string;
-
-  @ApiProperty({
-    type: String,
     description: "The udise of the school",
   })
   @Expose()
-  udise: string;
-
-  @ApiProperty({
-    type: [String],
-    description: "The  medium of instruction of the school",
-  })
-  @Expose()
-  mediumOfInstruction: [string];
-
-  @ApiProperty({
-    type: Number,
-    description: "The phone number of the school",
-  })
-  @IsNumber()
-  @Expose()
-  phoneNumber: Number;
+  udiseCode: string;
 
   @ApiProperty({
     type: String,
-    description: "The address of the school",
+    description: "The schoolName of the school",
   })
   @Expose()
-  address: string;
+  name: string;
 
   @ApiProperty({
     type: String,
-    description: "The schoolType of the school",
+    description: "The location of the school",
   })
   @Expose()
-  schoolType: string;
+  location: string;
 
   @ApiProperty({
     type: String,
-    description: "The website of the school",
+    description: "The management of the school",
   })
   @Expose()
-  website: string;
+  management: string;
 
   @ApiProperty({
     type: String,
-    description: "The Head master of the school",
+    description: "The composition of the school",
   })
   @Expose()
-  headMaster: string;
+  composition: string;
 
   @ApiProperty({
     type: String,
@@ -85,18 +55,123 @@ export class SchoolDto {
   board: string;
 
   @ApiProperty({
-    type: String,
-    description: "The village of the school",
+    type: [String],
+    description: "The  medium of instruction of the school",
   })
   @Expose()
-  village: string;
+  mediumOfInstruction: [string];
 
   @ApiProperty({
     type: String,
-    description: "The block of the school",
+    description: "The Head master of the school",
   })
   @Expose()
-  block: string;
+  headmaster: string;
+
+  @ApiProperty({
+    type: String,
+    description: "The headmaster Mobile of the school",
+  })
+  @Expose()
+  headmasterMobile: string;
+
+  @ApiProperty({
+    type: Number,
+    description: "The upper Primary Teachers Sanctioned of the school",
+  })
+  @Expose()
+  upperPrimaryTeachersSanctioned: number;
+
+  @ApiProperty({
+    type: Number,
+    description: "The secondary Teachers Sanctioned of the school",
+  })
+  @Expose()
+  secondaryTeachersSanctioned: number;
+
+  @ApiProperty({
+    type: Boolean,
+    description: "The library Functional of the school",
+    default: false,
+  })
+  @Expose()
+  libraryFunctional: boolean;
+
+  @ApiProperty({
+    type: Boolean,
+    description: "The computer Lab Functional of the school",
+    default: false,
+  })
+  @Expose()
+  computerLabFunctional: boolean;
+
+  @ApiProperty({
+    type: Number,
+    description: "The total Functional Computers of the school",
+  })
+  @Expose()
+  totalFunctionalComputers: number;
+
+  @ApiProperty({
+    type: Number,
+    description: "The no Of Boys Toilet  of the school",
+  })
+  @Expose()
+  noOfBoysToilet: number;
+
+  @ApiProperty({
+    type: Number,
+    description: "The no Of Girls Toilet  of the school",
+  })
+  @Expose()
+  noOfGirlsToilet: number;
+
+  @ApiProperty({
+    type: Boolean,
+    description: "The smrt Brd 6 Functional  of the school",
+    default: false,
+  })
+  @Expose()
+  smrtBrd6Functional: boolean;
+
+  @ApiProperty({
+    type: Boolean,
+    description: "The smrt Brd 7 Functional  of the school",
+    default: false,
+  })
+  @Expose()
+  smrtBrd7Functional: boolean;
+
+  @ApiProperty({
+    type: Boolean,
+    description: "The smrt Brd 8 Functional  of the school",
+    default: false,
+  })
+  @Expose()
+  smrtBrd8Functional: boolean;
+
+  @ApiProperty({
+    type: Boolean,
+    description: "The smrt Brd 9 Functional  of the school",
+    default: false,
+  })
+  @Expose()
+  smrtBrd9Functional: boolean;
+
+  @ApiProperty({
+    type: Boolean,
+    description: "The smrt Brd 10 Functional  of the school",
+    default: false,
+  })
+  @Expose()
+  smrtBrd10Functional: boolean;
+
+  @ApiProperty({
+    type: String,
+    description: "The state of the school",
+  })
+  @Expose()
+  state: string;
 
   @ApiProperty({
     type: String,
@@ -107,67 +182,186 @@ export class SchoolDto {
 
   @ApiProperty({
     type: String,
-    description: "The stateId of the school",
+    description: "The block of the school",
   })
   @Expose()
-  stateId: string;
+  block: string;
 
   @ApiProperty({
-    type: Number,
-    description: "The pincode of the school",
+    type: Boolean,
+    description: "The adequate Rooms For Every Class  of the school",
+    default: false,
   })
   @Expose()
-  pincode: Number;
+  adequateRoomsForEveryClass: boolean;
 
   @ApiProperty({
-    type: String,
-    description: "The cluster of the school",
+    type: Boolean,
+    description: "The drinking Water Supply  of the school",
+    default: false,
   })
   @Expose()
-  cluster: string;
+  drinkingWaterSupply: boolean;
 
   @ApiProperty({
-    type: String,
-    description: "The locationId of the school",
+    type: Boolean,
+    description: "The seperate Toilet For Girls And Boys  of the school",
+    default: false,
   })
   @Expose()
-  locationId: string;
+  seperateToiletForGirlsAndBoys: boolean;
 
   @ApiProperty({
-    type: String,
-    description: "The enrollCount of the school",
+    type: Boolean,
+    description: "The whether Toilet Being Used  of the school",
+    default: false,
   })
   @Expose()
-  enrollCount: string;
+  whetherToiletBeingUsed: boolean;
 
   @ApiProperty({
-    type: String,
-    description: "The status of the school",
+    type: Boolean,
+    description: "The playground Available  of the school",
+    default: false,
   })
   @Expose()
-  status: string;
+  playgroundAvailable: boolean;
 
   @ApiProperty({
-    type: Number,
-    description: "The latitude of the school",
+    type: Boolean,
+    description: "The boundary Wall Fence  of the school",
+    default: false,
   })
   @Expose()
-  latitude: Number;
+  boundaryWallFence: boolean;
 
   @ApiProperty({
-    type: Number,
-    description: "The longitude of the school",
+    type: Boolean,
+    description: "The electric Fittings Are Insulated  of the school",
+    default: false,
   })
   @Expose()
-  longitude: Number;
+  electricFittingsAreInsulated: boolean;
 
-  @ApiPropertyOptional()
+  @ApiProperty({
+    type: Boolean,
+    description:
+      "The building Is Resistant To Earthquake Fire Flood Other Calamity  of the school",
+    default: false,
+  })
   @Expose()
-  metaData: [string];
+  buildingIsResistantToEarthquakeFireFloodOtherCalamity: boolean;
 
-  @ApiPropertyOptional({})
+  @ApiProperty({
+    type: Boolean,
+    description:
+      "The building Is Free From Inflammable And Toxic Materials  of the school",
+    default: false,
+  })
   @Expose()
-  deactivationReason: string;
+  buildingIsFreeFromInflammableAndToxicMaterials: boolean;
+
+  @ApiProperty({
+    type: Boolean,
+    description: "The roof And Walls Are In Good Condition  of the school",
+    default: false,
+  })
+  @Expose()
+  roofAndWallsAreInGoodCondition: boolean;
+
+  // @ApiProperty({
+  //   type: String,
+  //   description: "The email of the school",
+  // })
+  // @IsEmail()
+  // @Expose()
+  // email: string;
+
+  // @ApiProperty({
+  //   type: Number,
+  //   description: "The phone number of the school",
+  // })
+  // @IsNumber()
+  // @Expose()
+  // phoneNumber: Number;
+
+  // @ApiProperty({
+  //   type: String,
+  //   description: "The address of the school",
+  // })
+  // @Expose()
+  // address: string;
+
+  // @ApiProperty({
+  //   type: String,
+  //   description: "The schoolType of the school",
+  // })
+  // @Expose()
+  // schoolType: string;
+
+  // @ApiProperty({
+  //   type: String,
+  //   description: "The website of the school",
+  // })
+  // @Expose()
+  // website: string;
+
+  // @ApiProperty({
+  //   type: String,
+  //   description: "The village of the school",
+  // })
+  // @Expose()
+  // village: string;
+
+  // @ApiProperty({
+  //   type: Number,
+  //   description: "The pincode of the school",
+  // })
+  // @Expose()
+  // pincode: Number;
+
+  // @ApiProperty({
+  //   type: String,
+  //   description: "The cluster of the school",
+  // })
+  // @Expose()
+  // cluster: string;
+
+  // @ApiProperty({
+  //   type: String,
+  //   description: "The enrollCount of the school",
+  // })
+  // @Expose()
+  // enrollCount: string;
+
+  // @ApiProperty({
+  //   type: String,
+  //   description: "The status of the school",
+  // })
+  // @Expose()
+  // status: string;
+
+  // @ApiProperty({
+  //   type: Number,
+  //   description: "The latitude of the school",
+  // })
+  // @Expose()
+  // latitude: Number;
+
+  // @ApiProperty({
+  //   type: Number,
+  //   description: "The longitude of the school",
+  // })
+  // @Expose()
+  // longitude: Number;
+
+  // @ApiPropertyOptional()
+  // @Expose()
+  // metaData: [string];
+
+  // @ApiPropertyOptional({})
+  // @Expose()
+  // deactivationReason: string;
 
   @Expose()
   createdAt: string;
