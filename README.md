@@ -1,5 +1,5 @@
 
-## Installation
+## Installation steps
 
 ```bash
 $ npm install
