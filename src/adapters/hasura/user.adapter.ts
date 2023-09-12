@@ -83,13 +83,14 @@ export class HasuraUserService implements IServicelocator {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
-    const userSchema = new UserDto(userDto);
-    let query = "";
-
+  
     const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
     userDto.createdBy = userId;
     userDto.updatedBy = userId;
 
+    const userSchema = new UserDto(userDto);
+
+    let query = "";
     let errKeycloak = "";
     let resKeycloak = "";
 
@@ -115,7 +116,7 @@ export class HasuraUserService implements IServicelocator {
     Object.keys(userDto).forEach((e) => {
       if (
         userDto[e] &&
-        userDto[e] != "" &&
+        userDto[e] !== "" &&
         e != "password" &&
         Object.keys(userSchema).includes(e)
       ) {
