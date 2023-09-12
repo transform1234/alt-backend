@@ -8,7 +8,6 @@ import { UserSearchDto } from "src/user/dto/user-search.dto";
 import { ErrorResponse } from "src/error-response";
 import { UserUpdateDto } from "src/user/dto/user-update.dto";
 import {
-  getUserGroup,
   getUserRole,
   getToken,
   createUserInKeyCloak,
