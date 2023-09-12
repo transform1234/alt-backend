@@ -6,4 +6,5 @@ export interface IServicelocator {
   createSchool(request: any, schoolDto: SchoolDto);
   updateSchool(id: string, request: any, schoolDto: SchoolDto);
   getSchool(schoolId: any, request: any);
+  getAllSchool(request: any)
 }

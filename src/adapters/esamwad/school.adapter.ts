@@ -30,6 +30,8 @@ export class EsamwadSchoolService implements IServicelocator {
       data: schoolDto,
     });
   }
+  getAllSchool(request: any) {}
+
   createSchool(request: any, schoolDto: SchoolDto) {}
   updateSchool(id: string, request: any, schoolDto: SchoolDto) {}
   getSchool(schoolId: any, request: any) {}

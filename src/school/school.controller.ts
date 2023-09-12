@@ -86,4 +86,16 @@ export class SchoolController {
       .buildSchoolAdapter()
       .searchSchool(request, schoolSearchDto);
   }
+
+  @Get("")
+  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "School detail." })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @SerializeOptions({
+    strategy: "excludeAll",
+  })
+  public async getAllSchool( @Req() request: Request) {
+    return this.schoolAdapter.buildSchoolAdapter().getAllSchool( request);
+  }
 }
