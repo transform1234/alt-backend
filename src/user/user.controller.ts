@@ -109,22 +109,6 @@ export class UserController {
       .searchUser(request, userSearchDto);
   }
 
-  @Get("teachersegment/:schoolId")
-  // @ApiBasicAuth("access-token")
-  @ApiCreatedResponse({ description: "User list." })
-  @ApiForbiddenResponse({ description: "Forbidden" })
-  @UseInterceptors(ClassSerializerInterceptor)
-  @ApiQuery({ name: "templateId", required: false })
-  public async teacherSegment(
-    @Param("schoolId") schoolId: string,
-    @Query("templateId") templateId: string,
-    @Req() request: Request
-  ) {
-    return await this.userAdapter
-      .buildUserAdapter()
-      .teacherSegment(schoolId, templateId, request);
-  }
-
   @Post("/reset-password")
   @ApiBasicAuth("access-token")
   @ApiOkResponse({ description: "Password reset successfully." })
@@ -145,4 +129,24 @@ export class UserController {
       reqBody.newPassword
     );
   }
+
+  /* 
+  Not required for ALT 
+  @Get("teachersegment/:schoolId")
+  // @ApiBasicAuth("access-token")
+  @ApiCreatedResponse({ description: "User list." })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @UseInterceptors(ClassSerializerInterceptor)
+  @ApiQuery({ name: "templateId", required: false })
+  public async teacherSegment(
+    @Param("schoolId") schoolId: string,
+    @Query("templateId") templateId: string,
+    @Req() request: Request
+  ) {
+    return await this.userAdapter
+      .buildUserAdapter()
+      .teacherSegment(schoolId, templateId, request);
+  }
+  */
+
 }
