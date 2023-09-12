@@ -29,7 +29,6 @@ export class SchoolHasuraService implements IServicelocator {
         // schoolSchema[e] != "" &&
         Object.keys(schoolSchema).includes(e)
       ) {
-        console.log(e);
         if (e === "management" || e === "libraryFunctional") {
           query += `${e}: ${schoolSchema[e]},`;
         } else if (Array.isArray(schoolSchema[e])) {
@@ -39,7 +38,6 @@ export class SchoolHasuraService implements IServicelocator {
         }
       }
     });
-    console.log(query);
 
     var data = {
       query: `mutation CreateSchool {
@@ -50,7 +48,6 @@ export class SchoolHasuraService implements IServicelocator {
       `,
       variables: {},
     };
-    console.log(query, "appp");
 
     const headers = {
       Authorization: request.headers.authorization,
@@ -66,7 +63,6 @@ export class SchoolHasuraService implements IServicelocator {
     };
 
     const response = await this.axios(config);
-    console.log(query);
     if (response?.data?.errors) {
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
@@ -113,7 +109,6 @@ export class SchoolHasuraService implements IServicelocator {
         schoolId: id,
       },
     };
-    console.log(data.query);
     var config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
@@ -125,9 +120,7 @@ export class SchoolHasuraService implements IServicelocator {
       },
       data: data,
     };
-    console.log(data);
     const response = await axios(config);
-    console.log(response.data);
     if (response?.data?.errors) {
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
@@ -215,7 +208,6 @@ export class SchoolHasuraService implements IServicelocator {
         errorMessage: response.data.errors[0].message,
       });
     }
-    console.log(response.data.data);
     let result = [response.data.data.School_by_pk];
     const schoolDto = await this.mappedResponse(result);
     return new SuccessResponse({
@@ -328,10 +320,88 @@ export class SchoolHasuraService implements IServicelocator {
     });
   }
 
+  public async getAllSchool(request: any) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    var axios = require("axios");
+
+    const data = {
+      query: `query GetAllSchool {
+        School {
+            name
+            udiseCode                                             
+            id
+            location
+            management
+            composition
+            board
+            mediumOfInstruction
+            headmaster
+            headmasterMobile
+            upperPrimaryTeachersSanctioned
+            secondaryTeachersSanctioned
+            libraryFunctional
+            computerLabFunctional
+            totalFunctionalComputers
+            noOfBoysToilet
+            noOfGirlsToilet
+            smrtBrd6Functional
+            smrtBrd7Functional
+            smrtBrd8Functional
+            smrtBrd9Functional
+            smrtBrd10Functional
+            state
+            district
+            block
+            createdAt
+            updatedAt
+            adequateRoomsForEveryClass
+            drinkingWaterSupply
+            seperateToiletForGirlsAndBoys
+            whetherToiletBeingUsed
+            playgroundAvailable
+            boundaryWallFence
+            electricFittingsAreInsulated
+            buildingIsResistantToEarthquakeFireFloodOtherCalamity
+            buildingIsFreeFromInflammableAndToxicMaterials
+            roofAndWallsAreInGoodCondition
+        }
+      }
+      `,
+      variables: {},
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+
+    const response = await axios(config);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+    let result = response.data.data.School;
+    const schoolDto = await this.mappedResponse(result);
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: schoolDto,
+    });
+  }
+
   public async mappedResponse(result: any) {
     const schoolResponse = result.map((item: any) => {
-      console.log(item);
-
       const schoolMapping = {
         id: item?.id ? `${item.id}` : "",
         name: item?.name ? `${item.name}` : "",
