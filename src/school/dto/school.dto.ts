@@ -5,6 +5,8 @@ import {
   IsEmail,
   IsString,
   IsNumber,
+  IsIn,
+  IsEnum,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 

@@ -6,6 +6,7 @@ import { ErrorResponse } from "src/error-response";
 import { SchoolDto } from "src/school/dto/school.dto";
 import { SchoolSearchDto } from "src/school/dto/school-search.dto";
 import { IServicelocator } from "../schoolservicelocator";
+import { getUserGroup, getUserRole } from "./adapter.utils";
 
 export const HasuraSchoolToken = "HasuraSchool";
 @Injectable()
@@ -21,18 +22,17 @@ export class SchoolHasuraService implements IServicelocator {
 
     const schoolSchema = new SchoolDto(schoolDto);
     let query = "";
-    console.log(schoolSchema, "abscd");
+
     Object.keys(schoolSchema).forEach((e) => {
       if (
         // schoolSchema[e] &&
         // schoolSchema[e] != "" &&
         Object.keys(schoolSchema).includes(e)
       ) {
-        console.log(e)
+        console.log(e);
         if (e === "management" || e === "libraryFunctional") {
           query += `${e}: ${schoolSchema[e]},`;
-        }
-        else if (Array.isArray(schoolSchema[e])) {
+        } else if (Array.isArray(schoolSchema[e])) {
           query += `${e}: ${JSON.stringify(schoolSchema[e])}, `;
         } else {
           query += `${e}: "${schoolSchema[e]}", `;
@@ -40,23 +40,21 @@ export class SchoolHasuraService implements IServicelocator {
       }
     });
     console.log(query);
-  
+
     var data = {
       query: `mutation CreateSchool {
         insert_School_one(object: {${query}}) {
         udiseCode
-         
         }
       }
       `,
       variables: {},
     };
+    console.log(query, "appp");
 
     const headers = {
       Authorization: request.headers.authorization,
-      "x-hasura-role": altUserRoles.includes("system-admin")
-        ? "system-admin"
-        : "user",
+      "x-hasura-role": getUserRole(altUserRoles),
       "Content-Type": "application/json",
     };
 
@@ -75,7 +73,6 @@ export class SchoolHasuraService implements IServicelocator {
         errorMessage: response.data.errors[0].message,
       });
     }
-    console.log(query);
     const result = response.data.data.insert_School_one;
 
     return new SuccessResponse({
@@ -86,6 +83,9 @@ export class SchoolHasuraService implements IServicelocator {
   }
 
   public async updateSchool(id: string, request: any, schoolDto: SchoolDto) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     var axios = require("axios");
     const schoolSchema = new SchoolDto(schoolDto);
     let query = "";
@@ -104,27 +104,30 @@ export class SchoolHasuraService implements IServicelocator {
     });
 
     var data = {
-      query: `mutation UpdateSchool($schoolId:uuid) {
+      query: `mutation UpdateSchool ($schoolId:uuid) {
           update_School(where: {schoolId: {_eq: $schoolId}}, _set: {${query}}) {
           affected_rows
         }}`,
+
       variables: {
         schoolId: id,
       },
     };
-
+    console.log(data.query);
     var config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
         Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+
         "Content-Type": "application/json",
       },
       data: data,
     };
-
+    console.log(data);
     const response = await axios(config);
-
+    console.log(response.data);
     if (response?.data?.errors) {
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
@@ -142,42 +145,10 @@ export class SchoolHasuraService implements IServicelocator {
   }
 
   public async getSchool(schoolId: any, request: any) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     var axios = require("axios");
-
- 
-    //   query: `query GetSchool($schoolId:uuid!) {
-    //     School_by_pk(schoolId: $schoolId) {
-    //         address
-    //         block
-    //         created_at
-    //         deactivationReason
-    //         district
-    //         email
-    //         latitude
-    //         enrollCount
-    //         locationId
-    //         longitude
-    //         mediumOfInstruction
-    //         metaData
-    //         phoneNumber
-    //         updated_at
-    //         status
-    //         udise
-    //         stateId
-    //         schoolType
-    //         schoolName
-    //         schoolId
-    //         pincode
-    //         village
-    //         website
-    //         cluster
-    //         headMaster
-    //         board
-    //     }
-    //   }
-    //   `,
-    //   variables: { schoolId: schoolId },
-    // };
 
     const data = {
       query: `query GetSchool($schoolId:String!) {
@@ -230,6 +201,7 @@ export class SchoolHasuraService implements IServicelocator {
       url: process.env.REGISTRYHASURA,
       headers: {
         Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
         "Content-Type": "application/json",
       },
       data: data,
@@ -254,6 +226,9 @@ export class SchoolHasuraService implements IServicelocator {
   }
 
   public async searchSchool(request: any, schoolSearchDto: SchoolSearchDto) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     var axios = require("axios");
 
     let offset = 0;
@@ -276,34 +251,46 @@ export class SchoolHasuraService implements IServicelocator {
     var data = {
       query: `query SearchSchool($limit:Int, $offset:Int) {
             School(where:{ ${query}}, limit: $limit, offset: $offset,) {
-                address
-                block
-                created_at
-                deactivationReason
-                district
-                email
-                latitude
-                enrollCount
-                locationId
-                longitude
-                mediumOfInstruction
-                metaData
-                phoneNumber
-                updated_at
-                status
-                udise
-                stateId
-                schoolType
-                schoolName
-                schoolId
-                pincode
-                village
-                website
-                cluster
-                headMaster
-                board
+            name
+            udiseCode                                             
+            id
+            location
+            management
+            composition
+            board
+            mediumOfInstruction
+            headmaster
+            headmasterMobile
+            upperPrimaryTeachersSanctioned
+            secondaryTeachersSanctioned
+            libraryFunctional
+            computerLabFunctional
+            totalFunctionalComputers
+            noOfBoysToilet
+            noOfGirlsToilet
+            smrtBrd6Functional
+            smrtBrd7Functional
+            smrtBrd8Functional
+            smrtBrd9Functional
+            smrtBrd10Functional
+            state
+            district
+            block
+            createdAt
+            updatedAt
+            adequateRoomsForEveryClass
+            drinkingWaterSupply
+            seperateToiletForGirlsAndBoys
+            whetherToiletBeingUsed
+            playgroundAvailable
+            boundaryWallFence
+            electricFittingsAreInsulated
+            buildingIsResistantToEarthquakeFireFloodOtherCalamity
+            buildingIsFreeFromInflammableAndToxicMaterials
+            roofAndWallsAreInGoodCondition
             }
           }`,
+
       variables: {
         limit: parseInt(schoolSearchDto.limit),
         offset: offset,
@@ -314,6 +301,8 @@ export class SchoolHasuraService implements IServicelocator {
       url: process.env.REGISTRYHASURA,
       headers: {
         Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+
         "Content-Type": "application/json",
       },
       data: data,
@@ -341,7 +330,7 @@ export class SchoolHasuraService implements IServicelocator {
 
   public async mappedResponse(result: any) {
     const schoolResponse = result.map((item: any) => {
-      console.log(item)
+      console.log(item);
 
       const schoolMapping = {
         id: item?.id ? `${item.id}` : "",
@@ -379,12 +368,8 @@ export class SchoolHasuraService implements IServicelocator {
         totalFunctionalComputers: item?.totalFunctionalComputers
           ? `${item.totalFunctionalComputers}`
           : "",
-        noOfBoysToilet: item?.noOfBoysToilet
-          ? `${item.noOfBoysToilet}`
-          : "",
-        noOfGirlsToilet: item?.noOfGirlsToilet
-          ? `${item.noOfGirlsToilet}`
-          : "",
+        noOfBoysToilet: item?.noOfBoysToilet ? `${item.noOfBoysToilet}` : "",
+        noOfGirlsToilet: item?.noOfGirlsToilet ? `${item.noOfGirlsToilet}` : "",
         smrtBrd6Functional: item?.smrtBrd6Functional
           ? `${item.smrtBrd6Functional}`
           : "",
@@ -430,16 +415,13 @@ export class SchoolHasuraService implements IServicelocator {
           item?.buildingIsFreeFromInflammableAndToxicMaterials
             ? `${item.buildingIsFreeFromInflammableAndToxicMaterials}`
             : "",
-        roofAndWallsAreInGoodCondition:
-          item?.roofAndWallsAreInGoodCondition
-            ? `${item.roofAndWallsAreInGoodCondition}`
-            : "",
+        roofAndWallsAreInGoodCondition: item?.roofAndWallsAreInGoodCondition
+          ? `${item.roofAndWallsAreInGoodCondition}`
+          : "",
       };
       return new SchoolDto(schoolMapping);
     });
 
     return schoolResponse;
   }
-
-  
 }
