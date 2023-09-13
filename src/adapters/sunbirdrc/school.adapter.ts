@@ -111,6 +111,7 @@ export class SchoolService implements IServicelocator {
         })
       );
   }
+  getAllSchool(request: any) {}
 
   public async mappedResponse(result: any) {
     const schoolResponse = result.map((item: any) => {
