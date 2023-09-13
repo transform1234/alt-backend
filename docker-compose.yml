@@ -7,14 +7,16 @@ services:
       context: .
       target: development
     volumes:
+      - /home/ubuntu/.env:/usr/src/app/.env  
       - .:/usr/src/app
       - /usr/src/app/node_modules
+      
     ports:
       - ${SERVER_PORT}:${SERVER_PORT}
       - 9229:9229
     command: yarn run start:dev
     env_file:
-      - /home/ubuntu/.env:/usr/src/app/.env
+      - .env
     networks:
       - webnet
     # depends_on:
