@@ -6,8 +6,7 @@ services:
     build:
       context: .
       target: development
-    volumes:
-      - /home/ubuntu/.env:/usr/src/app/.env  
+    volumes:  
       - .:/usr/src/app
       - /usr/src/app/node_modules
       
