@@ -37,13 +37,6 @@ export class UserUpdateDto {
   @Expose()
   schoolUdise: string;
 
-  @ApiProperty({
-    type: String,
-    description: "the user board",
-  })
-  @Expose()
-  board: string;
-
   @Expose()
   createdAt: string;
 

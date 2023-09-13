@@ -54,7 +54,7 @@ export class UserDto {
   })
   @Expose()
   dateOfBirth: string;
-  
+
   @ApiProperty({
     type: String,
     description: "role of user",
@@ -68,14 +68,7 @@ export class UserDto {
   })
   @Expose()
   schoolUdise: string;
- 
-  @ApiProperty({
-    type: String,
-    description: "the user board",
-  })
-  @Expose()
-  board: string;
-  
+
   @ApiProperty({
     type: String,
     description: "Password",
@@ -103,13 +96,25 @@ export class UserDto {
   updatedBy: string;
 
   constructor(obj: any) {
-    Object.assign(this, obj);
+    this.userId = obj?.userId ? `${obj.userId}` : "";
+    this.name = obj?.name ? `${obj.name}` : "";
+    this.username = obj?.username ? `${obj.username}` : "";
+    this.schoolUdise = obj?.schoolUdise ? `${obj.schoolUdise}` : "";
+    this.email = obj?.email ? `${obj.email}` : "";
+    this.mobile = obj?.mobile ? obj.mobile : "";
+    this.gender = obj?.gender ? `${obj.gender}` : "";
+    this.dateOfBirth = obj?.dateOfBirth ? `${obj.dateOfBirth}` : "";
+    this.status = obj?.status ? obj.status : false;
+    this.role = obj?.role ? `${obj.role}` : "";
+    this.password = obj?.password ? `${obj.password}` : "";
+    // this.createdAt = obj?.createdAt ? `${obj.createdAt}` : "";
+    // this.updatedAt = obj?.updatedAt ? `${obj.updatedAt}` : "";
+    this.createdBy = obj?.createdBy ? `${obj.createdBy}` : "";
+    this.updatedBy = obj?.updatedBy ? `${obj.updatedBy}` : "";
   }
 }
 
-
 /* 
-
    @ApiProperty({
     type: String,
     description: "the user medium",

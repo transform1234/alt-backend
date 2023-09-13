@@ -7,11 +7,7 @@ import jwt_decode from "jwt-decode";
 import { UserSearchDto } from "src/user/dto/user-search.dto";
 import { ErrorResponse } from "src/error-response";
 import { UserUpdateDto } from "src/user/dto/user-update.dto";
-import {
-  getUserRole,
-  getToken,
-  createUserInKeyCloak,
-} from "./adapter.utils";
+import { getUserRole, getToken, createUserInKeyCloak } from "./adapter.utils";
 
 @Injectable()
 export class HasuraUserService implements IServicelocator {
@@ -35,7 +31,6 @@ export class HasuraUserService implements IServicelocator {
             gender
             dateOfBirth
             role
-            schoolUdise
             board
             status
             createdAt
@@ -82,7 +77,7 @@ export class HasuraUserService implements IServicelocator {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
-  
+
     const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
     userDto.createdBy = userId;
     userDto.updatedBy = userId;
@@ -99,6 +94,7 @@ export class HasuraUserService implements IServicelocator {
       resKeycloak = await createUserInKeyCloak(userSchema, token).catch(
         (error) => {
           errKeycloak = error.response?.data.errorMessage;
+          console.log(errKeycloak);
           return new ErrorResponse({
             errorCode: "500",
             errorMessage: "Someting went wrong",
