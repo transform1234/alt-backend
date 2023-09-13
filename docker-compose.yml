@@ -14,7 +14,7 @@ services:
       - 9229:9229
     command: yarn run start:dev
     env_file:
-      - /home/ubuntu/.env
+      - /home/ubuntu/.env:/usr/src/app/.env
     networks:
       - webnet
     # depends_on:
