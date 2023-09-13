@@ -110,7 +110,11 @@ export class SchoolService implements IServicelocator {
           throw new HttpException(error, e.response.status);
         })
       );
+      
   }
+
+  getAllSchool(request: any) {}
+
 
   public async mappedResponse(result: any) {
     const schoolResponse = result.map((item: any) => {
