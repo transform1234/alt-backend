@@ -62,7 +62,7 @@ export class HasuraUserService implements IServicelocator {
         errorMessage: response.data.errors[0].message,
       });
     } else {
-      let result = [response.data.data.Users_by_pk];
+      const result = [response.data.data.Users_by_pk];
 
       const userData = await this.mappedResponse(result);
       return new SuccessResponse({
@@ -191,7 +191,7 @@ export class HasuraUserService implements IServicelocator {
       }
     });
 
-    var data = {
+    const data = {
       query: `mutation UpdateUser ($userId:uuid){
         update_Users(where: {userId: {_eq: $userId}}, _set: {${userUpdate}}) {
           affected_rows
@@ -202,7 +202,7 @@ export class HasuraUserService implements IServicelocator {
       },
     };
 
-    var config = {
+    const config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
@@ -235,7 +235,7 @@ export class HasuraUserService implements IServicelocator {
       offset = userSearchDto.limit * (userSearchDto.page - 1);
     }
 
-    let filters = userSearchDto.filters;
+    const filters = userSearchDto.filters;
 
     let query = "";
     Object.keys(userSearchDto.filters).forEach((e) => {
@@ -248,7 +248,7 @@ export class HasuraUserService implements IServicelocator {
       }
     });
 
-    var data = {
+    const data = {
       query: `query SearchUser($limit:Int, $offset:Int) {
         Users_aggregate {
           aggregate {
@@ -290,7 +290,7 @@ export class HasuraUserService implements IServicelocator {
         offset: offset,
       },
     };
-    var config = {
+    const config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
@@ -330,7 +330,6 @@ export class HasuraUserService implements IServicelocator {
         email: item?.email ? `${item.email}` : "",
         mobile: item?.mobile ? item.mobile : "",
         gender: item?.gender ? `${item.gender}` : "",
-        board: item?.board ? `${item.board}` : "",
         dateOfBirth: item?.dateOfBirth ? `${item.dateOfBirth}` : "",
         status: item?.status ? `${item.status}` : "",
         role: item?.role ? `${item.role}` : "",
@@ -349,9 +348,9 @@ export class HasuraUserService implements IServicelocator {
     const authToken = request.headers.authorization;
     const decoded: any = jwt_decode(authToken);
 
-    let username = decoded.preferred_username;
+    const username = decoded.preferred_username;
 
-    var data = {
+    const data = {
       query: `query searchUser($username:String) {
         Users(where: {username: {_eq: $username}}) {
           userId
@@ -386,7 +385,7 @@ export class HasuraUserService implements IServicelocator {
       variables: { username: username },
     };
 
-    var config = {
+    const config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
@@ -398,7 +397,7 @@ export class HasuraUserService implements IServicelocator {
 
     const response = await this.axios(config);
 
-    let result = response.data.data.Users;
+    const result = response.data.data.Users;
 
     const userData = await this.mappedResponse(result);
     return new SuccessResponse({
@@ -425,7 +424,7 @@ export class HasuraUserService implements IServicelocator {
       });
     }
 
-    var data = JSON.stringify({
+    const data = JSON.stringify({
       temporary: "false",
       type: "password",
       value: newPassword,
@@ -435,7 +434,7 @@ export class HasuraUserService implements IServicelocator {
     const res = response.data.access_token;
     let apiResponse;
 
-    var config = {
+    const config = {
       method: "put",
       url:
         "https://alt-shiksha.uniteframework.io/auth/admin/realms/hasura/users/" +
@@ -472,7 +471,7 @@ export class HasuraUserService implements IServicelocator {
   }
 
   public async getUserByUsername(username: string, request: any) {
-    var data = {
+    const data = {
       query: `query GetUserByUsername($username:String) {
         Users(where: {username: {_eq: $username}}){
             userId
@@ -504,7 +503,7 @@ export class HasuraUserService implements IServicelocator {
       variables: { username: username },
     };
 
-    var config = {
+    const config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
@@ -522,7 +521,7 @@ export class HasuraUserService implements IServicelocator {
         errorMessage: response.data.errors[0].message,
       });
     } else {
-      let result = response.data.data.Users;
+      const result = response.data.data.Users;
       const userData = await this.mappedResponse(result);
       return new SuccessResponse({
         statusCode: response.status,
