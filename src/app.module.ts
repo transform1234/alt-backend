@@ -1,33 +1,33 @@
 import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+import { MulterModule } from "@nestjs/platform-express/multer";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
-import { StudentModule } from "./student/student.module";
+// import { AttendanceModule } from "./attendance/attendance.module";
+// import { HolidayModule } from "./holiday/holiday.module";
+// import { ConfigurationModule } from "./configs/configuration.module";
+// import { NotificationModule } from "./notification/notification.module";
+// import { TemplateModule } from "./template/template.module";
+// import { WorksheetModule } from "./worksheet/worksheet.module";
+// import { QuestionModule } from "./Question/question.module";
+// import { LessonPlanModule } from "./lessonPlan/lessonPlan.module";
+// import { AdminFormModule } from "./adminForm/adminForm.module";
+// import { LikeModule } from "./like/like.module";
+// import { CommentModule } from "./comment/comment.module";
+// import { TrackAssessmentModule } from "./trackAssessment/trackassessment.module";
+// import { AssessmentSetModule } from "./assessmentset/assessmentset.module";
+// import { InAppNotificationModule } from "./inAppNotification/inAppNotification.module";
+// import { MentorTrackingModule } from "./mentorTracking/mentorTracking.module";
+// import { MonitorTrackingModule } from "./monitorTracking/monitorTracking.module";
+// import { CourseModule } from "./course/course.module";
+// import { CourseTrackingModule } from "./courseTracking/courseTracking.module";
+// import { AnnouncementsModule } from "./announcements/announcements.module";
+// import { RoleModule } from "./role/role.module";
+// import { WorkHistoryModule } from "./workHistory/workHistory.module";
+// import { StudentModule } from "./student/student.module";
 import { UserModule } from "./user/user.module";
 import { SchoolModule } from "./school/school.module";
-import { AttendanceModule } from "./attendance/attendance.module";
 import { GroupModule } from "./group/group.module";
-import { HolidayModule } from "./holiday/holiday.module";
-import { ConfigurationModule } from "./configs/configuration.module";
-import { ConfigModule } from "@nestjs/config";
-import { NotificationModule } from "./notification/notification.module";
-import { TemplateModule } from "./template/template.module";
-import { WorksheetModule } from "./worksheet/worksheet.module";
-import { MulterModule } from "@nestjs/platform-express/multer";
-import { QuestionModule } from "./Question/question.module";
-import { LessonPlanModule } from "./lessonPlan/lessonPlan.module";
-import { AdminFormModule } from "./adminForm/adminForm.module";
-import { LikeModule } from "./like/like.module";
-import { CommentModule } from "./comment/comment.module";
-import { TrackAssessmentModule } from "./trackAssessment/trackassessment.module";
-import { AssessmentSetModule } from "./assessmentset/assessmentset.module";
-import { InAppNotificationModule } from "./inAppNotification/inAppNotification.module";
-import { MentorTrackingModule } from "./mentorTracking/mentorTracking.module";
-import { MonitorTrackingModule } from "./monitorTracking/monitorTracking.module";
-import { CourseModule } from "./course/course.module";
-import { CourseTrackingModule } from "./courseTracking/courseTracking.module";
-import { AnnouncementsModule } from "./announcements/announcements.module";
-import { RoleModule } from "./role/role.module";
-import { WorkHistoryModule } from "./workHistory/workHistory.module";
 import { GroupMembershipModule } from "./groupMembership/groupMembership.module";
 import { ProgramModule } from "./altProgram/altProgram.module";
 import { ALTCourseTrackingModule } from "./altCourseTracking/altCourseTracking.module";
@@ -38,17 +38,14 @@ import { ALTUserCourseEligibilityModule } from "./altUserEligibility/altUserElig
 import { ALTCurrentPhaseModule } from "./altCurrentPhase/altCurrentPhase.module";
 import { ALTAssessmentExportModule } from "./altAssessmentExport/altAssessmentExport.module";
 import { ALTTimeSpentExportModule } from "./altTimeSpentExport/altTimeSpentExport.module";
+import { ALTStudentModule } from "./altStudent/altStudent.module";
 @Module({
   imports: [
     ConfigModule.forRoot(),
     MulterModule.register({
       dest: "./uploads",
     }),
-    StudentModule,
-    UserModule,
-    SchoolModule,
-    GroupModule,
-    RoleModule,
+    /* RoleModule,
     AttendanceModule,
     HolidayModule,
     ConfigurationModule,
@@ -69,6 +66,11 @@ import { ALTTimeSpentExportModule } from "./altTimeSpentExport/altTimeSpentExpor
     CourseTrackingModule,
     AnnouncementsModule,
     WorkHistoryModule,
+    StudentModule,
+    */
+    UserModule,
+    SchoolModule,
+    GroupModule,
     GroupMembershipModule,
     ProgramModule,
     ALTCourseTrackingModule,
@@ -79,6 +81,7 @@ import { ALTTimeSpentExportModule } from "./altTimeSpentExport/altTimeSpentExpor
     ALTCurrentPhaseModule,
     ALTAssessmentExportModule,
     ALTTimeSpentExportModule,
+    ALTStudentModule
   ],
   controllers: [AppController],
   providers: [AppService],
