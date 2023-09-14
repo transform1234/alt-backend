@@ -22,7 +22,7 @@ export class StudentDto {
   @ApiProperty({
     type: String,
     description: "username",
-  })
+  }) // Auto Generated if not provided
   @Expose()
   username: string;
 
@@ -55,10 +55,10 @@ export class StudentDto {
   @Expose()
   dateOfBirth: string;
 
-  @ApiProperty({
-    type: String,
-    description: "role of user",
-  })
+  // @ApiProperty({
+  //   type: String,
+  //   description: "role of user",
+  // }) 
   @Expose()
   role: string;
 
