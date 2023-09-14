@@ -129,9 +129,7 @@ export class UserController {
       reqBody.newPassword
     );
   }
-
-  /* 
-  Not required for ALT 
+ 
   @Get("teachersegment/:schoolId")
   // @ApiBasicAuth("access-token")
   @ApiCreatedResponse({ description: "User list." })
@@ -147,6 +145,4 @@ export class UserController {
       .buildUserAdapter()
       .teacherSegment(schoolId, templateId, request);
   }
-  */
-
 }

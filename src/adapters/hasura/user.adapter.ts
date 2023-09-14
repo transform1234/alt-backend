@@ -531,11 +531,11 @@ export class HasuraUserService implements IServicelocator {
     }
   }
 
-  /*
-   public async teacherSegment(
+  public async teacherSegment(
     schoolId: string,
     templateId: string,
     request: any
-  ) {}
-  */
+  ) {
+    throw new Error("Method not implemented.");
+  }
 }

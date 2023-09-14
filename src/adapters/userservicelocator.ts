@@ -8,6 +8,5 @@ export interface IServicelocator {
   createUser(request: any, userDto: UserDto);
   updateUser(id: string, request: any, userDto: UserUpdateDto);
   searchUser(request: any, userSearchDto: UserSearchDto);
-  // Not required for ALT
-  // teacherSegment(schoolId: string, templateId: string, request: any);
+  teacherSegment(schoolId: string, templateId: string, request: any);
 }
