@@ -25,7 +25,7 @@ import { AppService } from "./app.service";
 // import { RoleModule } from "./role/role.module";
 // import { WorkHistoryModule } from "./workHistory/workHistory.module";
 // import { StudentModule } from "./student/student.module";
-import { UserModule } from "./user/user.module";
+// import { UserModule } from "./user/user.module";
 import { SchoolModule } from "./school/school.module";
 import { GroupModule } from "./group/group.module";
 import { GroupMembershipModule } from "./groupMembership/groupMembership.module";
@@ -39,6 +39,7 @@ import { ALTCurrentPhaseModule } from "./altCurrentPhase/altCurrentPhase.module"
 import { ALTAssessmentExportModule } from "./altAssessmentExport/altAssessmentExport.module";
 import { ALTTimeSpentExportModule } from "./altTimeSpentExport/altTimeSpentExport.module";
 import { ALTStudentModule } from "./altStudent/altStudent.module";
+import { ALTUserModule } from "./altUser/altUser.module";
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -67,8 +68,8 @@ import { ALTStudentModule } from "./altStudent/altStudent.module";
     AnnouncementsModule,
     WorkHistoryModule,
     StudentModule,
-    */
     UserModule,
+    */
     SchoolModule,
     GroupModule,
     GroupMembershipModule,
@@ -81,7 +82,8 @@ import { ALTStudentModule } from "./altStudent/altStudent.module";
     ALTCurrentPhaseModule,
     ALTAssessmentExportModule,
     ALTTimeSpentExportModule,
-    ALTStudentModule
+    ALTStudentModule,
+    ALTUserModule
   ],
   controllers: [AppController],
   providers: [AppService],
