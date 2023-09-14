@@ -119,12 +119,7 @@ export class ALTHasuraUserService {
     }
 
     Object.keys(userDto).forEach((e) => {
-      if (
-        userDto[e] &&
-        userDto[e] !== "" &&
-        e != "password" &&
-        Object.keys(userSchema).includes(e)
-      ) {
+      if (e != "password" && Object.keys(userSchema).includes(e)) {
         if (e === "role") {
           query += `${e}: ${userDto[e]},`;
         } else if (Array.isArray(userDto[e])) {
@@ -190,11 +185,7 @@ export class ALTHasuraUserService {
     const userSchema = new UserUpdateDto(userUpdateDto);
     let userUpdate = "";
     Object.keys(userUpdateDto).forEach((e) => {
-      if (
-        userUpdateDto[e] &&
-        userUpdateDto[e] != "" &&
-        Object.keys(userSchema).includes(e)
-      ) {
+      if (Object.keys(userSchema).includes(e)) {
         if (e === "role") {
           userUpdate += `${e}: ${userUpdateDto[e]},`;
         } else if (Array.isArray(userUpdateDto[e])) {

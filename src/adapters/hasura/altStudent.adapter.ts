@@ -4,14 +4,14 @@ import jwt_decode from "jwt-decode";
 import { SuccessResponse } from "src/success-response";
 import { StudentDto } from "src/altStudent/dto/alt-student.dto";
 import { ErrorResponse } from "src/error-response";
-import { HasuraUserService } from "./user.adapter";
 import { getUserRole } from "./adapter.utils";
+import { ALTHasuraUserService } from "./altUser.adapter";
 
 @Injectable()
 export class ALTStudentService {
   constructor(
     private httpService: HttpService,
-    private userService: HasuraUserService
+    private userService: ALTHasuraUserService
   ) {}
 
   baseURL = process.env.ALTHASURA;
