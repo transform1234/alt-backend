@@ -46,17 +46,17 @@ export class GroupMembershipDtoById {
 
   @ApiProperty()
   @Expose()
-  groupId: string;
+  schoolUdise: string;
 
   @ApiProperty()
   @Expose()
-  schoolId: string;
+  userId: string;
 
   @ApiProperty()
   @Expose()
   @IsNotEmpty()
   @IsUUID()
-  userId: string;
+  groupId: string;
 
   @ApiProperty()
   @Expose()
@@ -69,13 +69,12 @@ export class GroupMembershipDtoById {
   updatedBy: string;
 
   @Expose()
-  created_at: string;
+  createdAt: string;
 
   @Expose()
-  updated_at: string;
+  updatedAt: string;
 
   constructor(obj: any) {
     Object.assign(this, obj);
   }
 }
-
