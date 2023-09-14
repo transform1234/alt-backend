@@ -19,6 +19,13 @@ function getUserGroup(role: string) {
   }
 }
 
+function getUsername(obj: any) {
+  return (
+    obj.name.toLowerCase().replace(/ /g, "") +
+    obj.dateOfBirth.replace(/\-/g, "")
+  );
+}
+
 async function getToken() {
   const axios = require("axios");
   const qs = require("qs");
@@ -92,7 +99,8 @@ async function createUserInKeyCloak(query, token) {
   try {
     userResponse = await axios(config);
   } catch (e) {
-    console.log(e);
+    console.log(e, "Keycloak Creation error");
+    return e;
   }
 
   const userString = userResponse.headers.location;
@@ -102,4 +110,10 @@ async function createUserInKeyCloak(query, token) {
   return result;
 }
 
-export { getUserGroup, getUserRole, getToken, createUserInKeyCloak };
+export {
+  getUserGroup,
+  getUserRole,
+  getToken,
+  createUserInKeyCloak,
+  getUsername,
+};
