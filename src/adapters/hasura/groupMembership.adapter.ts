@@ -3,8 +3,13 @@ import { HttpService } from "@nestjs/axios";
 import { SuccessResponse } from "src/success-response";
 import { ErrorResponse } from "src/error-response";
 import jwt_decode from "jwt-decode";
+import { getUserGroup, getUserRole } from "./adapter.utils";
+
 const resolvePath = require("object-resolve-path");
-import { GroupMembershipDto, GroupMembershipDtoById } from "src/groupMembership/dto/groupMembership.dto";
+import {
+  GroupMembershipDto,
+  GroupMembershipDtoById,
+} from "src/groupMembership/dto/groupMembership.dto";
 import { GroupMembershipSearchDto } from "src/groupMembership/dto/groupMembership-search.dto";
 
 @Injectable()
@@ -14,18 +19,21 @@ export class GroupMembershipService {
   url = `${process.env.BASEAPIURL}`;
 
   public async getGroupMembership(groupMembershipId: any, request: any) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     var data = {
       query: `query GetGroupMembership($groupMembershipId:uuid!) {
         GroupMembership_by_pk(groupMembershipId: $groupMembershipId) {
-            groupId
-            groupMembershipId
-            schoolId
-            role
-            userId
-            updatedBy
-            createdBy
-            updated_at
-            created_at
+          groupMembershipId
+          schoolUdise
+          userId
+          groupId
+          role
+          createdBy
+          updatedBy
+          createdAt
+          updatedAt
       }
     }`,
       variables: {
@@ -37,7 +45,9 @@ export class GroupMembershipService {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+
         "Content-Type": "application/json",
       },
       data: data,
@@ -68,11 +78,8 @@ export class GroupMembershipService {
     groupMembership: GroupMembershipDto
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    groupMembership.userId =
+    const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-
-    groupMembership.createdBy = groupMembership.userId;
-    groupMembership.updatedBy = groupMembership.userId;
 
     let query = "";
     Object.keys(groupMembership).forEach((e) => {
@@ -101,7 +108,9 @@ export class GroupMembershipService {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserGroup(altUserRoles),
+
         "Content-Type": "application/json",
       },
       data: data,
@@ -130,11 +139,11 @@ export class GroupMembershipService {
     groupMembership: GroupMembershipDtoById
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    // groupMembership.userId =
-    //   decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-
-    groupMembership.createdBy = groupMembership.userId;
-    groupMembership.updatedBy = groupMembership.userId;
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    groupMembership.createdBy = userId;
+    groupMembership.updatedBy = userId;
 
     let query = "";
     Object.keys(groupMembership).forEach((e) => {
@@ -163,7 +172,9 @@ export class GroupMembershipService {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+
         "Content-Type": "application/json",
       },
       data: data,
@@ -210,7 +221,7 @@ export class GroupMembershipService {
         }
       }
     });
-    
+
     const groupMembershipUpdate = {
       query: `mutation UpdateGroupMembership($groupMembershipId:uuid) {
           update_GroupMembership(where: { groupMembershipId: {_eq: $groupMembershipId}}, _set: {${query}}) {
@@ -226,7 +237,7 @@ export class GroupMembershipService {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: groupMembershipUpdate,
@@ -298,7 +309,7 @@ export class GroupMembershipService {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: data,
@@ -328,12 +339,13 @@ export class GroupMembershipService {
         groupMembershipId: obj?.groupMembershipId
           ? `${obj.groupMembershipId}`
           : "",
-        groupId: obj?.groupId ? `${obj.groupId}` : "",
+        schoolUdise: obj?.schoolUdise ? `${obj.schoolUdise}` : "",
         schoolId: obj?.schoolId ? `${obj.schoolId}` : "",
         userId: obj?.userId ? `${obj.userId}` : "",
+        groupId: obj?.groupId ? `${obj.groupId}` : "",
         role: obj?.role ? `${obj.role}` : "",
-        created_at: obj?.created_at ? `${obj.created_at}` : "",
-        updated_at: obj?.updated_at ? `${obj.updated_at}` : "",
+        createdAt: obj?.created_at ? `${obj.created_at}` : "",
+        updatedAt: obj?.updated_at ? `${obj.updated_at}` : "",
         createdBy: obj?.createdBy ? `${obj.createdBy}` : "",
         updatedBy: obj?.updatedBy ? `${obj.updatedBy}` : "",
       };

@@ -14,10 +14,25 @@ export class GroupDto {
 
   @ApiPropertyOptional({
     type: String,
-    description: "The schoolId of the group",
+    description: "The schoolUdise of the group",
   })
   @Expose()
-  schoolId: string;
+  schoolUdise: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    description: "The medium of the group",
+  })
+  @Expose()
+  medium: string;
+
+
+  @ApiPropertyOptional({
+    type: String,
+    description: "The grade of the group",
+  })
+  @Expose()
+  grade: string;
 
   @ApiPropertyOptional({
     type: String,
@@ -49,46 +64,59 @@ export class GroupDto {
 
   @ApiPropertyOptional({
     type: String,
-    description: "Teacher Id of Group",
+    description: "The board of the group",
   })
   @Expose()
-  teacherId: string;
+  board: string;
 
-  @ApiPropertyOptional({
-    type: String,
-    description: "Parent Id of Group",
-  })
-  @Expose()
-  parentGroupId: string;
+  // @ApiPropertyOptional({
+  //   type: String,
+  //   description: "Teacher Id of Group",
+  // })
+  // @Expose()
+  // teacherId: string;
 
-  @ApiPropertyOptional()
-  @Expose()
-  deactivationReason: string;
+  // @ApiPropertyOptional({
+  //   type: String,
+  //   description: "Parent Id of Group",
+  // })
+  // @Expose()
+  // parentGroupId: string;
 
-  @ApiPropertyOptional({
-    type: String,
-    description: "The mediumOfInstruction of the group",
-  })
-  @Expose()
-  mediumOfInstruction: string;
+  // @ApiPropertyOptional()
+  // @Expose()
+  // deactivationReason: string;
 
-  @ApiPropertyOptional({ type: "string", format: "binary" })
-  @Expose()
-  image: string;
+  // @ApiPropertyOptional({
+  //   type: String,
+  //   description: "The mediumOfInstruction of the group",
+  // })
+  // @Expose()
+  // mediumOfInstruction: string;
 
-  @ApiPropertyOptional()
-  @Expose()
-  metaData: [string];
+  // @ApiPropertyOptional({ type: "string", format: "binary" })
+  // @Expose()
+  // image: string;
 
-  @ApiPropertyOptional()
-  @Expose()
-  option: [string];
+  // @ApiPropertyOptional()
+  // @Expose()
+  // metaData: [string];
 
-  @ApiPropertyOptional({
-    description: "Grade against group",
-  })
+  // @ApiPropertyOptional()
+  // @Expose()
+  // option: [string];
+
+  // @ApiPropertyOptional({
+  //   description: "Grade against group",
+  // })
+  // @Expose()
+  // gradeLevel: string;
+
   @Expose()
-  gradeLevel: string;
+  createdBy: string;
+
+  @Expose()
+  updatedBy: string;
 
   @Expose()
   createdAt: string;
