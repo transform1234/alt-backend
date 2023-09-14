@@ -7,64 +7,62 @@ import jwt_decode from "jwt-decode";
 import { UserSearchDto } from "src/user/dto/user-search.dto";
 import { ErrorResponse } from "src/error-response";
 import { UserUpdateDto } from "src/user/dto/user-update.dto";
+import { getUserRole, getToken, createUserInKeyCloak } from "./adapter.utils";
 
 @Injectable()
 export class HasuraUserService implements IServicelocator {
+  axios = require("axios");
+
   constructor(private httpService: HttpService) {}
 
   public async getUser(userId: string, request: any) {
-    var axios = require("axios");
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
 
-    var data = {
+    const data = {
       query: `query GetUser($userId:uuid!) {
         Users_by_pk(userId: $userId) {
             userId
             name
             username
-            father
-            mother
-            uniqueId
             email
-            mobileNumber
-            birthDate
-            bloodGroup
-            udise
-            school
-            board
-            grade
-            medium
-            state
-            district
-            block
-            role
+            mobile
             gender
-            section
+            dateOfBirth
+            role
+            board
             status
-            image
+            createdAt
+            updatedAt
+            createdBy
+            updatedBy
         }
       }
       `,
       variables: { userId: userId },
     };
 
-    var config = {
+    const config = {
       method: "post",
-      url: process.env.REGISTRYHASURA,
+      url: process.env.ALTHASURA,
       headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
         "Content-Type": "application/json",
       },
       data: data,
     };
 
-    const response = await axios(config);
+    const response = await this.axios(config);
+
     if (response?.data?.errors) {
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
         errorMessage: response.data.errors[0].message,
       });
     } else {
-      let result = [response.data.data.Users_by_pk];
+      const result = [response.data.data.Users_by_pk];
 
       const userData = await this.mappedResponse(result);
       return new SuccessResponse({
@@ -76,15 +74,44 @@ export class HasuraUserService implements IServicelocator {
   }
 
   public async createUser(request: any, userDto: UserDto) {
-    var axios = require("axios");
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+
+    const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    userDto.createdBy = userId;
+    userDto.updatedBy = userId;
 
     const userSchema = new UserDto(userDto);
+
     let query = "";
+    let errKeycloak = "";
+    let resKeycloak = "";
+
+    if (altUserRoles.includes("systemAdmin")) {
+      const response = await getToken();
+      const token = response.data.access_token;
+      resKeycloak = await createUserInKeyCloak(userSchema, token).catch(
+        (error) => {
+          errKeycloak = error.response?.data.errorMessage;
+          console.log(errKeycloak);
+          return new ErrorResponse({
+            errorCode: "500",
+            errorMessage: "Someting went wrong",
+          });
+        }
+      );
+    } else {
+      return new ErrorResponse({
+        errorCode: "401",
+        errorMessage: "Unauthorized",
+      });
+    }
 
     Object.keys(userDto).forEach((e) => {
       if (
         userDto[e] &&
-        userDto[e] != "" &&
+        userDto[e] !== "" &&
         e != "password" &&
         Object.keys(userSchema).includes(e)
       ) {
@@ -98,16 +125,9 @@ export class HasuraUserService implements IServicelocator {
       }
     });
 
-    let errKeycloak = "";
-    const resKeycloak = await this.createUserInKeyCloak(userSchema).catch(
-      function (error) {
-        errKeycloak = error.response.data.errorMessage;
-      }
-    );
-
     // Add userId created in keycloak as user Id of ALT user
     query += `userId: "${resKeycloak}"`;
-    var data = {
+    const data = {
       query: `mutation CreateUser {
         insert_Users_one(object: {${query}}) {
          userId
@@ -117,17 +137,20 @@ export class HasuraUserService implements IServicelocator {
       variables: {},
     };
 
-    var config = {
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
-      headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
-        "Content-Type": "application/json",
-      },
+      headers: headers,
       data: data,
     };
 
-    const response = await axios(config);
+    const response = await this.axios(config);
 
     if (response?.data?.errors || resKeycloak == undefined) {
       return new ErrorResponse({
@@ -145,82 +168,11 @@ export class HasuraUserService implements IServicelocator {
     }
   }
 
-  public async createUserInKeyCloak(query: UserDto) {
-    let name = query.name;
-    const nameParts = name.split(" ");
-    let lname = "";
-
-    if (nameParts[2]) {
-      lname = nameParts[2];
-    } else if (nameParts[1]) {
-      lname = nameParts[1];
-    }
-    if (!query.password) {
-      return "User cannot be created";
-    }
-
-    var axios = require("axios");
-    var data = JSON.stringify({
-      firstName: nameParts[0],
-      lastName: lname,
-      email: query?.email,
-      enabled: "true",
-      username: query.username,
-      groups: ["hasura-user"],
-      credentials: [
-        {
-          temporary: "false",
-          type: "password",
-          value: query.password,
-        },
-      ],
-    });
-
-    const response = await this.getToken();
-    const res = response.data.access_token;
-
-    var config = {
-      method: "post",
-      url: process.env.ALTKEYCLOAK,
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + res,
-      },
-      data: data,
-    };
-
-    const userResponse = await axios(config);
-    let userString = userResponse.headers.location;
-    let userId = userString.lastIndexOf("/");
-    let result = userString.substring(userId + 1);
-
-    return result;
-  }
-
-  public async getToken() {
-    var axios = require("axios");
-    var qs = require("qs");
-    var data = qs.stringify({
-      username: "admin",
-      password: "Alt@2022",
-      grant_type: "password",
-      client_id: "admin-cli",
-    });
-    var config = {
-      method: "post",
-      url: "https://alt-shiksha.uniteframework.io/auth/realms/master/protocol/openid-connect/token",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      data: data,
-    };
-
-    return axios(config);
-  }
-
-  public async updateUser(userId: string, request: any, userUpdateDto: UserUpdateDto) {
-    var axios = require("axios");
-
+  public async updateUser(
+    userId: string,
+    request: any,
+    userUpdateDto: UserUpdateDto
+  ) {
     const userSchema = new UserUpdateDto(userUpdateDto);
     let userUpdate = "";
     Object.keys(userUpdateDto).forEach((e) => {
@@ -239,7 +191,7 @@ export class HasuraUserService implements IServicelocator {
       }
     });
 
-    var data = {
+    const data = {
       query: `mutation UpdateUser ($userId:uuid){
         update_Users(where: {userId: {_eq: $userId}}, _set: {${userUpdate}}) {
           affected_rows
@@ -250,7 +202,7 @@ export class HasuraUserService implements IServicelocator {
       },
     };
 
-    var config = {
+    const config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
@@ -260,7 +212,7 @@ export class HasuraUserService implements IServicelocator {
       data: data,
     };
 
-    const response = await axios(config);
+    const response = await this.axios(config);
 
     if (response?.data?.errors) {
       return new ErrorResponse({
@@ -278,14 +230,12 @@ export class HasuraUserService implements IServicelocator {
   }
 
   public async searchUser(request: any, userSearchDto: UserSearchDto) {
-    var axios = require("axios");
-
     let offset = 0;
     if (userSearchDto.page > 1) {
       offset = userSearchDto.limit * (userSearchDto.page - 1);
     }
 
-    let filters = userSearchDto.filters;
+    const filters = userSearchDto.filters;
 
     let query = "";
     Object.keys(userSearchDto.filters).forEach((e) => {
@@ -298,7 +248,7 @@ export class HasuraUserService implements IServicelocator {
       }
     });
 
-    var data = {
+    const data = {
       query: `query SearchUser($limit:Int, $offset:Int) {
         Users_aggregate {
           aggregate {
@@ -331,8 +281,8 @@ export class HasuraUserService implements IServicelocator {
             image
             createdBy
             updatedBy
-            created_at
-            updated_at
+            createdAt
+            updatedAt
             }
           }`,
       variables: {
@@ -340,7 +290,7 @@ export class HasuraUserService implements IServicelocator {
         offset: offset,
       },
     };
-    var config = {
+    const config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
@@ -350,7 +300,7 @@ export class HasuraUserService implements IServicelocator {
       data: data,
     };
 
-    const response = await axios(config);
+    const response = await this.axios(config);
 
     if (response?.data?.errors) {
       return new ErrorResponse({
@@ -376,27 +326,15 @@ export class HasuraUserService implements IServicelocator {
         userId: item?.userId ? `${item.userId}` : "",
         name: item?.name ? `${item.name}` : "",
         username: item?.username ? `${item.username}` : "",
-        father: item?.father ? `${item.father}` : "",
-        mother: item?.mother ? `${item.mother}` : "",
-        uniqueId: item?.uniqueId ? `${item.uniqueId}` : "",
-        school: item?.school ? `${item.school}` : "",
+        schoolUdise: item?.schoolUdise ? `${item.schoolUdise}` : "",
         email: item?.email ? `${item.email}` : "",
-        mobileNumber: item?.mobileNumber ? item.mobileNumber : "",
+        mobile: item?.mobile ? item.mobile : "",
         gender: item?.gender ? `${item.gender}` : "",
-        udise: item?.udise ? `${item.udise}` : "",
-        board: item?.board ? `${item.board}` : "",
-        medium: item?.medium ? `${item.medium}` : "",
-        grade: item?.grade ? `${item.grade}` : "",
-        section: item?.section ? `${item.section}` : "",
-        birthDate: item?.birthDate ? `${item.birthDate}` : "",
+        dateOfBirth: item?.dateOfBirth ? `${item.dateOfBirth}` : "",
         status: item?.status ? `${item.status}` : "",
-        image: item?.image ? `${item.image}` : "",
-        block: item?.block ? `${item.block}` : "",
-        district: item?.district ? `${item.district}` : "",
-        state: item?.state ? `${item.state}` : "",
         role: item?.role ? `${item.role}` : "",
-        createdAt: item?.created_at ? `${item.created_at}` : "",
-        updatedAt: item?.updated_at ? `${item.updated_at}` : "",
+        createdAt: item?.createdAt ? `${item.createdAt}` : "",
+        updatedAt: item?.updatedAt ? `${item.updatedAt}` : "",
         createdBy: item?.createdBy ? `${item.createdBy}` : "",
         updatedBy: item?.updatedBy ? `${item.updatedBy}` : "",
       };
@@ -406,21 +344,13 @@ export class HasuraUserService implements IServicelocator {
     return userResponse;
   }
 
-  public async teacherSegment(
-    schoolId: string,
-    templateId: string,
-    request: any
-  ) {}
-
   public async getUserByAuth(request: any) {
     const authToken = request.headers.authorization;
     const decoded: any = jwt_decode(authToken);
 
-    let username = decoded.preferred_username;
+    const username = decoded.preferred_username;
 
-    let axios = require("axios");
-
-    var data = {
+    const data = {
       query: `query searchUser($username:String) {
         Users(where: {username: {_eq: $username}}) {
           userId
@@ -455,7 +385,7 @@ export class HasuraUserService implements IServicelocator {
       variables: { username: username },
     };
 
-    var config = {
+    const config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
@@ -465,9 +395,9 @@ export class HasuraUserService implements IServicelocator {
       data: data,
     };
 
-    const response = await axios(config);
+    const response = await this.axios(config);
 
-    let result = response.data.data.Users;
+    const result = response.data.data.Users;
 
     const userData = await this.mappedResponse(result);
     return new SuccessResponse({
@@ -494,18 +424,17 @@ export class HasuraUserService implements IServicelocator {
       });
     }
 
-    var axios = require("axios");
-    var data = JSON.stringify({
+    const data = JSON.stringify({
       temporary: "false",
       type: "password",
       value: newPassword,
     });
 
-    const response = await this.getToken();
+    const response = await getToken();
     const res = response.data.access_token;
     let apiResponse;
 
-    var config = {
+    const config = {
       method: "put",
       url:
         "https://alt-shiksha.uniteframework.io/auth/admin/realms/hasura/users/" +
@@ -513,13 +442,13 @@ export class HasuraUserService implements IServicelocator {
         "/reset-password",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer " + res,
+        Authorization: "Bearer " + res,
       },
       data: data,
     };
 
     try {
-      apiResponse = await axios(config);
+      apiResponse = await this.axios(config);
     } catch (e) {
       return new ErrorResponse({
         errorCode: `${e.response.status}`,
@@ -542,9 +471,7 @@ export class HasuraUserService implements IServicelocator {
   }
 
   public async getUserByUsername(username: string, request: any) {
-    var axios = require("axios");
-
-    var data = {
+    const data = {
       query: `query GetUserByUsername($username:String) {
         Users(where: {username: {_eq: $username}}){
             userId
@@ -576,7 +503,7 @@ export class HasuraUserService implements IServicelocator {
       variables: { username: username },
     };
 
-    var config = {
+    const config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
@@ -586,7 +513,7 @@ export class HasuraUserService implements IServicelocator {
       data: data,
     };
 
-    const response = await axios(config);
+    const response = await this.axios(config);
 
     if (response?.data?.errors) {
       return new ErrorResponse({
@@ -594,7 +521,7 @@ export class HasuraUserService implements IServicelocator {
         errorMessage: response.data.errors[0].message,
       });
     } else {
-      let result = response.data.data.Users;
+      const result = response.data.data.Users;
       const userData = await this.mappedResponse(result);
       return new SuccessResponse({
         statusCode: response.status,
@@ -603,4 +530,12 @@ export class HasuraUserService implements IServicelocator {
       });
     }
   }
+
+  /*
+   public async teacherSegment(
+    schoolId: string,
+    templateId: string,
+    request: any
+  ) {}
+  */
 }

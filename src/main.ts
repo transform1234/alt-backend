@@ -15,7 +15,7 @@ async function bootstrap() {
   });
 
   const config = new DocumentBuilder()
-    .setTitle("Shiksha Platform")
+    .setTitle("ALT Platform")
     .setDescription("CRUD API")
     .setVersion("1.0")
     .addTag("V1")
