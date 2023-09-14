@@ -11,6 +11,8 @@ import { IServicelocatorgroup } from "../groupservicelocator";
 import { UserDto } from "src/user/dto/user.dto";
 import { StudentDto } from "src/student/dto/student.dto";
 export const HasuraGroupToken = "HasuraGroup";
+import { getUserGroup, getUserRole } from "./adapter.utils";
+
 @Injectable()
 export class HasuraGroupService implements IServicelocatorgroup {
   private group: GroupInterface;
@@ -20,25 +22,25 @@ export class HasuraGroupService implements IServicelocatorgroup {
   constructor(private httpService: HttpService) {}
 
   public async getGroup(request: any, groupId: any) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     var groupDetails = {
       query: `query GetGroup($groupId:uuid!) {
         Group_by_pk(groupId: $groupId) {
-        groupId
-        deactivationReason
-        created_at
-        image
-        mediumOfInstruction
-        metaData
-        name
-        option
-        schoolId
-        section
-        teacherId
-        gradeLevel
-        status
-        type
-        updated_at
-        parentGroupId
+          groupId
+          schoolUdise
+          medium
+          grade
+          name
+          type
+          section
+          status
+          createdAt
+          updatedAt
+          createdBy
+          updatedBy
+          board
       }
     }`,
       variables: {
@@ -50,7 +52,9 @@ export class HasuraGroupService implements IServicelocatorgroup {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+
         "Content-Type": "application/json",
       },
       data: groupDetails,
@@ -76,6 +80,13 @@ export class HasuraGroupService implements IServicelocatorgroup {
   }
 
   public async createGroup(request: any, groupDto: GroupDto) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+      const userId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+      groupDto.createdBy = userId;
+      groupDto.updatedBy = userId;
     let query = "";
     Object.keys(groupDto).forEach((e) => {
       if (groupDto[e] && groupDto[e] != "") {
@@ -103,7 +114,9 @@ export class HasuraGroupService implements IServicelocatorgroup {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+
         "Content-Type": "application/json",
       },
       data: data,
@@ -156,7 +169,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: data,
@@ -256,7 +269,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
   public async findMembersOfGroup(groupId: string, role: string, request: any) {
     let axios = require("axios");
     let userData = [];
-    
+
     var findMember = {
       query: `query GetGroupMembership($groupId:uuid,$role:UserRole_enum) {
        GroupMembership(where: {groupId: {_eq: $groupId}, role: {_eq: $role}}) {
@@ -302,7 +315,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: findMember,
@@ -317,20 +330,20 @@ export class HasuraGroupService implements IServicelocatorgroup {
       });
     }
 
-    let result = response.data.data.GroupMembership; 
+    let result = response.data.data.GroupMembership;
 
     const userList = result.map((e: any) => {
       return e.User;
     });
-    
-    if (!userList.length) {      
+
+    if (!userList.length) {
       return new SuccessResponse({
         statusCode: 200,
         message: "ok",
         data: { msg: "No data found for given inputs!" },
       });
-    } 
-    
+    }
+
     const groupResponse = await this.userMappedResponse(userList);
 
     return new SuccessResponse({
@@ -338,7 +351,6 @@ export class HasuraGroupService implements IServicelocatorgroup {
       message: "ok",
       data: groupResponse,
     });
-
   }
 
   public async findGroupsByUserId(userId: string, role: string, request: any) {
@@ -377,26 +389,26 @@ export class HasuraGroupService implements IServicelocatorgroup {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: findMember,
     };
     const response = await axios(getMemberData);
-    
+
     if (response?.data?.errors) {
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
         errorMessage: response.data.errors[0].message,
       });
     }
-    
+
     let groupData = response.data.data.GroupMembership;
 
     const groupList = groupData.map((e: any) => {
       return e.Group;
     });
-    
+
     const groupResponse = await this.mappedResponse(groupList);
     return new SuccessResponse({
       statusCode: 200,
@@ -512,29 +524,22 @@ export class HasuraGroupService implements IServicelocatorgroup {
     const groupResponse = result.map((item: any) => {
       const groupMapping = {
         groupId: item?.groupId ? `${item.groupId}` : "",
-        schoolId: item?.schoolId ? `${item.schoolId}` : "",
+        schoolUdise: item?.schoolUdise ? `${item.schoolUdise}` : "",
         name: item?.name ? `${item.name}` : "",
+        grade: item?.grade ? `${item.grade}` : "",
+        medium: item?.medium ? `${item.medium}` : "",
         type: item?.type ? `${item.type}` : "",
         section: item?.section ? `${item.section}` : "",
         status: item?.status ? `${item.status}` : "",
-        deactivationReason: item?.deactivationReason
-          ? `${item.deactivationReason}`
-          : "",
-        mediumOfInstruction: item?.mediumOfInstruction
-          ? `${item.mediumOfInstruction}`
-          : "",
-        teacherId: item?.teacherId ? `${item.teacherId}` : "",
-        parentGroupId: item?.parentGroupId ? `${item.parentGroupId}` : "",
-        image: item?.image ? `${item.image}` : "",
-        metaData: item?.metaData ? item.metaData : [],
-        option: item?.option ? item.option : [],
-        gradeLevel: item?.gradeLevel ? `${item.gradeLevel}` : "",
-        createdAt: item?.created_at ? `${item.created_at}` : "",
-        updatedAt: item?.updated_at ? `${item.updated_at}` : "",
+        createdAt: item?.createdAt ? `${item.createdAt}` : "",
+        updatedAt: item?.updatedAt ? `${item.updatedAt}` : "",
+        createdBy: item?.createdBy ? `${item.createdBy}` : "",
+        updatedBy: item?.updatedBy ? `${item.updatedBy}` : "",
+        board: item?.board ? `${item.board}` : "",
       };
       return new GroupDto(groupMapping);
     });
-    
+
     return groupResponse;
   }
 
