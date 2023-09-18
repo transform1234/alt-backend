@@ -57,10 +57,7 @@ export class ALTStudentController {
     @Req() request: Request,
     @Body() studentDto: StudentDto
   ) {
-    // return
-    const val = this.altStudentService.createStudent(request, studentDto);
-    console.log(val);
-    return val;
+    return this.altStudentService.createStudent(request, studentDto);
   }
 
   // @Put("/:id")

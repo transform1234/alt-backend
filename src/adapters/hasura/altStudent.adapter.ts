@@ -4,19 +4,14 @@ import jwt_decode from "jwt-decode";
 import { SuccessResponse } from "src/success-response";
 import { StudentDto } from "src/altStudent/dto/alt-student.dto";
 import { ErrorResponse } from "src/error-response";
-import { HasuraUserService } from "./user.adapter";
-import {
-  getUserGroup,
-  getUserRole,
-  getToken,
-  createUserInKeyCloak,
-} from "./adapter.utils";
+import { getUserRole } from "./adapter.utils";
+import { ALTHasuraUserService } from "./altUser.adapter";
 
 @Injectable()
 export class ALTStudentService {
   constructor(
     private httpService: HttpService,
-    private userService: HasuraUserService
+    private userService: ALTHasuraUserService
   ) {}
 
   baseURL = process.env.ALTHASURA;
@@ -103,6 +98,10 @@ export class ALTStudentService {
     const creatorUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
+    studentDto.createdBy = creatorUserId;
+    studentDto.updatedBy = creatorUserId;
+    studentDto.role = "student";
+
     if (altUserRoles.includes("systemAdmin")) {
       const createdUser: any = await this.userService.createUser(
         request,
@@ -111,9 +110,7 @@ export class ALTStudentService {
 
       if (createdUser.statusCode === 200) {
         studentDto.userId = createdUser.data.userId;
-        studentDto.createdBy = creatorUserId;
-        studentDto.updatedBy = creatorUserId;
-        const studentSchema = new StudentDto(studentDto,false);
+        const studentSchema = new StudentDto(studentDto, false);
         let query = "";
 
         Object.keys(studentDto).forEach((e) => {
@@ -139,6 +136,9 @@ export class ALTStudentService {
             insert_Students_one(object: {${query}}) {
              studentId
              userId
+             user {
+              username
+            }
             }
           }
           `,
@@ -161,6 +161,7 @@ export class ALTStudentService {
         const response = await this.axios(config);
 
         if (response?.data?.errors) {
+          console.log(response.data.errors);
           return new ErrorResponse({
             errorCode: response.data.errors[0].extensions,
             errorMessage: response.data.errors[0].message,
@@ -174,6 +175,11 @@ export class ALTStudentService {
             data: result,
           });
         }
+      } else {
+        return new ErrorResponse({
+          errorCode: "500",
+          errorMessage: createdUser?.errorMessage,
+        });
       }
     } else {
       return new ErrorResponse({
@@ -215,7 +221,7 @@ export class ALTStudentService {
         // createdAt: item?.created ? `${item.created}` : "",
         // updatedAt: item?.updated ? `${item.updated}` : "",
       };
-      return new StudentDto(studentMapping,true);
+      return new StudentDto(studentMapping, true);
     });
 
     return studentResponse;

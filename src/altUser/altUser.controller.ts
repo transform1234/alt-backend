@@ -28,21 +28,14 @@ import {
   ApiQuery,
 } from "@nestjs/swagger";
 
-import { UserDto } from "./dto/user.dto";
-import { UserSearchDto } from "./dto/user-search.dto";
-import { IServicelocator } from "src/adapters/userservicelocator";
-import { EsamwadUserToken } from "src/adapters/esamwad/user.adapter";
-import { UserAdapter } from "./useradapter";
-import { HasuraUserService } from "src/adapters/hasura/user.adapter";
-import { UserUpdateDto } from "./dto/user-update.dto";
+import { ALTHasuraUserService } from "src/adapters/hasura/altUser.adapter";
+import { UserDto } from "./dto/alt-user.dto";
+import { ALTUserUpdateDto } from "./dto/alt-user-update.dto";
+import { ALTUserSearchDto } from "./dto/alt-user-search.dto";
 @ApiTags("User")
 @Controller("user")
-export class UserController {
-  constructor(
-    private readonly service: UserService,
-    private userAdapter: UserAdapter,
-    private hasuraUserService: HasuraUserService
-  ) {}
+export class ALTUserController {
+  constructor(private hasuraUserService: ALTHasuraUserService) {}
 
   @Get("/:id")
   @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
@@ -53,7 +46,7 @@ export class UserController {
     strategy: "excludeAll",
   })
   public async getUser(@Param("id") id: string, @Req() request: Request) {
-    return this.userAdapter.buildUserAdapter().getUser(id, request);
+    return this.hasuraUserService.getUser(id, request);
   }
 
   @Get()
@@ -65,7 +58,7 @@ export class UserController {
     strategy: "excludeAll",
   })
   public async getUserByAuth(@Req() request: Request) {
-    return this.userAdapter.buildUserAdapter().getUserByAuth(request);
+    return this.hasuraUserService.getUserByAuth(request);
   }
 
   @Post()
@@ -75,7 +68,7 @@ export class UserController {
   @ApiForbiddenResponse({ description: "Forbidden" })
   @UseInterceptors(ClassSerializerInterceptor)
   public async createUser(@Req() request: Request, @Body() userDto: UserDto) {
-    return this.userAdapter.buildUserAdapter().createUser(request, userDto);
+    return this.hasuraUserService.createUser(request, userDto);
   }
 
   @Put("/:id")
@@ -86,7 +79,7 @@ export class UserController {
   public async updateUser(
     @Param("id") id: string,
     @Req() request: Request,
-    @Body() userUpdateDto: UserUpdateDto
+    @Body() userUpdateDto: ALTUserUpdateDto
   ) {
     return await this.hasuraUserService.updateUser(id, request, userUpdateDto);
   }
@@ -94,7 +87,7 @@ export class UserController {
   @Post("/search")
   @ApiBasicAuth("access-token")
   @ApiCreatedResponse({ description: "User list." })
-  @ApiBody({ type: UserSearchDto })
+  @ApiBody({ type: ALTUserSearchDto })
   @ApiForbiddenResponse({ description: "Forbidden" })
   @UseInterceptors(ClassSerializerInterceptor)
   @SerializeOptions({
@@ -102,11 +95,9 @@ export class UserController {
   })
   public async searchUser(
     @Req() request: Request,
-    @Body() userSearchDto: UserSearchDto
+    @Body() userSearchDto: ALTUserSearchDto
   ) {
-    return await this.userAdapter
-      .buildUserAdapter()
-      .searchUser(request, userSearchDto);
+    return await this.hasuraUserService.searchUser(request, userSearchDto);
   }
 
   @Post("/reset-password")
@@ -128,21 +119,5 @@ export class UserController {
       reqBody.userName,
       reqBody.newPassword
     );
-  }
- 
-  @Get("teachersegment/:schoolId")
-  // @ApiBasicAuth("access-token")
-  @ApiCreatedResponse({ description: "User list." })
-  @ApiForbiddenResponse({ description: "Forbidden" })
-  @UseInterceptors(ClassSerializerInterceptor)
-  @ApiQuery({ name: "templateId", required: false })
-  public async teacherSegment(
-    @Param("schoolId") schoolId: string,
-    @Query("templateId") templateId: string,
-    @Req() request: Request
-  ) {
-    return await this.userAdapter
-      .buildUserAdapter()
-      .teacherSegment(schoolId, templateId, request);
   }
 }
