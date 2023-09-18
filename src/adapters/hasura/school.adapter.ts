@@ -29,7 +29,7 @@ export class SchoolHasuraService implements IServicelocator {
         // schoolSchema[e] != "" &&
         Object.keys(schoolSchema).includes(e)
       ) {
-        if (e === "management" || e === "libraryFunctional") {
+        if (e === "management" || e === "libraryFunctional"  || e === "composition" || e === "mediumOfInstruction" || e === "headmaster") {
           query += `${e}: ${schoolSchema[e]},`;
         } else if (Array.isArray(schoolSchema[e])) {
           query += `${e}: ${JSON.stringify(schoolSchema[e])}, `;
