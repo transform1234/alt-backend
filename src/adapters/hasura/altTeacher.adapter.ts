@@ -86,10 +86,7 @@ export class ALTTeacherService {
 
     const responseData = response.data.data.Teachers;
 
-    console.log(responseData);
-
     const teacherResponse = await this.mappedResponse(responseData);
-    console.log(teacherResponse[0], "stdres");
     return new SuccessResponse({
       statusCode: 200,
       message: "Teacher found Successfully",
@@ -140,7 +137,6 @@ export class ALTTeacherService {
             errorMessage: "Create and add to group failed",
           });
         }
-        console.log(createdUser, "cusr");
       }
     } catch (error) {
       const response = {
