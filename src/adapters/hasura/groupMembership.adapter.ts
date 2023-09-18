@@ -110,7 +110,6 @@ export class GroupMembershipService {
       headers: {
         Authorization: request.headers.authorization,
         "x-hasura-role": getUserGroup(altUserRoles),
-
         "Content-Type": "application/json",
       },
       data: data,
@@ -174,7 +173,6 @@ export class GroupMembershipService {
       headers: {
         Authorization: request.headers.authorization,
         "x-hasura-role": getUserRole(altUserRoles),
-
         "Content-Type": "application/json",
       },
       data: data,
