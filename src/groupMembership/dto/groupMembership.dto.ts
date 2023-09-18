@@ -75,6 +75,16 @@ export class GroupMembershipDtoById {
   updatedAt: string;
 
   constructor(obj: any) {
-    Object.assign(this, obj);
+    this.groupMembershipId = obj?.groupMembershipId
+      ? `${obj?.groupMembershipId}`
+      : "";
+    this.schoolUdise = obj?.schoolUdise ? `${obj.schoolUdise}` : "";
+    this.userId = obj?.userId ? `${obj.userId}` : "";
+    this.groupId = obj?.groupId ? `${obj.groupId}` : "";
+    this.role = obj?.role ? `${obj.role}` : "";
+    this.createdBy = obj?.createdBy ? `${obj.createdBy}` : "";
+    this.updatedBy = obj?.updatedBy ? `${obj.updatedBy}` : "";
+    this.createdAt = obj?.createdAt ? `${obj.createdAt}` : "";
+    this.updatedAt = obj?.updatedAt ? `${obj.updatedAt}` : "";
   }
 }
