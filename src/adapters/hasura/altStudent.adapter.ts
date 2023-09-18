@@ -6,12 +6,15 @@ import { StudentDto } from "src/altStudent/dto/alt-student.dto";
 import { ErrorResponse } from "src/error-response";
 import { getUserRole } from "./adapter.utils";
 import { ALTHasuraUserService } from "./altUser.adapter";
+import { GroupMembershipService } from "./groupMembership.adapter";
+import { GroupMembershipDtoById } from "src/groupMembership/dto/groupMembership.dto";
 
 @Injectable()
 export class ALTStudentService {
   constructor(
     private httpService: HttpService,
-    private userService: ALTHasuraUserService
+    private userService: ALTHasuraUserService,
+    private groupMembershipService: GroupMembershipService
   ) {}
 
   baseURL = process.env.ALTHASURA;
@@ -90,6 +93,64 @@ export class ALTStudentService {
     });
   }
 
+  public async createAndAddToGroup(request: any, studentDto: StudentDto) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+
+    const creatorUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    studentDto.createdBy = creatorUserId;
+    studentDto.updatedBy = creatorUserId;
+    studentDto.role = "student";
+
+    if (!studentDto.groups.length) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Please add atleast one group",
+      });
+    }
+    let createdUser;
+    try {
+      if (altUserRoles.includes("systemAdmin")) {
+        const newCreatedUser: any = await this.createStudent(
+          request,
+          studentDto
+        );
+        if (newCreatedUser.statusCode === 200) {
+          createdUser = newCreatedUser.data;
+          createdUser.groupAddResponse = await this.addToGroups(
+            studentDto,
+            request
+          );
+
+          return new SuccessResponse({
+            statusCode: 200,
+            message: "Ok.",
+            data: createdUser,
+          });
+        } else {
+          return new ErrorResponse({
+            errorCode: "500",
+            errorMessage: "Create and add to group failed",
+          });
+        }
+        console.log(createdUser, "cusr");
+      }
+    } catch (error) {
+      const response = {
+        msg: "Create and add to group failed",
+        error,
+      };
+      console.log(response);
+      return new ErrorResponse({
+        errorCode: "500",
+        errorMessage: response.msg,
+      });
+    }
+  }
+
   public async createStudent(request: any, studentDto: StudentDto) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
@@ -134,11 +195,13 @@ export class ALTStudentService {
         const data = {
           query: `mutation CreateStudent {
             insert_Students_one(object: {${query}}) {
-             studentId
-             userId
-             user {
-              username
-            }
+              studentId
+              userId
+              schoolUdise
+              groups
+              user {
+                username
+              }
             }
           }
           `,
@@ -278,5 +341,44 @@ export class ALTStudentService {
       message: "ok.",
       data: studentResponse,
     });
+  }
+
+  async addToGroups(studentDto, request) {
+    const groupMembershipIds = [];
+
+    const errors = [];
+
+    try {
+      for (const group of studentDto.groups) {
+        const groupMembershipDtoById = new GroupMembershipDtoById(studentDto);
+        groupMembershipDtoById.groupId = group;
+        const res: any =
+          await this.groupMembershipService.createGroupMembershipById(
+            request,
+            groupMembershipDtoById
+          );
+
+        if (res.statusCode === 200) {
+          groupMembershipIds.push({
+            msg: `Added to group ${group}`,
+            groupMembershipId: res.data.groupMembershipId,
+          });
+        } else {
+          errors.push({
+            msg: `Could not add to group ${group}`,
+          });
+        }
+      }
+      return {
+        groupMembershipIds,
+        errors,
+      };
+    } catch (error) {
+      console.log(error);
+      return new ErrorResponse({
+        errorCode: "500",
+        errorMessage: "Error while adding to group",
+      });
+    }
   }
 }
