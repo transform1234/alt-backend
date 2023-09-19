@@ -528,6 +528,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
       query: `query GetGroupByBoardandMedium($board: String!, $medium: String!) {
         Group(where: {_and: {board: {_eq: $board }, medium: {_eq: $medium}}}) {
           groupId
+          schoolUdise
         }
       
       }`,
