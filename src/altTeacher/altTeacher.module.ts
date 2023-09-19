@@ -1,7 +1,7 @@
 import { CacheModule, Module } from "@nestjs/common";
 import { HttpModule } from "@nestjs/axios";
-import { ALTStudentController } from "./altStudent.controller";
-import { ALTStudentService } from "src/adapters/hasura/altStudent.adapter";
+import { ALTTeacherController } from "./altTeacher.controller";
+import { ALTTeacherService } from "src/adapters/hasura/altTeacher.adapter";
 import { ALTHasuraUserService } from "src/adapters/hasura/altUser.adapter";
 import { GroupMembershipService } from "src/adapters/hasura/groupMembership.adapter";
 
@@ -14,7 +14,7 @@ const ttl = process.env.TTL as never;
       ttl: ttl,
     }),
   ],
-  controllers: [ALTStudentController],
-  providers: [ALTStudentService, ALTHasuraUserService, GroupMembershipService],
+  controllers: [ALTTeacherController],
+  providers: [ALTTeacherService, ALTHasuraUserService, GroupMembershipService],
 })
-export class ALTStudentModule {}
+export class ALTTeachertModule {}

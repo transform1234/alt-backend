@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
 import jwt_decode from "jwt-decode";
 import { SuccessResponse } from "src/success-response";
-import { StudentDto } from "src/altStudent/dto/alt-student.dto";
+import { TeacherDto } from "src/altTeacher/dto/alt-teacher.dto";
 import { ErrorResponse } from "src/error-response";
 import { getUserRole } from "./adapter.utils";
 import { ALTHasuraUserService } from "./altUser.adapter";
@@ -10,7 +10,7 @@ import { GroupMembershipService } from "./groupMembership.adapter";
 import { GroupMembershipDtoById } from "src/groupMembership/dto/groupMembership.dto";
 
 @Injectable()
-export class ALTStudentService {
+export class ALTTeacherService {
   constructor(
     private httpService: HttpService,
     private userService: ALTHasuraUserService,
@@ -21,30 +21,34 @@ export class ALTStudentService {
   adminSecret = process.env.ADMINSECRET;
   axios = require("axios");
 
-  public async getStudent(userId: any, request: any) {
+  public async getTeacher(userId: any, request: any) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
 
     const data = {
-      query: `query getStudent($userId:uuid!) {
-      Students(where: {userId: {_eq: $userId}}) {
-        annualIncome
-        caste
+      query: `query getTeacher($userId:uuid!) {
+      Teachers(where: {userId: {_eq: $userId}}) {
+        teacherId
+        educationalQualification
+        currentRole
+        natureOfAppointment
+        appointedPost
+        totalTeachingExperience
+        totalHeadteacherExperience
+        classesTaught
+        coreSubjectTaught
+        attendedInserviceTraining
+        lastTrainingAttendedTopic
+        lastTrainingAttendedYear
+        trainedInComputerDigitalteaching
         schoolUdise
-        createdAt
-        fatherEducation
-        fatherOccupation
-        updatedAt
-        studentId
-        religion
-        noOfSiblings
-        motherOccupation
-        motherEducation
         groups
         board
         createdBy
         updatedBy
+        createdAt
+        updatedAt
         user {
           userId
           email
@@ -80,20 +84,17 @@ export class ALTStudentService {
       });
     }
 
-    const responseData = response.data.data.Students;
+    const responseData = response.data.data.Teachers;
 
-    console.log(responseData);
-
-    const studentResponse = await this.mappedResponse(responseData);
-    console.log(studentResponse[0], "stdres");
+    const teacherResponse = await this.mappedResponse(responseData);
     return new SuccessResponse({
       statusCode: 200,
-      message: "student found Successfully",
-      data: studentResponse[0],
+      message: "Teacher found Successfully",
+      data: teacherResponse[0],
     });
   }
 
-  public async createAndAddToGroup(request: any, studentDto: StudentDto) {
+  public async createAndAddToGroup(request: any, teacherDto: TeacherDto) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
@@ -101,11 +102,11 @@ export class ALTStudentService {
     const creatorUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
-    studentDto.createdBy = creatorUserId;
-    studentDto.updatedBy = creatorUserId;
-    studentDto.role = "student";
+    teacherDto.createdBy = creatorUserId;
+    teacherDto.updatedBy = creatorUserId;
+    teacherDto.role = "teacher";
 
-    if (!studentDto.groups.length) {
+    if (!teacherDto.groups.length) {
       return new ErrorResponse({
         errorCode: "400",
         errorMessage: "Please add atleast one group",
@@ -114,14 +115,14 @@ export class ALTStudentService {
     let createdUser;
     try {
       if (altUserRoles.includes("systemAdmin")) {
-        const newCreatedUser: any = await this.createStudent(
+        const newCreatedUser: any = await this.createTeacher(
           request,
-          studentDto
+          teacherDto
         );
         if (newCreatedUser.statusCode === 200) {
           createdUser = newCreatedUser.data;
           createdUser.groupAddResponse = await this.addToGroups(
-            studentDto,
+            teacherDto,
             request
           );
 
@@ -136,7 +137,6 @@ export class ALTStudentService {
             errorMessage: "Create and add to group failed",
           });
         }
-        console.log(createdUser, "cusr");
       }
     } catch (error) {
       const response = {
@@ -151,7 +151,7 @@ export class ALTStudentService {
     }
   }
 
-  public async createStudent(request: any, studentDto: StudentDto) {
+  public async createTeacher(request: any, teacherDto: TeacherDto) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
@@ -159,43 +159,43 @@ export class ALTStudentService {
     const creatorUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
-    studentDto.createdBy = creatorUserId;
-    studentDto.updatedBy = creatorUserId;
-    studentDto.role = "student";
+    teacherDto.createdBy = creatorUserId;
+    teacherDto.updatedBy = creatorUserId;
+    teacherDto.role = "teacher";
 
     if (altUserRoles.includes("systemAdmin")) {
       const createdUser: any = await this.userService.createUser(
         request,
-        studentDto
+        teacherDto
       );
 
       if (createdUser.statusCode === 200) {
-        studentDto.userId = createdUser.data.userId;
-        const studentSchema = new StudentDto(studentDto, false);
+        teacherDto.userId = createdUser.data.userId;
+        const teacherSchema = new TeacherDto(teacherDto, false);
         let query = "";
 
-        Object.keys(studentDto).forEach((e) => {
+        Object.keys(teacherDto).forEach((e) => {
           if (
-            (studentDto[e] || studentDto[e] === 0) &&
-            studentDto[e] !== "" &&
+            (teacherDto[e] || teacherDto[e] === 0) &&
+            teacherDto[e] !== "" &&
             e != "password" &&
-            Object.keys(studentSchema).includes(e)
+            Object.keys(teacherSchema).includes(e)
           ) {
-            if (Array.isArray(studentDto[e])) {
-              query += `${e}: \"${JSON.stringify(studentDto[e])
+            if (Array.isArray(teacherDto[e])) {
+              query += `${e}: \"${JSON.stringify(teacherDto[e])
                 .replace("[", "{")
                 .replace("]", "}")
                 .replace(/\"/g, "")}\", `;
             } else {
-              query += `${e}: ${JSON.stringify(studentDto[e])}, `;
+              query += `${e}: ${JSON.stringify(teacherDto[e])}, `;
             }
           }
         });
 
         const data = {
-          query: `mutation CreateStudent {
-            insert_Students_one(object: {${query}}) {
-              studentId
+          query: `mutation CreateTeacher {
+            insert_Teachers_one(object: {${query}}) {
+              teacherId
               userId
               schoolUdise
               groups
@@ -230,7 +230,7 @@ export class ALTStudentService {
             errorMessage: response.data.errors[0].message,
           });
         } else {
-          const result = response.data.data.insert_Students_one;
+          const result = response.data.data.insert_Teachers_one;
 
           return new SuccessResponse({
             statusCode: 200,
@@ -252,49 +252,13 @@ export class ALTStudentService {
     }
   }
 
-  updateStudent(id: string, request: any, studentDto: StudentDto) {}
+  updateTeacher(id: string, request: any, teacherDto: TeacherDto) {}
 
-  public async mappedResponse(result: any) {
-    const studentResponse = result.map((item: any) => {
-      const studentMapping = {
-        userId: item?.user?.userId ? `${item.user.userId}` : "",
-        studentId: item?.studentId ? `${item.studentId}` : "",
-        groups: item?.groups ? item.groups : [],
-        board: item?.board ? `${item.board}` : "",
-        religion: item?.religion ? `${item.religion}` : "",
-        schoolUdise: item?.schoolUdise ? item.schoolUdise : "",
-        caste: item?.caste ? `${item.caste}` : "",
-        annualIncome: item?.annualIncome ? `${item.annualIncome}` : "",
-        motherEducation: item?.motherEducation ? `${item.motherEducation}` : "",
-        motherOccupation: item?.motherOccupation ? item.motherOccupation : "",
-        fatherEducation: item?.fatherEducation ? `${item.fatherEducation}` : "",
-        fatherOccupation: item?.fatherOccupation
-          ? `${item.fatherOccupation}`
-          : "",
-        noOfSiblings: item?.noOfSiblings ? item.noOfSiblings : 0,
-        createdBy: item?.createdBy ? `${item.createdBy}` : "",
-        updatedBy: item?.updatedBy ? `${item.updatedBy}` : "",
-        email: item?.user?.email ? `${item.user.email}` : "",
-        dateOfBirth: item?.user?.dateOfBirth ? `${item.user.dateOfBirth}` : "",
-        gender: item?.user?.gender ? `${item.user.gender}` : "",
-        mobile: item?.user?.mobile ? `${item.user.mobile}` : "",
-        name: item?.user?.name ? `${item.user.name}` : "",
-        role: item?.user?.role ? `${item.user.role}` : "",
-        username: item?.user?.username ? `${item.user.username}` : "",
-        // createdAt: item?.created ? `${item.created}` : "",
-        // updatedAt: item?.updated ? `${item.updated}` : "",
-      };
-      return new StudentDto(studentMapping, true);
-    });
-
-    return studentResponse;
-  }
-
-  public async searchStudent(request: any, studentSearchDto: any) {
+  public async searchTeacher(request: any, teacherSearchDto: any) {
     const axios = require("axios");
     const data = {
-      query: `query getStudent {
-        student(where: {}, limit: 10) {
+      query: `query getTeacher {
+        Teachers(where: {}, limit: 10) {
         id
         name
         father_name,
@@ -333,24 +297,80 @@ export class ALTStudentService {
     };
     const response = await axios(config);
 
-    const responsedata = response.data.data.student;
-    const studentResponse = await this.mappedResponse(responsedata);
+    const responsedata = response.data.data.Teachers;
+    const teacherResponse = await this.mappedResponse(responsedata);
 
     return new SuccessResponse({
       statusCode: 200,
       message: "ok.",
-      data: studentResponse,
+      data: teacherResponse,
     });
   }
 
-  async addToGroups(studentDto, request) {
+  public async mappedResponse(result: any) {
+    const teacherResponse = result.map((item: any) => {
+      const teacherMapping = {
+        userId: item?.user?.userId ? `${item.user.userId}` : "",
+        teacherId: item?.teacherId ? `${item.teacherId}` : "",
+        groups: item?.groups ? item.groups : [],
+        board: item?.board ? `${item.board}` : "",
+        schoolUdise: item?.schoolUdise ? item.schoolUdise : "",
+        educationalQualification: item?.educationalQualification
+          ? `${item.educationalQualification}`
+          : "",
+        currentRole: item?.currentRole ? `${item.currentRole}` : "",
+        natureOfAppointment: item?.natureOfAppointment
+          ? `${item.natureOfAppointment}`
+          : "",
+        appointedPost: item?.appointedPost ? `${item.appointedPost}` : "",
+        totalTeachingExperience: item?.totalTeachingExperience
+          ? `${item.totalTeachingExperience}`
+          : "",
+        totalHeadteacherExperience: item?.totalHeadteacherExperience
+          ? `${item.totalHeadteacherExperience}`
+          : "",
+        classesTaught: item?.classesTaught ? item.classesTaught : "",
+        coreSubjectTaught: item?.coreSubjectTaught
+          ? `${item.coreSubjectTaught}`
+          : "",
+        attendedInserviceTraining: item?.attendedInserviceTraining
+          ? item.attendedInserviceTraining
+          : "",
+        lastTrainingAttendedTopic: item?.lastTrainingAttendedTopic
+          ? `${item.lastTrainingAttendedTopic}`
+          : "",
+        lastTrainingAttendedYear: item?.lastTrainingAttendedYear
+          ? `${item.lastTrainingAttendedYear}`
+          : "",
+        trainedInComputerDigitalteaching: item?.trainedInComputerDigitalteaching
+          ? item.trainedInComputerDigitalteaching
+          : 0,
+        email: item?.user?.email ? `${item.user.email}` : "",
+        dateOfBirth: item?.user?.dateOfBirth ? `${item.user.dateOfBirth}` : "",
+        gender: item?.user?.gender ? `${item.user.gender}` : "",
+        mobile: item?.user?.mobile ? `${item.user.mobile}` : "",
+        name: item?.user?.name ? `${item.user.name}` : "",
+        role: item?.user?.role ? `${item.user.role}` : "",
+        username: item?.user?.username ? `${item.user.username}` : "",
+        createdBy: item?.createdBy ? `${item.createdBy}` : "",
+        updatedBy: item?.updatedBy ? `${item.updatedBy}` : "",
+        // createdAt: item?.created ? `${item.created}` : "",
+        // updatedAt: item?.updated ? `${item.updated}` : "",
+      };
+      return new TeacherDto(teacherMapping, true);
+    });
+
+    return teacherResponse;
+  }
+
+  async addToGroups(teacherDto, request) {
     const groupMembershipIds = [];
 
     const errors = [];
 
     try {
-      for (const group of studentDto.groups) {
-        const groupMembershipDtoById = new GroupMembershipDtoById(studentDto);
+      for (const group of teacherDto.groups) {
+        const groupMembershipDtoById = new GroupMembershipDtoById(teacherDto);
         groupMembershipDtoById.groupId = group;
         const res: any =
           await this.groupMembershipService.createGroupMembershipById(
