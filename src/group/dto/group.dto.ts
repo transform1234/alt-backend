@@ -26,7 +26,6 @@ export class GroupDto {
   @Expose()
   medium: string;
 
-
   @ApiPropertyOptional({
     type: String,
     description: "The grade of the group",

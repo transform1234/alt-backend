@@ -28,6 +28,7 @@ import { GroupDto } from "./dto/group.dto";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { editFileName, imageFileFilter } from "./utils/file-upload.utils";
 import { diskStorage } from "multer";
+import { BMtoGroupDto } from "./dto/bmtogroup.dto";
 
 import { GroupAdapter } from "./groupadapter";
 
@@ -157,18 +158,19 @@ export class GroupController {
       .findGroupsByUserId(id, role, request);
   }
 
-  // @Get(":groupId/child")
-  // @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
-  // @ApiBasicAuth("access-token")
-  // @ApiOkResponse({ description: "Group detail." })
-  // @ApiForbiddenResponse({ description: "Forbidden" })
-  // public async findMembersOfChildGroup(
-  //   @Param("groupId") id: string,
-  //   @Query("role") role: string,
-  //   @Req() request: Request
-  // ) {
-  //   return this.groupAdapter
-  //     .buildGroupAdapter()
-  //     .findMembersOfChildGroup(id, role, request);
-  // }
+  @Post("/bm")
+  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
+  @ApiBasicAuth("access-token")
+  @ApiCreatedResponse({ description: "Group detail" })
+  @ApiBody({ type: BMtoGroupDto })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @UseInterceptors(ClassSerializerInterceptor)
+  public async getGroupByBoardandMedium(
+    @Req() request: any,
+    @Body() bmtogroupdto: BMtoGroupDto
+  ) {
+    return this.groupAdapter
+      .buildGroupAdapter()
+      .getGroupByBoardandMedium(request, bmtogroupdto);
+  }
 }

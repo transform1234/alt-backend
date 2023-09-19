@@ -13,6 +13,7 @@ import { GroupSearchDto } from "src/group/dto/group-search.dto";
 import { IServicelocatorgroup } from "../groupservicelocator";
 import { StudentDto } from "src/student/dto/student.dto";
 import { UserDto } from "src/user/dto/user.dto";
+import { BMtoGroupDto } from "src/group/dto/bmtogroup.dto";
 export const SunbirdGroupToken = "SunbirdGroup";
 @Injectable()
 export class SunbirdGroupService implements IServicelocatorgroup {
@@ -42,6 +43,8 @@ export class SunbirdGroupService implements IServicelocatorgroup {
         })
       );
   }
+
+  getGroupByBoardandMedium(bmtogroupdto: BMtoGroupDto, request: any) {}
 
   public async createGroup(request: any, groupDto: GroupDto) {
     return this.httpService
