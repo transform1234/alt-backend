@@ -551,7 +551,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     const groupDetails = {
-      query: `query GetGroupByBoardAndMediumSchoolUdise($board:String,$medium:String,$schoolUdise:String){
+      query: `query GetGroupList($board:String,$medium:String,$schoolUdise:String){
         Group(where: 
         {
           board: {_eq: $board},
