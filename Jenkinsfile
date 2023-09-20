@@ -12,7 +12,7 @@ pipeline {
     stages {
         stage('Checkout'){
             steps{
-                git branch: 'main' , url: 'https://github.com/transform1234/alt-backend.git'   
+                git branch: 'UAT' , url: 'https://github.com/transform1234/alt-backend.git'   
           }
         }
         stage('Build and Push') {
