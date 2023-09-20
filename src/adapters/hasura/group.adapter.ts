@@ -12,6 +12,7 @@ import { UserDto } from "src/user/dto/user.dto";
 import { StudentDto } from "src/student/dto/student.dto";
 export const HasuraGroupToken = "HasuraGroup";
 import { getUserGroup, getUserRole } from "./adapter.utils";
+import { BMtoGroupDto } from "src/group/dto/bmtogroup.dto";
 
 @Injectable()
 export class HasuraGroupService implements IServicelocatorgroup {
@@ -83,10 +84,9 @@ export class HasuraGroupService implements IServicelocatorgroup {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
-      const userId =
-      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-      groupDto.createdBy = userId;
-      groupDto.updatedBy = userId;
+    const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    groupDto.createdBy = userId;
+    groupDto.updatedBy = userId;
     let query = "";
     Object.keys(groupDto).forEach((e) => {
       if (groupDto[e] && groupDto[e] != "") {
@@ -541,6 +541,70 @@ export class HasuraGroupService implements IServicelocatorgroup {
     });
 
     return groupResponse;
+  }
+
+  public async getGroupByBoardAndMediumSchoolUdise(
+    request: any,
+    bmtogroup: BMtoGroupDto
+  ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const groupDetails = {
+      query: `query GetGroupByBoardAndMediumSchoolUdise($board:String,$medium:String,$schoolUdise:String){
+        Group(where: 
+        {
+          board: {_eq: $board},
+          medium: {_eq: $medium}
+          schoolUdise: {_eq: $schoolUdise}
+        }) 
+        {
+          groupId
+          schoolUdise
+          medium
+          grade
+          name
+          board
+        }
+      }`,
+      variables: {
+        board: bmtogroup.board,
+        medium: bmtogroup.medium,
+        schoolUdise: bmtogroup.schoolUdise,
+      },
+    };
+    console.log(groupDetails);
+    const config = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+
+        "Content-Type": "application/json",
+      },
+      data: groupDetails,
+    };
+
+    const response = await this.axios(config);
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    let result = response.data.data.Group;
+
+    if (!result.length) {
+      result = `No matching record found for the current combination.`;
+    }
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: result,
+    });
   }
 
   public async StudentMappedResponse(result: any) {

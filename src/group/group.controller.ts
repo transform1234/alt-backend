@@ -30,6 +30,7 @@ import { editFileName, imageFileFilter } from "./utils/file-upload.utils";
 import { diskStorage } from "multer";
 
 import { GroupAdapter } from "./groupadapter";
+import { BMtoGroupDto } from "./dto/bmtogroup.dto";
 
 @ApiTags("Group")
 @Controller("group")
@@ -171,4 +172,20 @@ export class GroupController {
   //     .buildGroupAdapter()
   //     .findMembersOfChildGroup(id, role, request);
   // }
+
+  @Post("/boardmediumschool")
+  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
+  @ApiBasicAuth("access-token")
+  @ApiCreatedResponse({ description: "Group detail" })
+  @ApiBody({ type: BMtoGroupDto })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @UseInterceptors(ClassSerializerInterceptor)
+  public async getGroupByBoardAndMediumSchoolUdise(
+    @Req() request: any,
+    @Body() bmtogroupdto: BMtoGroupDto
+  ) {
+    return this.groupAdapter
+      .buildGroupAdapter()
+      .getGroupByBoardAndMediumSchoolUdise(request, bmtogroupdto);
+  }
 }
