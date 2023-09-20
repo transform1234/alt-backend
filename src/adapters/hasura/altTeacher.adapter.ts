@@ -132,6 +132,7 @@ export class ALTTeacherService {
             data: createdUser,
           });
         } else {
+          console.log(newCreatedUser);
           return new ErrorResponse({
             errorCode: "500",
             errorMessage: "Create and add to group failed",
@@ -385,7 +386,7 @@ export class ALTTeacherService {
           });
         } else {
           errors.push({
-            msg: `Could not add to group ${group}`,
+            msg: `Could not add to group ${group} , ${res?.errorMessage}`,
           });
         }
       }
