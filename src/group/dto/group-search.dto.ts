@@ -14,7 +14,7 @@ export class GroupSearchDto {
   page: number;
 
   @ApiProperty({
-    type: GroupDto,
+    type: Object,
     description: "Filters",
   })
   @ApiPropertyOptional()

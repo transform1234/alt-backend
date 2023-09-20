@@ -230,7 +230,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
           query += `${e}:{_ilike: "%${groupSearchDto.filters[e]}%"}`;
         } else {
           console.log(groupSearchDto.filters[e]);
-          query += `${e}:{_eq:"${groupSearchDto.filters[e]}"}`;
+          query += `${e}:{_eq:"${groupSearchDto.filters[e].eq}"}`;
         }
       }
     });
