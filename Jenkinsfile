@@ -7,7 +7,7 @@ pipeline {
         DOCKER_SSH_PRIVATE_KEY = 
         CONTAINER_NAME = alt-shiksha
         NETWORK = alt_backend
-        CONTAINER_PORT = 3000:3000
+        CONTAINER_PORT = 3000
     }
     stages {
         stage('Checkout'){
