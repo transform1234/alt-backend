@@ -194,17 +194,42 @@ export class HasuraGroupService implements IServicelocatorgroup {
   }
 
   public async searchGroup(request: any, groupSearchDto: GroupSearchDto) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    var axios = require("axios");
     let offset = 0;
     if (groupSearchDto.page > 1) {
       offset = groupSearchDto.limit * (groupSearchDto.page - 1);
     }
 
     let query = "";
+    // Object.keys(groupSearchDto.filters).forEach((e) => {
+    //   if (groupSearchDto.filters[e] && groupSearchDto.filters[e] != "") {
+    //     if (e === "name") {
+    //       query += `${e}:{_ilike: "%${groupSearchDto.filters[e]}%"}`;
+    //     } else {
+    //       query += `${e}:{_eq:"${groupSearchDto.filters[e]}"}`;
+    //     }
+    //   }
+    // });
+
     Object.keys(groupSearchDto.filters).forEach((e) => {
+      
       if (groupSearchDto.filters[e] && groupSearchDto.filters[e] != "") {
-        if (e === "name") {
+        if (
+          e === "management" ||
+          e === "libraryFunctional" ||
+          e === "composition" ||
+          e === "mediumOfInstruction" ||
+          e === "headmaster"
+        ) {
+          query += `${e}: ${groupSearchDto.filters[e]},`;
+        }
+        if (e === "schoolName") {
           query += `${e}:{_ilike: "%${groupSearchDto.filters[e]}%"}`;
         } else {
+          console.log(groupSearchDto.filters[e]);
           query += `${e}:{_eq:"${groupSearchDto.filters[e]}"}`;
         }
       }
@@ -212,23 +237,25 @@ export class HasuraGroupService implements IServicelocatorgroup {
 
     var data = {
       query: `query SearchGroup($limit:Int, $offset:Int) {
-           Group(where:{${query}}, limit: $limit, offset: $offset,) {
-                groupId
-                deactivationReason
-                created_at
-                image
-                mediumOfInstruction
-                metaData
-                name
-                option
-                schoolId
-                section
-                status
-                teacherId
-                gradeLevel
-                type
-                updated_at
-                parentGroupId
+        Group_aggregate {
+          aggregate {
+            count
+          }
+        }
+            Group(where:{ ${query}}, limit: $limit, offset: $offset,) {
+              groupId
+              schoolUdise
+              medium
+              grade
+              name
+              type
+              section
+              status
+              createdAt
+              updatedAt
+              createdBy
+              updatedBy
+              board
             }
           }`,
       variables: {
@@ -236,11 +263,14 @@ export class HasuraGroupService implements IServicelocatorgroup {
         offset: offset,
       },
     };
+    console.log(data);
     var config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
         Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+
         "Content-Type": "application/json",
       },
       data: data,
