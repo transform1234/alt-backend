@@ -98,4 +98,9 @@ export class SchoolController {
   public async getAllSchool( @Req() request: Request) {
     return this.schoolAdapter.buildSchoolAdapter().getAllSchool( request);
   }
+
+
+ 
+
+
 }

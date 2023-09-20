@@ -7,6 +7,7 @@ import { SchoolDto } from "src/school/dto/school.dto";
 import { SchoolSearchDto } from "src/school/dto/school-search.dto";
 import { IServicelocator } from "../schoolservicelocator";
 import { getUserGroup, getUserRole } from "./adapter.utils";
+import { log } from "console";
 
 export const HasuraSchoolToken = "HasuraSchool";
 @Injectable()
@@ -29,7 +30,13 @@ export class SchoolHasuraService implements IServicelocator {
         // schoolSchema[e] != "" &&
         Object.keys(schoolSchema).includes(e)
       ) {
-        if (e === "management" || e === "libraryFunctional"  || e === "composition" || e === "mediumOfInstruction" || e === "headmaster") {
+        if (
+          e === "management" ||
+          e === "libraryFunctional" ||
+          e === "composition" ||
+          e === "mediumOfInstruction" ||
+          e === "headmaster"
+        ) {
           query += `${e}: ${schoolSchema[e]},`;
         } else if (Array.isArray(schoolSchema[e])) {
           query += `${e}: ${JSON.stringify(schoolSchema[e])}, `;
@@ -232,54 +239,68 @@ export class SchoolHasuraService implements IServicelocator {
     let query = "";
     Object.keys(schoolSearchDto.filters).forEach((e) => {
       if (schoolSearchDto.filters[e] && schoolSearchDto.filters[e] != "") {
+        if (
+          e === "management" ||
+          e === "libraryFunctional" ||
+          e === "composition" ||
+          e === "mediumOfInstruction" ||
+          e === "headmaster"
+        ) {
+          query += `${e}: ${schoolSearchDto.filters[e]},`;
+        }
         if (e === "schoolName") {
           query += `${e}:{_ilike: "%${schoolSearchDto.filters[e]}%"}`;
         } else {
-          query += `${e}:{_eq:"${schoolSearchDto.filters[e]}"}`;
+          query += `${e}:{_eq:"${schoolSearchDto.filters[e].eq}"}`;
         }
       }
     });
 
     var data = {
       query: `query SearchSchool($limit:Int, $offset:Int) {
+        School_aggregate {
+          aggregate {
+            count
+          }
+        }
             School(where:{ ${query}}, limit: $limit, offset: $offset,) {
-            name
-            udiseCode                                             
-            id
-            location
-            management
-            composition
-            board
-            mediumOfInstruction
-            headmaster
-            headmasterMobile
-            upperPrimaryTeachersSanctioned
-            secondaryTeachersSanctioned
-            libraryFunctional
-            computerLabFunctional
-            totalFunctionalComputers
-            noOfBoysToilet
-            noOfGirlsToilet
-            smrtBrd6Functional
-            smrtBrd7Functional
-            smrtBrd8Functional
-            smrtBrd9Functional
-            smrtBrd10Functional
-            state
-            district
-            block
-            createdAt
-            updatedAt
-            adequateRoomsForEveryClass
-            drinkingWaterSupply
-            seperateToiletForGirlsAndBoys
-            whetherToiletBeingUsed
-            playgroundAvailable
-            boundaryWallFence
-            electricFittingsAreInsulated
-            buildingIsResistantToEarthquakeFireFloodOtherCalamity
-            buildingIsFreeFromInflammableAndToxicMaterials
-            roofAndWallsAreInGoodCondition
+              name
+              udiseCode                                             
+              id
+              location
+              management
+              composition
+              board
+              mediumOfInstruction
+              headmaster
+              headmasterMobile
+              upperPrimaryTeachersSanctioned
+              secondaryTeachersSanctioned
+              libraryFunctional
+              computerLabFunctional
+              totalFunctionalComputers
+              noOfBoysToilet
+              noOfGirlsToilet
+              smrtBrd6Functional
+              smrtBrd7Functional
+              smrtBrd8Functional
+              smrtBrd9Functional
+              smrtBrd10Functional
+              state
+              district
+              block
+              createdAt
+              updatedAt
+              adequateRoomsForEveryClass
+              drinkingWaterSupply
+              seperateToiletForGirlsAndBoys
+              whetherToiletBeingUsed
+              playgroundAvailable
+              boundaryWallFence
+              electricFittingsAreInsulated
+              buildingIsResistantToEarthquakeFireFloodOtherCalamity
+              buildingIsFreeFromInflammableAndToxicMaterials
+              roofAndWallsAreInGoodCondition
             }
           }`,
 
