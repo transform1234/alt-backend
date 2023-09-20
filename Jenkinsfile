@@ -5,7 +5,7 @@ pipeline {
         DOCKERHUB_TOKEN = 'dckr_pat_wvt6NuX_22AMEkzo8WT-X2pbRr4'
         CONTAINER_REGISTRY = 'prasadharketekdi/alt'
         DOCKER_SSH_PRIVATE_KEY = 
-        CONTAINER_NAME = 'alt-shiksha'
+        CONTAINER_NAME = 'alt_shiksha'
         NETWORK = 'alt_backend'
         CONTAINER_PORT = 3000
     }
