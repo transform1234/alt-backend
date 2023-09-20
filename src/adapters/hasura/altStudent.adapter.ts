@@ -82,10 +82,7 @@ export class ALTStudentService {
 
     const responseData = response.data.data.Students;
 
-    console.log(responseData);
-
     const studentResponse = await this.mappedResponse(responseData);
-    console.log(studentResponse[0], "stdres");
     return new SuccessResponse({
       statusCode: 200,
       message: "student found Successfully",
@@ -131,12 +128,12 @@ export class ALTStudentService {
             data: createdUser,
           });
         } else {
+          console.log(newCreatedUser);
           return new ErrorResponse({
             errorCode: "500",
-            errorMessage: "Create and add to group failed",
+            errorMessage: `Create and add to group failed , ${newCreatedUser?.errorMessage}`,
           });
         }
-        console.log(createdUser, "cusr");
       }
     } catch (error) {
       const response = {
@@ -146,7 +143,7 @@ export class ALTStudentService {
       console.log(response);
       return new ErrorResponse({
         errorCode: "500",
-        errorMessage: response.msg,
+        errorMessage: response.msg + error.toString(),
       });
     }
   }
@@ -164,6 +161,7 @@ export class ALTStudentService {
     studentDto.role = "student";
 
     if (altUserRoles.includes("systemAdmin")) {
+      // send token
       const createdUser: any = await this.userService.createUser(
         request,
         studentDto
@@ -365,7 +363,7 @@ export class ALTStudentService {
           });
         } else {
           errors.push({
-            msg: `Could not add to group ${group}`,
+            msg: `Could not add to group ${group} , ${res?.errorMessage}`,
           });
         }
       }

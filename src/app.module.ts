@@ -41,6 +41,7 @@ import { ALTTimeSpentExportModule } from "./altTimeSpentExport/altTimeSpentExpor
 import { ALTStudentModule } from "./altStudent/altStudent.module";
 import { ALTUserModule } from "./altUser/altUser.module";
 import { ALTTeachertModule } from "./altTeacher/altTeacher.module";
+import { ALTBulkUploadStudentModule } from "./altBulkUploadStudent/altBulkUploadStudent.module";
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -86,6 +87,7 @@ import { ALTTeachertModule } from "./altTeacher/altTeacher.module";
     ALTStudentModule,
     ALTUserModule,
     ALTTeachertModule,
+    ALTBulkUploadStudentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
