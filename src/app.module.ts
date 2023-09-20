@@ -86,7 +86,7 @@ import { ALTBulkUploadStudentModule } from "./altBulkUploadStudent/altBulkUpload
     ALTTimeSpentExportModule,
     ALTStudentModule,
     ALTUserModule,
-    ALTTeachertModule,,
+    ALTTeachertModule,
     ALTBulkUploadStudentModule,
   ],
   controllers: [AppController],
