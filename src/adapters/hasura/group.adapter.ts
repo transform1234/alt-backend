@@ -543,7 +543,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
     return groupResponse;
   }
 
-  public async getGroupByBoardAndMediumSchoolUdise(
+  public async getGroupList(
     request: any,
     bmtogroup: BMtoGroupDto
   ) {

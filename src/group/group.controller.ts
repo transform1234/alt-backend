@@ -180,12 +180,12 @@ export class GroupController {
   @ApiBody({ type: BMtoGroupDto })
   @ApiForbiddenResponse({ description: "Forbidden" })
   @UseInterceptors(ClassSerializerInterceptor)
-  public async getGroupByBoardAndMediumSchoolUdise(
+  public async getGroupList(
     @Req() request: any,
     @Body() bmtogroupdto: BMtoGroupDto
   ) {
     return this.groupAdapter
       .buildGroupAdapter()
-      .getGroupByBoardAndMediumSchoolUdise(request, bmtogroupdto);
+      .getGroupList(request, bmtogroupdto);
   }
 }

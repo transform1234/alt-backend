@@ -69,7 +69,7 @@ export class SunbirdGroupService implements IServicelocatorgroup {
       );
   }
 
-  getGroupByBoardAndMediumSchoolUdise(bmtogroupdto: BMtoGroupDto, request: any) {}
+  getGroupList(bmtogroupdto: BMtoGroupDto, request: any) {}
 
   public async updateGroup(groupId: string, request: any, groupDto: GroupDto) {
     var axios = require("axios");

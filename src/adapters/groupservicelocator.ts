@@ -10,5 +10,5 @@ export interface IServicelocatorgroup {
   findMembersOfGroup(id, role, request);
   findGroupsByUserId(id, role, request);
   findMembersOfChildGroup(groupId: string, role: string, request: any);
-  getGroupByBoardAndMediumSchoolUdise(bmtogroup: BMtoGroupDto, request: any);
+  getGroupList(bmtogroup: BMtoGroupDto, request: any);
 }

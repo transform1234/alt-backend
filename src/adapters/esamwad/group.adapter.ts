@@ -54,7 +54,7 @@ export class EsamwadGroupService implements IServicelocatorgroup {
     });
   }
 
-  getGroupByBoardAndMediumSchoolUdise(bmtogroupdto: BMtoGroupDto, request: any) {}
+  getGroupList(bmtogroupdto: BMtoGroupDto, request: any) {}
 
   public async findMembersOfGroup(id: string, role: string, request: any) {
     if (role == "Student") {
