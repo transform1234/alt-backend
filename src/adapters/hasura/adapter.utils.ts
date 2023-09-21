@@ -37,7 +37,7 @@ function getPassword(length: number) {
   return result;
 }
 
-function encryptPassword(password) {
+async function encryptPassword(password) {
   try {
     const buff = Buffer.from(password);
     const base64data = buff.toString("base64");
@@ -48,7 +48,7 @@ function encryptPassword(password) {
   }
 }
 
-function decryptPassword(encrypted) {
+async function decryptPassword(encrypted) {
   try {
     const buff = Buffer.from(encrypted, "base64");
     const text = buff.toString("ascii");
