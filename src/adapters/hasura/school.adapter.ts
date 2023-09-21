@@ -32,10 +32,12 @@ export class SchoolHasuraService implements IServicelocator {
       ) {
         if (
           e === "management" ||
-          e === "libraryFunctional" ||
+        e === "headmasterType" ||
           e === "composition" ||
           e === "mediumOfInstruction" ||
-          e === "headmaster"
+          e === "headmaster" || e === "smartBoardFunctionalClass6" || e === "smartBoardFunctionalClass7"
+          || e === "smartBoardFunctionalClass8" || e ==="smartBoardFunctionalClass9" || e === "smartBoardFunctionalClass10" ||
+          e === "location" || e === "computerLabFunctional"
         ) {
           query += `${e}: ${schoolSchema[e]},`;
         } else if (Array.isArray(schoolSchema[e])) {
@@ -247,8 +249,9 @@ export class SchoolHasuraService implements IServicelocator {
           e === "mediumOfInstruction" ||
           e === "headmaster"
         ) {
-          query += `${e}: ${schoolSearchDto.filters[e]},`;
-          // query += `${e}:{_eq: ${schoolSearchDto.filters[e]}},`;
+        
+          query += `${e}:{_eq: ${schoolSearchDto.filters[e]}},`;
+
         } else if (e === "name") {
           query += `${e}:{_ilike: "%${schoolSearchDto.filters[e]}%"}`;
         } else {
@@ -264,7 +267,7 @@ export class SchoolHasuraService implements IServicelocator {
           }
         }
             School(where:{ ${query}}, limit: $limit, offset: $offset,) {
-              name
+            name
             udiseCode                                             
             id
             location
@@ -310,6 +313,7 @@ export class SchoolHasuraService implements IServicelocator {
         offset: offset,
       },
     };
+    console.log(query)
     var config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
@@ -332,6 +336,8 @@ export class SchoolHasuraService implements IServicelocator {
     }
 
     let result = response.data.data.School;
+
+  
 
     const schoolDto = await this.mappedResponse(result);
 
