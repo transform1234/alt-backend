@@ -8,6 +8,7 @@ import { getUserRole } from "./adapter.utils";
 import { ALTHasuraUserService } from "./altUser.adapter";
 import { GroupMembershipService } from "./groupMembership.adapter";
 import { GroupMembershipDtoById } from "src/groupMembership/dto/groupMembership.dto";
+import { query } from "express";
 
 @Injectable()
 export class ALTTeacherService {
@@ -256,54 +257,107 @@ export class ALTTeacherService {
   updateTeacher(id: string, request: any, teacherDto: TeacherDto) {}
 
   public async searchTeacher(request: any, teacherSearchDto: any) {
-    const axios = require("axios");
-    const data = {
-      query: `query getTeacher {
-        Teachers(where: {}, limit: 10) {
-        id
-        name
-        father_name,
-        mother_name
-        phone
-        roll
-        school_id
-        section
-        medium
-        is_bpl
-        is_cwsn
-        is_migrant
-        admission_number
-        image
-        updated
-        stream_tag
-        religion
-        grade_number
-        gender
-        enrollment_type
-        created
-        dob
-      }
-    }`,
-      variables: {},
-    };
+    // const axios = require("axios");
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    var axios = require("axios");
+    let offset = 0;
+    if (teacherSearchDto.page > 1) {
+      offset = teacherSearchDto.limit * (teacherSearchDto.page - 1);
+    }
 
+    let query = "";
+
+    Object.keys(teacherSearchDto.filters).forEach((e) => {
+      if (teacherSearchDto.filters[e] && teacherSearchDto.filters[e] != "") {
+      
+        if (e === "teacherId") {
+          query += `${e}:{_eq: "%${teacherSearchDto.filters[e]}%"}`;
+        } else {
+          console.log(teacherSearchDto.filters[e],"abc");
+          query += `${e}:{_ilike:"${teacherSearchDto.filters[e]}"}`;
+        }
+      }
+    });
+    var data = {
+      query: `query SearchStudent($limit:Int, $offset:Int) {
+        Teachers_aggregate {
+          aggregate {
+            count
+          }
+        }
+        Teachers(where:{ ${query}}, limit: $limit, offset: $offset,) {
+          teacherId
+          educationalQualification
+          currentRole
+          natureOfAppointment
+          appointedPost
+          totalTeachingExperience
+          totalHeadteacherExperience
+          classesTaught
+          coreSubjectTaught
+          attendedInserviceTraining
+          lastTrainingAttendedTopic
+          lastTrainingAttendedYear
+          trainedInComputerDigitalteaching
+          schoolUdise
+          groups
+          board
+          createdBy
+          updatedBy
+          createdAt
+          updatedAt
+              user {
+                username
+                userId
+                updatedBy
+                updatedAt
+                status
+                role
+                password
+                name
+                mobile
+                gender
+                email
+                dateOfBirth
+                createdBy
+                createdAt
+              }
+            }
+          }`,
+      variables: {
+        limit: parseInt(teacherSearchDto.limit),
+        offset: offset,
+      },
+    };
     const config = {
       method: "post",
       url: this.baseURL,
       headers: {
-        "x-hasura-admin-secret": this.adminSecret,
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+
         "Content-Type": "application/json",
       },
       data: data,
     };
-    const response = await axios(config);
 
-    const responsedata = response.data.data.Teachers;
-    const teacherResponse = await this.mappedResponse(responsedata);
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    let result = response.data.data.Teachers;
+    const teacherResponse = await this.mappedResponse(result);
 
     return new SuccessResponse({
       statusCode: 200,
-      message: "ok.",
+      message: "Ok.",
       data: teacherResponse,
     });
   }

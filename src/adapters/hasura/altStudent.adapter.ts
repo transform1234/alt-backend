@@ -8,6 +8,7 @@ import { getUserRole } from "./adapter.utils";
 import { ALTHasuraUserService } from "./altUser.adapter";
 import { GroupMembershipService } from "./groupMembership.adapter";
 import { GroupMembershipDtoById } from "src/groupMembership/dto/groupMembership.dto";
+import { query } from "express";
 
 @Injectable()
 export class ALTStudentService {
@@ -279,8 +280,8 @@ export class ALTStudentService {
         name: item?.user?.name ? `${item.user.name}` : "",
         role: item?.user?.role ? `${item.user.role}` : "",
         username: item?.user?.username ? `${item.user.username}` : "",
-        // createdAt: item?.created ? `${item.created}` : "",
-        // updatedAt: item?.updated ? `${item.updated}` : "",
+        // createdAt: item?.createdAt ? `${item.createdAt}` : "",
+        // updatedAt: item?.createdAt ? `${item.createdAt}` : "",
       };
       return new StudentDto(studentMapping, true);
     });
@@ -289,54 +290,100 @@ export class ALTStudentService {
   }
 
   public async searchStudent(request: any, studentSearchDto: any) {
-    const axios = require("axios");
-    const data = {
-      query: `query getStudent {
-        student(where: {}, limit: 10) {
-        id
-        name
-        father_name,
-        mother_name
-        phone
-        roll
-        school_id
-        section
-        medium
-        is_bpl
-        is_cwsn
-        is_migrant
-        admission_number
-        image
-        updated
-        stream_tag
-        religion
-        grade_number
-        gender
-        enrollment_type
-        created
-        dob
-      }
-    }`,
-      variables: {},
-    };
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    var axios = require("axios");
+    let offset = 0;
+    if (studentSearchDto.page > 1) {
+      offset = studentSearchDto.limit * (studentSearchDto.page - 1);
+    }
 
+    let query = "";
+
+    Object.keys(studentSearchDto.filters).forEach((e) => {
+      if (studentSearchDto.filters[e] && studentSearchDto.filters[e] != "") {
+        if (e === "") {
+          query += `${e}:{_ilike: "%${studentSearchDto.filters[e]}%"}`;
+        } else {
+          query += `${e}:{_eq:"${studentSearchDto.filters[e].eq}"}`;
+        }
+      }
+    });
+
+    const data = {
+      query: `query SearchStudent($limit:Int, $offset:Int) {
+        Students_aggregate {
+          aggregate {
+            count
+          }
+        }
+        Students(where:{ ${query}}, limit: $limit, offset: $offset,) {
+              annualIncome
+              caste
+              schoolUdise
+              createdAt
+              fatherEducation
+              fatherOccupation
+              updatedAt
+              studentId
+              religion
+              noOfSiblings
+              motherOccupation
+              motherEducation
+              groups
+              board
+              createdBy
+              updatedBy
+              user {
+                username
+                userId
+                updatedBy
+                updatedAt
+                status
+                role
+                password
+                name
+                mobile
+                gender
+                email
+                dateOfBirth
+                createdBy
+                createdAt
+              }
+            }
+          }`,
+      variables: {
+        limit: parseInt(studentSearchDto.limit),
+        offset: offset,
+      },
+    };
     const config = {
       method: "post",
       url: this.baseURL,
       headers: {
-        "x-hasura-admin-secret": this.adminSecret,
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+
         "Content-Type": "application/json",
       },
       data: data,
     };
-    const response = await axios(config);
+    const response = await this.axios(config);
 
-    const responsedata = response.data.data.student;
-    const studentResponse = await this.mappedResponse(responsedata);
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    let result = response.data.data.Students;
+    const studentResponse = await this.mappedResponse(result);
 
     return new SuccessResponse({
       statusCode: 200,
-      message: "ok.",
+      message: "Ok.",
       data: studentResponse,
     });
   }

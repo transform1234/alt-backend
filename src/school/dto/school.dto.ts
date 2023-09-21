@@ -139,7 +139,6 @@ export class SchoolDto {
   @ApiProperty({
     type: String,
     description: "The smrt Brd 6 Functional  of the school",
-    default: false,
   })
   @Expose()
   smartBoardFunctionalClass6: string;
@@ -147,7 +146,6 @@ export class SchoolDto {
   @ApiProperty({
     type: String,
     description: "The smrt Brd 7 Functional  of the school",
-    default: false,
   })
   @Expose()
   smartBoardFunctionalClass7: string;
@@ -155,7 +153,6 @@ export class SchoolDto {
   @ApiProperty({
     type: String,
     description: "The smrt Brd 8 Functional  of the school",
-    default: false,
   })
   @Expose()
   smartBoardFunctionalClass8: string;
@@ -163,7 +160,6 @@ export class SchoolDto {
   @ApiProperty({
     type: String,
     description: "The smrt Brd 9 Functional  of the school",
-    default: false,
   })
   @Expose()
   smartBoardFunctionalClass9: string;
@@ -171,7 +167,6 @@ export class SchoolDto {
   @ApiProperty({
     type: String,
     description: "The smrt Brd 10 Functional  of the school",
-    default: false,
   })
   @Expose()
   smartBoardFunctionalClass10: string;
