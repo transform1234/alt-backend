@@ -358,7 +358,6 @@ export class ALTStudentService {
         offset: offset,
       },
     };
-    console.log(data);
     const config = {
       method: "post",
       url: this.baseURL,
@@ -381,12 +380,12 @@ export class ALTStudentService {
 
     let result = response.data.data.Students;
     console.log(result, "res");
-    const groupResponse = await this.mappedResponse(result);
+    const studentResponse = await this.mappedResponse(result);
 
     return new SuccessResponse({
       statusCode: 200,
       message: "Ok.",
-      data: groupResponse,
+      data: studentResponse,
     });
   }
 
