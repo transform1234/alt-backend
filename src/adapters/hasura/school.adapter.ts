@@ -57,7 +57,6 @@ export class SchoolHasuraService implements IServicelocator {
       `,
       variables: {},
     };
-
     const headers = {
       Authorization: request.headers.authorization,
       "x-hasura-role": getUserRole(altUserRoles),
@@ -313,7 +312,6 @@ export class SchoolHasuraService implements IServicelocator {
         offset: offset,
       },
     };
-    console.log(query)
     var config = {
       method: "post",
       url: process.env.REGISTRYHASURA,

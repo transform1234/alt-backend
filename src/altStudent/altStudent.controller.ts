@@ -28,6 +28,8 @@ import {
 import { StudentDto } from "./dto/alt-student.dto";
 // import { StudentSearchDto } from "./dto/student-search.dto";
 import { ALTStudentService } from "src/adapters/hasura/altStudent.adapter";
+import { StudentSearchDto } from "src/student/dto/student-search.dto";
+import { ALTStudentSearchDto } from "./dto/alt-student-search.dto";
 // import { IServicelocator } from "src/adapters/studentservicelocator";
 // import { StudentAdapter } from "./studentadapter";
 @ApiTags("ALT Student")
@@ -73,21 +75,19 @@ export class ALTStudentController {
   //   return this.altStudentService.updateStudent(id, request, studentDto);
   // }
 
-  //   @Post("/search")
-  //   @ApiBasicAuth("access-token")
-  //   @ApiCreatedResponse({ description: "Student list." })
-  //   @ApiBody({ type: StudentSearchDto })
-  //   @ApiForbiddenResponse({ description: "Forbidden" })
-  //   @UseInterceptors(ClassSerializerInterceptor)
-  //   @SerializeOptions({
-  //     strategy: "excludeAll",
-  //   })
-  //   public async searchStudent(
-  //     @Req() request: Request,
-  //     @Body() studentSearchDto: StudentSearchDto
-  //   ) {
-  //     return this.studentAdapter
-  //       .buildStudentAdapter()
-  //       .searchStudent(request, studentSearchDto);
-  //   }
+  @Post("/search")
+  @ApiBasicAuth("access-token")
+  @ApiCreatedResponse({ description: "Student list." })
+  @ApiBody({ type: StudentSearchDto })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @UseInterceptors(ClassSerializerInterceptor)
+  @SerializeOptions({
+    strategy: "excludeAll",
+  })
+  public async searchStudent(
+    @Req() request: Request,
+    @Body() studentSearchDto: ALTStudentSearchDto
+  ) {
+    return this.altStudentService.searchStudent(request, studentSearchDto);
+  }
 }
