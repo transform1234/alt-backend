@@ -379,7 +379,6 @@ export class ALTStudentService {
     }
 
     let result = response.data.data.Students;
-    console.log(result, "res");
     const studentResponse = await this.mappedResponse(result);
 
     return new SuccessResponse({
