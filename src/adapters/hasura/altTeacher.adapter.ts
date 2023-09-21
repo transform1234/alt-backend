@@ -256,59 +256,6 @@ export class ALTTeacherService {
 
   updateTeacher(id: string, request: any, teacherDto: TeacherDto) {}
 
-  // public async searchTeacher(request: any, teacherSearchDto: any) {
-  //   const axios = require("axios");
-  //   const data = {
-  //     query: `query getTeacher {
-  //       Teachers(where: {}, limit: 10) {
-  //       id
-  //       name
-  //       father_name,
-  //       mother_name
-  //       phone
-  //       roll
-  //       school_id
-  //       section
-  //       medium
-  //       is_bpl
-  //       is_cwsn
-  //       is_migrant
-  //       admission_number
-  //       image
-  //       updated
-  //       stream_tag
-  //       religion
-  //       grade_number
-  //       gender
-  //       enrollment_type
-  //       created
-  //       dob
-  //     }
-  //   }`,
-  //     variables: {},
-  //   };
-
-  //   const config = {
-  //     method: "post",
-  //     url: this.baseURL,
-  //     headers: {
-  //       "x-hasura-admin-secret": this.adminSecret,
-  //       "Content-Type": "application/json",
-  //     },
-  //     data: data,
-  //   };
-  //   const response = await axios(config);
-
-  //   const responsedata = response.data.data.Teachers;
-  //   const teacherResponse = await this.mappedResponse(responsedata);
-
-  //   return new SuccessResponse({
-  //     statusCode: 200,
-  //     message: "ok.",
-  //     data: teacherResponse,
-  //   });
-  // }
-
   public async searchTeacher(request: any, teacherSearchDto: any) {
     // const axios = require("axios");
     const decoded: any = jwt_decode(request.headers.authorization);
@@ -384,7 +331,6 @@ export class ALTTeacherService {
         offset: offset,
       },
     };
-    console.log(data);
     const config = {
       method: "post",
       url: this.baseURL,
@@ -396,16 +342,6 @@ export class ALTTeacherService {
       },
       data: data,
     };
-    // const response = await axios(config);
-
-    // const responsedata = response.data.data.Teachers;
-    // const teacherResponse = await this.mappedResponse(responsedata);
-
-    // return new SuccessResponse({
-    //   statusCode: 200,
-    //   message: "ok.",
-    //   data: teacherResponse,
-    // });
 
     const response = await this.axios(config);
 
@@ -417,7 +353,6 @@ export class ALTTeacherService {
     }
 
     let result = response.data.data.Teachers;
-console.log(result)
     const teacherResponse = await this.mappedResponse(result);
 
     return new SuccessResponse({
