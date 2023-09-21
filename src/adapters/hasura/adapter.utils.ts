@@ -4,7 +4,7 @@ function getUserRole(altUserRoles: string[]) {
   } else if (altUserRoles.includes("student")) {
     return "student";
   } else if (altUserRoles.includes("teacher")) {
-    return "student";
+    return "teacher";
   } else return "user";
 }
 
