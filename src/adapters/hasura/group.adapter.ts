@@ -679,7 +679,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
     let result = response.data.data.Group;
 
     if (!result.length) {
-      result = `No matching record found for the current combination.`;
+      result = `No matching record found for the current combination of school and class.`;
     }
 
     return new SuccessResponse({
