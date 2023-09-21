@@ -12,6 +12,7 @@ import {
   getToken,
   createUserInKeyCloak,
   getUsername,
+  encryptPassword,
 } from "./adapter.utils";
 import { ALTUserUpdateDto } from "src/altUser/dto/alt-user-update.dto";
 
@@ -118,10 +119,18 @@ export class ALTHasuraUserService {
       });
     }
 
+    const encryptedPassword = await encryptPassword(
+      JSON.stringify(userDto["password"])
+    );
+
     Object.keys(userDto).forEach((e) => {
       if (userDto[e] !== "" && Object.keys(userSchema).includes(e)) {
+        console.log(e);
         if (e === "role") {
           query += `${e}: ${userDto[e]},`;
+        } else if (e === "password") {
+          console.log(encryptedPassword, "yes");
+          query += `${e}: ${JSON.stringify(encryptedPassword)}, `;
         } else if (Array.isArray(userDto[e])) {
           query += `${e}: ${JSON.stringify(userDto[e])}, `;
         } else {
