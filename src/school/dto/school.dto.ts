@@ -72,6 +72,14 @@ export class SchoolDto {
 
   @ApiProperty({
     type: String,
+    description: "The Head master type of the school",
+  })
+  @Expose()
+  headmasterType: string;
+
+
+  @ApiProperty({
+    type: String,
     description: "The headmaster Mobile of the school",
   })
   @Expose()
@@ -92,20 +100,20 @@ export class SchoolDto {
   secondaryTeachersSanctioned: number;
 
   @ApiProperty({
-    type: Boolean,
+    type: String,
     description: "The library Functional of the school",
     default: false,
   })
   @Expose()
-  libraryFunctional: boolean;
+  libraryFunctional: string;
 
   @ApiProperty({
-    type: Boolean,
+    type: String,
     description: "The computer Lab Functional of the school",
     default: false,
   })
   @Expose()
-  computerLabFunctional: boolean;
+  computerLabFunctional: string;
 
   @ApiProperty({
     type: Number,
@@ -129,44 +137,44 @@ export class SchoolDto {
   noOfGirlsToilet: number;
 
   @ApiProperty({
-    type: Boolean,
+    type: String,
     description: "The smrt Brd 6 Functional  of the school",
     default: false,
   })
   @Expose()
-  smrtBrd6Functional: boolean;
+  smartBoardFunctionalClass6: string;
 
   @ApiProperty({
-    type: Boolean,
+    type: String,
     description: "The smrt Brd 7 Functional  of the school",
     default: false,
   })
   @Expose()
-  smrtBrd7Functional: boolean;
+  smartBoardFunctionalClass7: string;
 
   @ApiProperty({
-    type: Boolean,
+    type: String,
     description: "The smrt Brd 8 Functional  of the school",
     default: false,
   })
   @Expose()
-  smrtBrd8Functional: boolean;
+  smartBoardFunctionalClass8: string;
 
   @ApiProperty({
-    type: Boolean,
+    type: String,
     description: "The smrt Brd 9 Functional  of the school",
     default: false,
   })
   @Expose()
-  smrtBrd9Functional: boolean;
+  smartBoardFunctionalClass9: string;
 
   @ApiProperty({
-    type: Boolean,
+    type: String,
     description: "The smrt Brd 10 Functional  of the school",
     default: false,
   })
   @Expose()
-  smrtBrd10Functional: boolean;
+  smartBoardFunctionalClass10: string;
 
   @ApiProperty({
     type: String,
