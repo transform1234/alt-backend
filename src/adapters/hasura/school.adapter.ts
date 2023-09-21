@@ -247,8 +247,8 @@ export class SchoolHasuraService implements IServicelocator {
           e === "mediumOfInstruction" ||
           e === "headmaster"
         ) {
-          // query += `${e}: ${schoolSearchDto.filters[e]},`;
-          query += `${e}:{_eq: ${schoolSearchDto.filters[e]}},`;
+          query += `${e}: ${schoolSearchDto.filters[e]},`;
+          // query += `${e}:{_eq: ${schoolSearchDto.filters[e]}},`;
         } else if (e === "name") {
           query += `${e}:{_ilike: "%${schoolSearchDto.filters[e]}%"}`;
         } else {
@@ -256,7 +256,6 @@ export class SchoolHasuraService implements IServicelocator {
         }
       }
     });
-
     var data = {
       query: `query SearchSchool($limit:Int, $offset:Int) {
         School_aggregate {
@@ -266,42 +265,43 @@ export class SchoolHasuraService implements IServicelocator {
         }
             School(where:{ ${query}}, limit: $limit, offset: $offset,) {
               name
-              udiseCode                                             
-              id
-              location
-              management
-              composition
-              board
-              mediumOfInstruction
-              headmaster
-              headmasterMobile
-              upperPrimaryTeachersSanctioned
-              secondaryTeachersSanctioned
-              libraryFunctional
-              computerLabFunctional
-              totalFunctionalComputers
-              noOfBoysToilet
-              noOfGirlsToilet
-              smrtBrd6Functional
-              smrtBrd7Functional
-              smrtBrd8Functional
-              smrtBrd9Functional
-              smrtBrd10Functional
-              state
-              district
-              block
-              createdAt
-              updatedAt
-              adequateRoomsForEveryClass
-              drinkingWaterSupply
-              seperateToiletForGirlsAndBoys
-              whetherToiletBeingUsed
-              playgroundAvailable
-              boundaryWallFence
-              electricFittingsAreInsulated
-              buildingIsResistantToEarthquakeFireFloodOtherCalamity
-              buildingIsFreeFromInflammableAndToxicMaterials
-              roofAndWallsAreInGoodCondition
+            udiseCode                                             
+            id
+            location
+            management
+            composition
+            board
+            mediumOfInstruction
+            headmaster
+            headmasterMobile
+            upperPrimaryTeachersSanctioned
+            secondaryTeachersSanctioned
+            libraryFunctional
+            computerLabFunctional
+            totalFunctionalComputers
+            noOfBoysToilet
+            noOfGirlsToilet
+            smartBoardFunctionalClass6
+            smartBoardFunctionalClass7
+            smartBoardFunctionalClass8
+            smartBoardFunctionalClass9
+            smartBoardFunctionalClass10
+            headmasterType
+            state
+            district
+            block
+            createdAt
+            updatedAt
+            adequateRoomsForEveryClass
+            drinkingWaterSupply
+            seperateToiletForGirlsAndBoys
+            whetherToiletBeingUsed
+            playgroundAvailable
+            boundaryWallFence
+            electricFittingsAreInsulated
+            buildingIsResistantToEarthquakeFireFloodOtherCalamity
+            buildingIsFreeFromInflammableAndToxicMaterials
+            roofAndWallsAreInGoodCondition
             }
           }`,
 
