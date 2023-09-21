@@ -58,7 +58,7 @@ export class StudentDto {
   // @ApiProperty({
   //   type: String,
   //   description: "role of user",
-  // }) 
+  // })
   @Expose()
   role: string;
 
@@ -98,6 +98,10 @@ export class StudentDto {
   // Student fields
   @Expose()
   studentId: string;
+
+  @ApiProperty()
+  @Expose()
+  className: string;
 
   @ApiProperty()
   @Expose()

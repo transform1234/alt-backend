@@ -119,11 +119,7 @@ export class ALTHasuraUserService {
     }
 
     Object.keys(userDto).forEach((e) => {
-      if (
-        userDto[e] !== "" &&
-        e != "password" &&
-        Object.keys(userSchema).includes(e)
-      ) {
+      if (userDto[e] !== "" && Object.keys(userSchema).includes(e)) {
         if (e === "role") {
           query += `${e}: ${userDto[e]},`;
         } else if (Array.isArray(userDto[e])) {

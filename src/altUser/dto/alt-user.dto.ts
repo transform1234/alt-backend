@@ -232,9 +232,7 @@ export class ResponseUserDto {
     this.medium = obj?.medium ? `${obj.medium}` : "";
     this.grade = obj?.grade ? `${obj.grade}` : "";
     this.groupId = obj?.groupId ? `${obj.groupId}` : "";
-    if (includePassword) {
-      this.password = obj?.password ? `${obj.password}` : "";
-    }
+    this.password = obj?.password ? `${obj.password}` : "";
   }
 }
 
