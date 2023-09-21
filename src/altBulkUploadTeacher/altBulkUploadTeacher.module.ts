@@ -5,6 +5,7 @@ import { ALTTeacherService } from "src/adapters/hasura/altTeacher.adapter";
 import { ALTHasuraUserService } from "src/adapters/hasura/altUser.adapter";
 import { GroupMembershipService } from "src/adapters/hasura/groupMembership.adapter";
 import { ALTBulkUploadTeacherService } from "src/adapters/hasura/altBulkUploadTeacher.adapter";
+import { HasuraGroupService } from "src/adapters/hasura/group.adapter";
 
 const ttl = process.env.TTL as never;
 
@@ -21,6 +22,7 @@ const ttl = process.env.TTL as never;
     ALTHasuraUserService,
     GroupMembershipService,
     ALTBulkUploadTeacherService,
+    HasuraGroupService,
   ],
 })
 export class ALTBulkUploadTeacherModule {}
