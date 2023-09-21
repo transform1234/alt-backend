@@ -308,7 +308,7 @@ export class ALTTeacherService {
           updatedBy
           createdAt
           updatedAt
-              User {
+              user {
                 username
                 userId
                 updatedBy
