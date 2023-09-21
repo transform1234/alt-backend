@@ -5,7 +5,7 @@ import { ALTStudentService } from "src/adapters/hasura/altStudent.adapter";
 import { ALTHasuraUserService } from "src/adapters/hasura/altUser.adapter";
 import { GroupMembershipService } from "src/adapters/hasura/groupMembership.adapter";
 import { ALTBulkUploadStudentService } from "src/adapters/hasura/altBulkUploadStudent.adapter";
-
+import { HasuraGroupService } from "src/adapters/hasura/group.adapter";
 const ttl = process.env.TTL as never;
 
 @Module({
@@ -20,6 +20,7 @@ const ttl = process.env.TTL as never;
     ALTStudentService,
     ALTHasuraUserService,
     GroupMembershipService,
+    HasuraGroupService,
     ALTBulkUploadStudentService,
   ],
 })

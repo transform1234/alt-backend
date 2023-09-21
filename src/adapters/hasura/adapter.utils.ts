@@ -4,7 +4,7 @@ function getUserRole(altUserRoles: string[]) {
   } else if (altUserRoles.includes("student")) {
     return "student";
   } else if (altUserRoles.includes("teacher")) {
-    return "student";
+    return "teacher";
   } else return "user";
 }
 
@@ -24,6 +24,38 @@ function getUsername(obj: any) {
     obj.name.toLowerCase().replace(/ /g, "") +
     obj.dateOfBirth.replace(/\-/g, "")
   );
+}
+
+function getPassword(length: number) {
+  const chars =
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  let result = "";
+  for (let i = length; i > 0; --i)
+    result += chars[Math.floor(Math.random() * chars.length)];
+  // let timestamp = Math.floor(Date.now() / 1000).toString();
+  // result += timestamp;
+  return result;
+}
+
+function encryptPassword(password) {
+  try {
+    const buff = Buffer.from(password);
+    const base64data = buff.toString("base64");
+    return base64data;
+  } catch (e) {
+    console.log(e);
+    return e;
+  }
+}
+
+function decryptPassword(encrypted) {
+  try {
+    const buff = Buffer.from(encrypted, "base64");
+    const text = buff.toString("ascii");
+    return text;
+  } catch (e) {
+    return e;
+  }
 }
 
 async function getToken() {
@@ -116,4 +148,7 @@ export {
   getToken,
   createUserInKeyCloak,
   getUsername,
+  getPassword,
+  encryptPassword,
+  decryptPassword,
 };

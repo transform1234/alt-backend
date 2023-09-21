@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
 import { SuccessResponse } from "src/success-response";
 import { IServicelocator } from "../userservicelocator";
-import { UserDto } from "src/altUser/dto/alt-user.dto";
+import { ResponseUserDto, UserDto } from "src/altUser/dto/alt-user.dto";
 import jwt_decode from "jwt-decode";
 import { UserSearchDto } from "src/user/dto/user-search.dto";
 import { ErrorResponse } from "src/error-response";
@@ -69,7 +69,7 @@ export class ALTHasuraUserService {
     } else {
       const result = [response.data.data.Users_by_pk];
 
-      const userData = await this.mappedResponse(result);
+      const userData = await this.mappedResponse(result, false);
       return new SuccessResponse({
         statusCode: response.status,
         message: "Ok.",
@@ -99,12 +99,12 @@ export class ALTHasuraUserService {
     let resKeycloak = "";
 
     if (altUserRoles.includes("systemAdmin")) {
-      const response = await getToken();
+      const response = await getToken(); // generate if required
       const token = response.data.access_token;
       resKeycloak = await createUserInKeyCloak(userSchema, token).catch(
         (error) => {
           errKeycloak = error.response?.data.errorMessage;
-          console.log(errKeycloak, "Keycloak error");
+          console.error(errKeycloak, "Keycloak error");
           return new ErrorResponse({
             errorCode: "500",
             errorMessage: "Someting went wrong",
@@ -119,11 +119,7 @@ export class ALTHasuraUserService {
     }
 
     Object.keys(userDto).forEach((e) => {
-      if (
-        userDto[e] !== "" &&
-        e != "password" &&
-        Object.keys(userSchema).includes(e)
-      ) {
+      if (userDto[e] !== "" && Object.keys(userSchema).includes(e)) {
         if (e === "role") {
           query += `${e}: ${userDto[e]},`;
         } else if (Array.isArray(userDto[e])) {
@@ -309,7 +305,7 @@ export class ALTHasuraUserService {
       });
     } else {
       const result = response.data.data.Users;
-      const userData = await this.mappedResponse(result);
+      const userData = await this.mappedResponse(result, false);
       const count = response?.data?.data?.user_aggregate?.aggregate?.count;
 
       return new SuccessResponse({
@@ -320,7 +316,7 @@ export class ALTHasuraUserService {
     }
   }
 
-  public async mappedResponse(result: any) {
+  public async mappedResponse(result: any, authRes) {
     const userResponse = result.map((item: any) => {
       const userMapping = {
         userId: item?.userId ? `${item.userId}` : "",
@@ -337,10 +333,24 @@ export class ALTHasuraUserService {
         updatedAt: item?.updatedAt ? `${item.updatedAt}` : "",
         createdBy: item?.createdBy ? `${item.createdBy}` : "",
         updatedBy: item?.updatedBy ? `${item.updatedBy}` : "",
+        board: item?.GroupMemberships[0]?.Group?.board
+          ? `${item?.GroupMemberships[0]?.Group?.board}`
+          : "",
+        medium: item?.GroupMemberships[0]?.Group?.medium
+          ? `${item?.GroupMemberships[0]?.Group?.medium}`
+          : "",
+        grade: item?.GroupMemberships[0]?.Group?.grade
+          ? `${item?.GroupMemberships[0]?.Group?.grade}`
+          : "",
+        groupId: item?.GroupMemberships[0]?.Group?.groupId
+          ? `${item?.GroupMemberships[0]?.Group?.groupId}`
+          : "",
       };
+      if (authRes) {
+        return new ResponseUserDto(userMapping, false);
+      }
       return new UserDto(userMapping, false);
     });
-
     return userResponse;
   }
 
@@ -367,6 +377,14 @@ export class ALTHasuraUserService {
           updatedAt
           createdBy
           updatedBy
+          GroupMemberships {
+            Group {
+              board
+              medium
+              grade
+              groupId
+            }
+          }
         }
       }`,
       variables: { username: username },
@@ -392,7 +410,7 @@ export class ALTHasuraUserService {
       });
     } else {
       const result = response.data.data.Users;
-      const userData = await this.mappedResponse(result);
+      const userData = await this.mappedResponse(result, true);
       return new SuccessResponse({
         statusCode: 200,
         message: "Ok.",
@@ -506,7 +524,7 @@ export class ALTHasuraUserService {
       });
     } else {
       const result = response.data.data.Users;
-      const userData = await this.mappedResponse(result);
+      const userData = await this.mappedResponse(result, false);
       return new SuccessResponse({
         statusCode: response.status,
         message: "Ok.",
