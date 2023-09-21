@@ -170,11 +170,12 @@ export class SchoolHasuraService implements IServicelocator {
             totalFunctionalComputers
             noOfBoysToilet
             noOfGirlsToilet
-            smrtBrd6Functional
-            smrtBrd7Functional
-            smrtBrd8Functional
-            smrtBrd9Functional
-            smrtBrd10Functional
+            smartBoardFunctionalClass6
+            smartBoardFunctionalClass7
+            smartBoardFunctionalClass8
+            smartBoardFunctionalClass9
+            smartBoardFunctionalClass10
+            headmasterType
             state
             district
             block
@@ -246,12 +247,12 @@ export class SchoolHasuraService implements IServicelocator {
           e === "mediumOfInstruction" ||
           e === "headmaster"
         ) {
-          query += `${e}: ${schoolSearchDto.filters[e]},`;
-        }
-        if (e === "schoolName") {
+          // query += `${e}: ${schoolSearchDto.filters[e]},`;
+          query += `${e}:{_eq: ${schoolSearchDto.filters[e]}},`;
+        } else if (e === "name") {
           query += `${e}:{_ilike: "%${schoolSearchDto.filters[e]}%"}`;
         } else {
-          query += `${e}:{_eq:"${schoolSearchDto.filters[e].eq}"}`;
+          query += `${e}:{_eq:"${schoolSearchDto.filters[e]}"}`;
         }
       }
     });
@@ -461,20 +462,20 @@ export class SchoolHasuraService implements IServicelocator {
           : "",
         noOfBoysToilet: item?.noOfBoysToilet ? `${item.noOfBoysToilet}` : "",
         noOfGirlsToilet: item?.noOfGirlsToilet ? `${item.noOfGirlsToilet}` : "",
-        smrtBrd6Functional: item?.smrtBrd6Functional
-          ? `${item.smrtBrd6Functional}`
+        smartBoardFunctionalClass6: item?.smartBoardFunctionalClass6
+          ? `${item.smartBoardFunctionalClass6}`
           : "",
-        smrtBrd7Functional: item?.smrtBrd7Functional
-          ? `${item.smrtBrd7Functional}`
+        smartBoardFunctionalClass7: item?.smartBoardFunctionalClass7
+          ? `${item.smartBoardFunctionalClass7}`
           : "",
-        smrtBrd8Functional: item?.smrtBrd8Functional
-          ? `${item.smrtBrd8Functional}`
+        smartBoardFunctionalClass8: item?.smartBoardFunctionalClass8
+          ? `${item.smartBoardFunctionalClass8}`
           : "",
-        smrtBrd9Functional: item?.smrtBrd9Functional
-          ? `${item.smrtBrd9Functional}`
+        smartBoardFunctionalClass9: item?.smartBoardFunctionalClass9
+          ? `${item.smartBoardFunctionalClass9}`
           : "",
-        smrtBrd10Functional: item?.smrtBrd10Functional
-          ? `${item.smrtBrd10Functional}`
+        smartBoardFunctionalClass10: item?.smartBoardFunctionalClass6
+          ? `${item.smartBoardFunctionalClass6}`
           : "",
         adequateRoomsForEveryClass: item?.adequateRoomsForEveryClass
           ? `${item.adequateRoomsForEveryClass}`
@@ -509,6 +510,8 @@ export class SchoolHasuraService implements IServicelocator {
         roofAndWallsAreInGoodCondition: item?.roofAndWallsAreInGoodCondition
           ? `${item.roofAndWallsAreInGoodCondition}`
           : "",
+          headmasterType: item?.headmasterType ? `${item.headmasterType}` : "",
+
       };
       return new SchoolDto(schoolMapping);
     });
