@@ -49,12 +49,13 @@ async function encryptPassword(password) {
 }
 
 async function decryptPassword(encrypted) {
+  console.log("encrypted", encrypted)
   try {
-    const buff = Buffer.from(encrypted, "base64");
-    const text = buff.toString("ascii");
+    const buff =await Buffer.from(encrypted, "base64");
+    const text =await buff.toString("ascii");
     return text;
   } catch (e) {
-    return e;
+    return null;
   }
 }
 
