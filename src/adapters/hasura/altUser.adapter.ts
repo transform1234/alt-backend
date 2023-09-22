@@ -30,19 +30,27 @@ export class ALTHasuraUserService {
     const data = {
       query: `query GetUser($userId:uuid!) {
         Users_by_pk(userId: $userId) {
-            userId
-            name
-            username
-            email
-            mobile
-            gender
-            dateOfBirth
-            role
-            status
-            createdAt
-            updatedAt
-            createdBy
-            updatedBy
+          userId
+          name
+          username
+          email
+          mobile
+          gender
+          dateOfBirth
+          role
+          status
+          createdAt
+          updatedAt
+          createdBy
+          updatedBy
+          GroupMemberships {
+            Group {
+              board
+              medium
+              grade
+              groupId
+            }
+          }
         }
       }
       `,
@@ -70,7 +78,7 @@ export class ALTHasuraUserService {
     } else {
       const result = [response.data.data.Users_by_pk];
 
-      const userData = await this.mappedResponse(result, false);
+      const userData = await this.mappedResponse(result, true);
       return new SuccessResponse({
         statusCode: response.status,
         message: "Ok.",

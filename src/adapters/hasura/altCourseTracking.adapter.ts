@@ -6,7 +6,8 @@ import { ALTCourseTrackingDto } from "src/altCourseTracking/dto/altCourseTrackin
 import { UpdateALTCourseTrackingDto } from "src/altCourseTracking/dto/updatealtCourseTracking.dto";
 import { ALTCourseTrackingSearch } from "src/altCourseTracking/dto/searchaltCourseTracking.dto";
 import { ErrorResponse } from "src/error-response";
-import { HasuraUserService } from "./user.adapter";
+// import { HasuraUserService } from "./user.adapter";
+import { ALTHasuraUserService } from "src/adapters/hasura/altUser.adapter";
 
 @Injectable()
 export class ALTCourseTrackingService {
@@ -14,7 +15,7 @@ export class ALTCourseTrackingService {
 
   constructor(
     private httpService: HttpService,
-    private hasuraUserService: HasuraUserService
+    private hasuraUserService: ALTHasuraUserService
   ) {}
 
   public async mappedResponse(data: any) {
