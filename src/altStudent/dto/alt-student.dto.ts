@@ -172,6 +172,7 @@ export class StudentDto {
       this.name = obj?.name ? `${obj?.name}` : "";
       this.role = obj?.role ? `${obj?.role}` : "";
       this.username = obj?.username ? `${obj?.username}` : "";
+      this.password = obj?.password ? `${obj?.password}` : "";
     }
   }
 }

@@ -127,8 +127,7 @@ export class ALTHasuraUserService {
       });
     }
 
-    const encryptedPassword = await encryptPassword(
-      JSON.stringify(userDto["password"])
+    const encryptedPassword = await encryptPassword((userDto["password"])
     );
 
     Object.keys(userDto).forEach((e) => {

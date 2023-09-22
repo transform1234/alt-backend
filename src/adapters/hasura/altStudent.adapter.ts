@@ -4,7 +4,7 @@ import jwt_decode from "jwt-decode";
 import { SuccessResponse } from "src/success-response";
 import { StudentDto } from "src/altStudent/dto/alt-student.dto";
 import { ErrorResponse } from "src/error-response";
-import { getUserRole } from "./adapter.utils";
+import { decryptPassword, getUserRole } from "./adapter.utils";
 import { ALTHasuraUserService } from "./altUser.adapter";
 import { GroupMembershipService } from "./groupMembership.adapter";
 import { GroupMembershipDtoById } from "src/groupMembership/dto/groupMembership.dto";
@@ -54,6 +54,7 @@ export class ALTStudentService {
           mobile
           name
           role
+          password
           username
         }
       }
@@ -254,9 +255,11 @@ export class ALTStudentService {
   updateStudent(id: string, request: any, studentDto: StudentDto) {}
 
   public async mappedResponse(result: any) {
-    const studentResponse = result.map((item: any) => {
+    const promises = [];
+    for (const item of result) {
       const studentMapping = {
         userId: item?.user?.userId ? `${item.user.userId}` : "",
+        password: await decryptPassword(item?.user.password),
         studentId: item?.studentId ? `${item.studentId}` : "",
         groups: item?.groups ? item.groups : [],
         board: item?.board ? `${item.board}` : "",
@@ -280,13 +283,21 @@ export class ALTStudentService {
         name: item?.user?.name ? `${item.user.name}` : "",
         role: item?.user?.role ? `${item.user.role}` : "",
         username: item?.user?.username ? `${item.user.username}` : "",
-        // createdAt: item?.createdAt ? `${item.createdAt}` : "",
-        // updatedAt: item?.createdAt ? `${item.createdAt}` : "",
       };
-      return new StudentDto(studentMapping, true);
-    });
+      promises.push(new StudentDto(studentMapping, true));
+      //  return new StudentDto(studentMapping, true);
+    }
 
-    return studentResponse;
+
+
+    //const promises = result.map(studentResponse);
+    const promiseRes = await Promise.all(promises);
+    console.log("303", promiseRes)
+    if (promiseRes) {
+      return promiseRes
+    }
+
+
   }
 
   public async searchStudent(request: any, studentSearchDto: any) {
