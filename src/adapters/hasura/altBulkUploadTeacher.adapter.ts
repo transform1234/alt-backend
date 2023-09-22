@@ -59,7 +59,7 @@ export class ALTBulkUploadTeacherService {
           responses.push(teacherRes.data);
         } else {
           errors.push({
-            name: teacherRes.name,
+            name: teacher.name,
             teacherRes,
           });
         }
