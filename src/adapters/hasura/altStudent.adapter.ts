@@ -288,16 +288,12 @@ export class ALTStudentService {
       //  return new StudentDto(studentMapping, true);
     }
 
-
-
     //const promises = result.map(studentResponse);
     const promiseRes = await Promise.all(promises);
-    console.log("303", promiseRes)
+    // console.log("303", promiseRes);
     if (promiseRes) {
-      return promiseRes
+      return promiseRes;
     }
-
-
   }
 
   public async searchStudent(request: any, studentSearchDto: any) {
