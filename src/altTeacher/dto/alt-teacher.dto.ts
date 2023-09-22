@@ -99,9 +99,9 @@ export class TeacherDto {
   @Expose()
   teacherId: string;
 
-  @ApiProperty()
-  @Expose()
-  className: string;
+  // @ApiProperty()
+  // @Expose()
+  // className: string;
 
   @ApiProperty()
   @Expose()
@@ -138,9 +138,9 @@ export class TeacherDto {
   @Expose()
   totalHeadteacherExperience: string;
 
-  // @ApiPropertyOptional()
-  // @Expose()
-  // classesTaught: string[];
+  @ApiPropertyOptional()
+  @Expose()
+  classesTaught: string;
 
   @ApiProperty()
   @Expose()
@@ -182,7 +182,7 @@ export class TeacherDto {
     this.totalHeadteacherExperience = obj?.totalHeadteacherExperience
       ? `${obj.totalHeadteacherExperience}`
       : "";
-    // this.classesTaught = obj?.classesTaught ? obj?.classesTaught : [];
+    this.classesTaught = obj?.classesTaught ? obj?.classesTaught : "";
     this.coreSubjectTaught = obj?.coreSubjectTaught
       ? obj.coreSubjectTaught
       : "";
