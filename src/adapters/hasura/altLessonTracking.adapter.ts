@@ -11,7 +11,8 @@ import { ALTModuleTrackingService } from "../../adapters/hasura/altModuleTrackin
 import { ErrorResponse } from "src/error-response";
 import { TermsProgramtoRulesDto } from "src/altProgramAssociation/dto/altTermsProgramtoRules.dto";
 import { ALTModuleTrackingDto } from "src/altModuleTracking/dto/altModuleTracking.dto";
-import { HasuraUserService } from "./user.adapter";
+// import { HasuraUserService } from "./user.adapter";
+import { ALTHasuraUserService } from "src/adapters/hasura/altUser.adapter";
 
 @Injectable()
 export class ALTLessonTrackingService {
@@ -22,7 +23,7 @@ export class ALTLessonTrackingService {
     private programService: ProgramService,
     private altProgramAssociationService: ALTProgramAssociationService,
     private altModuleTrackingService: ALTModuleTrackingService,
-    private hasuraUserService: HasuraUserService
+    private hasuraUserService: ALTHasuraUserService
   ) {}
 
   public async mappedResponse(data: any) {

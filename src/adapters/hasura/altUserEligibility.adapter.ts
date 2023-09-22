@@ -9,6 +9,7 @@ import { ALTLessonTrackingService } from "./altLessonTracking.adapter";
 import { ALTModuleTrackingService } from "./altModuleTracking.adapter";
 import { ALTCourseTrackingService } from "./altCourseTracking.adapter";
 import { HasuraUserService } from "src/adapters/hasura/user.adapter";
+import { ALTHasuraUserService } from "src/adapters/hasura/altUser.adapter";
 
 @Injectable()
 export class ALTUserEligibilityService {
@@ -20,7 +21,7 @@ export class ALTUserEligibilityService {
     private altLessonTrackingService: ALTLessonTrackingService,
     private altModuleTrackingService: ALTModuleTrackingService,
     private altCourseTrackingService: ALTCourseTrackingService,
-    private hasuraUserService: HasuraUserService
+    private altUserService: ALTHasuraUserService
   ) {}
 
   public async checkEligibilityforCourse(
@@ -35,7 +36,7 @@ export class ALTUserEligibilityService {
     let altUserId: string;
 
     if (userId) {
-      const userRes: any = await this.hasuraUserService.getUser(
+      const userRes: any = await this.altUserService.getUser(
         userId,
         request
       );
@@ -334,7 +335,7 @@ export class ALTUserEligibilityService {
     let altUserId: string;
 
     if (userId) {
-      const userRes: any = await this.hasuraUserService.getUser(
+      const userRes: any = await this.altUserService.getUser(
         userId,
         request
       );
@@ -419,7 +420,7 @@ export class ALTUserEligibilityService {
     let altUserId: string;
 
     if (userId) {
-      const userRes: any = await this.hasuraUserService.getUser(
+      const userRes: any = await this.altUserService.getUser(
         userId,
         request
       );

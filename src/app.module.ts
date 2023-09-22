@@ -19,13 +19,13 @@ import { AppService } from "./app.service";
 // import { InAppNotificationModule } from "./inAppNotification/inAppNotification.module";
 // import { MentorTrackingModule } from "./mentorTracking/mentorTracking.module";
 // import { MonitorTrackingModule } from "./monitorTracking/monitorTracking.module";
-// import { CourseModule } from "./course/course.module";
 // import { CourseTrackingModule } from "./courseTracking/courseTracking.module";
 // import { AnnouncementsModule } from "./announcements/announcements.module";
 // import { RoleModule } from "./role/role.module";
 // import { WorkHistoryModule } from "./workHistory/workHistory.module";
 // import { StudentModule } from "./student/student.module";
 // import { UserModule } from "./user/user.module";
+import { CourseModule } from "./course/course.module";
 import { SchoolModule } from "./school/school.module";
 import { GroupModule } from "./group/group.module";
 import { GroupMembershipModule } from "./groupMembership/groupMembership.module";
@@ -67,13 +67,13 @@ import { ALTBulkUploadSchoolModule } from "./altBulkUploadSchool/altBulkUploadSc
     InAppNotificationModule,
     MentorTrackingModule,
     MonitorTrackingModule,
-    CourseModule,
     CourseTrackingModule,
     AnnouncementsModule,
     WorkHistoryModule,
     StudentModule,
     UserModule,
     */
+    CourseModule,
     SchoolModule,
     GroupModule,
     GroupMembershipModule,
