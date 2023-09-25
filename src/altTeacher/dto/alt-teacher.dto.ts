@@ -101,7 +101,7 @@ export class TeacherDto {
 
   @Expose()
   groups: string[];
-  default: [];
+  default: []
 
   @ApiProperty()
   @Expose()
