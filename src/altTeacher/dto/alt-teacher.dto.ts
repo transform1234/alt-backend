@@ -99,13 +99,9 @@ export class TeacherDto {
   @Expose()
   teacherId: string;
 
-  // @ApiProperty()
-  // @Expose()
-  // className: string;
-
-  @ApiProperty()
   @Expose()
   groups: string[];
+  default: [];
 
   @ApiProperty()
   @Expose()

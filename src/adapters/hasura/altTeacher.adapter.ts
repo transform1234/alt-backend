@@ -8,7 +8,6 @@ import { decryptPassword, getUserRole } from "./adapter.utils";
 import { ALTHasuraUserService } from "./altUser.adapter";
 import { GroupMembershipService } from "./groupMembership.adapter";
 import { GroupMembershipDtoById } from "src/groupMembership/dto/groupMembership.dto";
-import { query } from "express";
 
 @Injectable()
 export class ALTTeacherService {
@@ -180,6 +179,7 @@ export class ALTTeacherService {
             (teacherDto[e] || teacherDto[e] === 0) &&
             teacherDto[e] !== "" &&
             e != "password" &&
+            e !== "groups" &&
             Object.keys(teacherSchema).includes(e)
           ) {
             if (Array.isArray(teacherDto[e])) {
@@ -199,7 +199,6 @@ export class ALTTeacherService {
               teacherId
               userId
               schoolUdise
-              groups
               user {
                 username
               }
@@ -223,7 +222,6 @@ export class ALTTeacherService {
         };
 
         const response = await this.axios(config);
-
         if (response?.data?.errors) {
           console.log(response.data.errors);
           return new ErrorResponse({
@@ -232,7 +230,6 @@ export class ALTTeacherService {
           });
         } else {
           const result = response.data.data.insert_Teachers_one;
-
           return new SuccessResponse({
             statusCode: 200,
             message: "Ok.",
