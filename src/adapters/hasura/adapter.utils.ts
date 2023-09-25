@@ -49,10 +49,9 @@ async function encryptPassword(password) {
 }
 
 async function decryptPassword(encrypted) {
-  console.log("encrypted", encrypted)
   try {
-    const buff =await Buffer.from(encrypted, "base64");
-    const text =await buff.toString("ascii");
+    const buff = await Buffer.from(encrypted, "base64");
+    const text = await buff.toString("ascii");
     return text;
   } catch (e) {
     return null;
@@ -143,6 +142,19 @@ async function createUserInKeyCloak(query, token) {
   return result;
 }
 
+function getClasses(classesTaught) {
+  switch (classesTaught) {
+    case "Secondary":
+      return ["Class 9", "Class 10"];
+    case "Middle":
+      return ["Class 6", "Class 7", "Class 8"];
+    case "Both":
+      return ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"];
+    default:
+      return ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"];
+  }
+}
+
 export {
   getUserGroup,
   getUserRole,
@@ -150,6 +162,7 @@ export {
   createUserInKeyCloak,
   getUsername,
   getPassword,
+  getClasses,
   encryptPassword,
   decryptPassword,
 };
