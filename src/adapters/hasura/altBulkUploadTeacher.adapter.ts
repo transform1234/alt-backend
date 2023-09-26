@@ -6,7 +6,7 @@ import { ALTHasuraUserService } from "./altUser.adapter";
 import { ALTBulkUploadTeacherDto } from "src/altBulkUploadTeacher/dto/alt-bulk-upload-teacher.dto";
 import { ALTTeacherService } from "./altTeacher.adapter";
 import { TeacherDto } from "src/altTeacher/dto/alt-teacher.dto";
-import { getPassword } from "./adapter.utils";
+import { getPassword, getClasses } from "./adapter.utils";
 import { HasuraGroupService } from "./group.adapter";
 
 @Injectable()
@@ -21,8 +21,15 @@ export class ALTBulkUploadTeacherService {
     const responses = [];
     const errors = [];
     for (const teacher of bulkTeacherDto) {
-      const teacherClasses = this.getClasses(teacher.classesTaught);
-
+      const teacherClasses = getClasses(teacher.classesTaught);
+      if (!teacherClasses.length) {
+        errors.push({
+          name: teacher.name,
+          msg: "No match for classes found please check input data",
+        });
+        break;
+      }
+      teacher.groups = [];
       let groupInfo;
 
       for (let teacherClass of teacherClasses) {
@@ -51,6 +58,7 @@ export class ALTBulkUploadTeacherService {
       } else {
         teacher.board = groupInfo.data[0].board;
         teacher.password = getPassword(8);
+        teacher.status = true;
         const teacherRes: any = await this.teacherService.createAndAddToGroup(
           request,
           teacher
@@ -71,18 +79,5 @@ export class ALTBulkUploadTeacherService {
       responses,
       errors,
     };
-  }
-
-  getClasses(classesTaught) {
-    switch (classesTaught) {
-      case "Secondary":
-        return ["Class 8", "Class 9", "Class 10"];
-      case "Middle":
-        return ["Class 6", "Class 7"];
-      case "Both":
-        return ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"];
-      default:
-        return ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"];
-    }
   }
 }
