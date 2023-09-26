@@ -22,6 +22,13 @@ export class ALTBulkUploadTeacherService {
     const errors = [];
     for (const teacher of bulkTeacherDto) {
       const teacherClasses = getClasses(teacher.classesTaught);
+      if (!teacherClasses.length) {
+        errors.push({
+          name: teacher.name,
+          msg: "No match for classes found please check input data",
+        });
+        break;
+      }
       teacher.groups = [];
       let groupInfo;
 
@@ -51,6 +58,7 @@ export class ALTBulkUploadTeacherService {
       } else {
         teacher.board = groupInfo.data[0].board;
         teacher.password = getPassword(8);
+        teacher.status = true;
         const teacherRes: any = await this.teacherService.createAndAddToGroup(
           request,
           teacher

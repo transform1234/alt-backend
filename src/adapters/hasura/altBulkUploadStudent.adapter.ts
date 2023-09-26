@@ -35,7 +35,7 @@ export class ALTBulkUploadStudentService {
         student.groups.push(groupRes.data[0].groupId);
         student.board = groupRes.data[0].board;
         student.password = getPassword(8);
-
+        student.status = true;
         const studentRes: any = await this.studentService.createAndAddToGroup(
           request,
           student

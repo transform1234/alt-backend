@@ -151,7 +151,7 @@ function getClasses(classesTaught) {
     case "Both":
       return ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"];
     default:
-      return ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"];
+      return [];
   }
 }
 
