@@ -99,13 +99,9 @@ export class TeacherDto {
   @Expose()
   teacherId: string;
 
-  // @ApiProperty()
-  // @Expose()
-  // className: string;
-
-  @ApiProperty()
   @Expose()
   groups: string[];
+  default: []
 
   @ApiProperty()
   @Expose()
@@ -209,6 +205,7 @@ export class TeacherDto {
       this.name = obj?.name ? `${obj?.name}` : "";
       this.role = obj?.role ? `${obj?.role}` : "";
       this.username = obj?.username ? `${obj?.username}` : "";
+      this.password = obj?.password ? `${obj?.password}` : "";
     }
   }
 }

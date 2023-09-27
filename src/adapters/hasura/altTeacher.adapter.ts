@@ -4,11 +4,10 @@ import jwt_decode from "jwt-decode";
 import { SuccessResponse } from "src/success-response";
 import { TeacherDto } from "src/altTeacher/dto/alt-teacher.dto";
 import { ErrorResponse } from "src/error-response";
-import { getUserRole } from "./adapter.utils";
+import { decryptPassword, getUserRole } from "./adapter.utils";
 import { ALTHasuraUserService } from "./altUser.adapter";
 import { GroupMembershipService } from "./groupMembership.adapter";
 import { GroupMembershipDtoById } from "src/groupMembership/dto/groupMembership.dto";
-import { query } from "express";
 
 @Injectable()
 export class ALTTeacherService {
@@ -133,7 +132,6 @@ export class ALTTeacherService {
             data: createdUser,
           });
         } else {
-          console.log(newCreatedUser);
           return new ErrorResponse({
             errorCode: "500",
             errorMessage: "Create and add to group failed",
@@ -181,6 +179,7 @@ export class ALTTeacherService {
             (teacherDto[e] || teacherDto[e] === 0) &&
             teacherDto[e] !== "" &&
             e != "password" &&
+            e !== "groups" &&
             Object.keys(teacherSchema).includes(e)
           ) {
             if (Array.isArray(teacherDto[e])) {
@@ -200,7 +199,6 @@ export class ALTTeacherService {
               teacherId
               userId
               schoolUdise
-              groups
               user {
                 username
               }
@@ -224,7 +222,6 @@ export class ALTTeacherService {
         };
 
         const response = await this.axios(config);
-
         if (response?.data?.errors) {
           console.log(response.data.errors);
           return new ErrorResponse({
@@ -233,7 +230,6 @@ export class ALTTeacherService {
           });
         } else {
           const result = response.data.data.insert_Teachers_one;
-
           return new SuccessResponse({
             statusCode: 200,
             message: "Ok.",
@@ -271,11 +267,9 @@ export class ALTTeacherService {
 
     Object.keys(teacherSearchDto.filters).forEach((e) => {
       if (teacherSearchDto.filters[e] && teacherSearchDto.filters[e] != "") {
-      
         if (e === "teacherId") {
           query += `${e}:{_eq: "%${teacherSearchDto.filters[e]}%"}`;
         } else {
-          console.log(teacherSearchDto.filters[e],"abc");
           query += `${e}:{_ilike:"${teacherSearchDto.filters[e]}"}`;
         }
       }
@@ -363,9 +357,11 @@ export class ALTTeacherService {
   }
 
   public async mappedResponse(result: any) {
-    const teacherResponse = result.map((item: any) => {
+    const promises = [];
+    for (const item of result) {
       const teacherMapping = {
         userId: item?.user?.userId ? `${item.user.userId}` : "",
+        password: await decryptPassword(item?.user.password),
         teacherId: item?.teacherId ? `${item.teacherId}` : "",
         groups: item?.groups ? item.groups : [],
         board: item?.board ? `${item.board}` : "",
@@ -412,10 +408,16 @@ export class ALTTeacherService {
         // createdAt: item?.created ? `${item.created}` : "",
         // updatedAt: item?.updated ? `${item.updated}` : "",
       };
-      return new TeacherDto(teacherMapping, true);
-    });
+      promises.push(new TeacherDto(teacherMapping, true));
+      // }      return new TeacherDto(teacherMapping, true);
+    }
 
-    return teacherResponse;
+    const promiseRes = await Promise.all(promises);
+    // console.log("303", promiseRes);
+    if (promiseRes) {
+      return promiseRes;
+    }
+    // return teacherResponse;
   }
 
   async addToGroups(teacherDto, request) {
