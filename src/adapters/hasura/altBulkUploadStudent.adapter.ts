@@ -23,41 +23,47 @@ export class ALTBulkUploadStudentService {
       const response = await getToken();
       bulkToken = response.data.access_token;
     } catch (e) {
+      console.log(e);
       return {
         msg: "Error getting keycloak token",
       };
     }
-    for (const student of bulkStudentDto) {
-      const groupRes: any = await this.groupService.getGroupBySchoolClass(
-        request,
-        student.schoolUdise,
-        student.className
-      );
-
-      if (!groupRes.data[0].groupId) {
-        errors.push({
-          name: student.name,
-          groupRes,
-        });
-      } else {
-        student.groups.push(groupRes.data[0].groupId);
-        student.board = groupRes.data[0].board;
-        student.password = getPassword(8);
-        student.status = true;
-        const studentRes: any = await this.studentService.createAndAddToGroup(
+    try {
+      for (const student of bulkStudentDto) {
+        const groupRes: any = await this.groupService.getGroupBySchoolClass(
           request,
-          student,
-          bulkToken
+          student.schoolUdise,
+          student.className
         );
-        if (studentRes?.statusCode === 200) {
-          responses.push(studentRes.data);
-        } else {
+
+        if (!groupRes?.data[0]?.groupId) {
           errors.push({
             name: student.name,
-            studentRes,
+            groupRes,
           });
+        } else {
+          student.groups.push(groupRes.data[0].groupId);
+          student.board = groupRes.data[0].board;
+          student.password = getPassword(8);
+          student.status = true;
+          const studentRes: any = await this.studentService.createAndAddToGroup(
+            request,
+            student,
+            bulkToken
+          );
+          if (studentRes?.statusCode === 200) {
+            responses.push(studentRes.data);
+          } else {
+            errors.push({
+              name: student.name,
+              studentRes,
+            });
+          }
         }
       }
+    } catch (e) {
+      console.log(e);
+      errors.push(e);
     }
     return {
       totalCount: bulkStudentDto.length,
