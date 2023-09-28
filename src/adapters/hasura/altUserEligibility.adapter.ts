@@ -58,6 +58,7 @@ export class ALTUserEligibilityService {
       programId
     );
 
+
     if (!currentProgramDetails.data) {
       return new ErrorResponse({
         errorCode: "400",
@@ -444,7 +445,7 @@ export class ALTUserEligibilityService {
         userId
       );
 
-    if (recordList.data[0]?.status === "completed") {
+    if (recordList.data != null && recordList.data[0]?.status === "completed") {
       return "completed";
     } else {
       return "unlocked";
