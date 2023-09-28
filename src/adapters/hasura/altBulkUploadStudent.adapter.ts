@@ -5,7 +5,7 @@ import { HasuraGroupService } from "./group.adapter";
 import { ALTBulkUploadStudentDto } from "src/altBulkUploadStudent/dto/alt-bulk-upload-student.dto";
 import { ALTStudentService } from "./altStudent.adapter";
 import { StudentDto } from "src/altStudent/dto/alt-student.dto";
-import { getPassword } from "./adapter.utils";
+import { getPassword, getToken } from "./adapter.utils";
 @Injectable()
 export class ALTBulkUploadStudentService {
   constructor(
@@ -18,8 +18,16 @@ export class ALTBulkUploadStudentService {
   public async createStudents(request: any, bulkStudentDto: [StudentDto]) {
     const responses = [];
     const errors = [];
+    let bulkToken;
+    try {
+      const response = await getToken();
+      bulkToken = response.data.access_token;
+    } catch (e) {
+      return {
+        msg: "Error getting keycloak token",
+      };
+    }
     for (const student of bulkStudentDto) {
-
       const groupRes: any = await this.groupService.getGroupBySchoolClass(
         request,
         student.schoolUdise,
@@ -38,7 +46,8 @@ export class ALTBulkUploadStudentService {
         student.status = true;
         const studentRes: any = await this.studentService.createAndAddToGroup(
           request,
-          student
+          student,
+          bulkToken
         );
         if (studentRes?.statusCode === 200) {
           responses.push(studentRes.data);

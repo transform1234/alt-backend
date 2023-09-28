@@ -92,7 +92,11 @@ export class ALTStudentService {
     });
   }
 
-  public async createAndAddToGroup(request: any, studentDto: StudentDto) {
+  public async createAndAddToGroup(
+    request: any,
+    studentDto: StudentDto,
+    bulkToken: string
+  ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
@@ -115,7 +119,8 @@ export class ALTStudentService {
       if (altUserRoles.includes("systemAdmin")) {
         const newCreatedUser: any = await this.createStudent(
           request,
-          studentDto
+          studentDto,
+          bulkToken
         );
         if (newCreatedUser.statusCode === 200) {
           createdUser = newCreatedUser.data;
@@ -150,7 +155,11 @@ export class ALTStudentService {
     }
   }
 
-  public async createStudent(request: any, studentDto: StudentDto) {
+  public async createStudent(
+    request: any,
+    studentDto: StudentDto,
+    bulkToken: string
+  ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
@@ -166,7 +175,8 @@ export class ALTStudentService {
       // send token
       const createdUser: any = await this.userService.createUser(
         request,
-        studentDto
+        studentDto,
+        bulkToken
       );
 
       if (createdUser.statusCode === 200) {

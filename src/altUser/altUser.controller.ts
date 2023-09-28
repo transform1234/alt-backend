@@ -68,7 +68,7 @@ export class ALTUserController {
   @ApiForbiddenResponse({ description: "Forbidden" })
   @UseInterceptors(ClassSerializerInterceptor)
   public async createUser(@Req() request: Request, @Body() userDto: UserDto) {
-    return this.hasuraUserService.createUser(request, userDto);
+    return this.hasuraUserService.createUser(request, userDto, null);
   }
 
   @Put("/:id")

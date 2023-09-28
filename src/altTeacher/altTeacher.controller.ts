@@ -58,7 +58,11 @@ export class ALTTeacherController {
     @Req() request: Request,
     @Body() teacherDto: TeacherDto
   ) {
-    return this.altTeacherService.createAndAddToGroup(request, teacherDto);
+    return this.altTeacherService.createAndAddToGroup(
+      request,
+      teacherDto,
+      null
+    );
   }
 
   // @Put("/:id")
@@ -87,6 +91,6 @@ export class ALTTeacherController {
     @Req() request: Request,
     @Body() teachersearchdto: ALTTeacherSearchDto
   ) {
-    return this.altTeacherService.searchTeacher(request, teachersearchdto)
+    return this.altTeacherService.searchTeacher(request, teachersearchdto);
   }
 }

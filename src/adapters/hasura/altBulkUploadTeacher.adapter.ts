@@ -6,7 +6,7 @@ import { ALTHasuraUserService } from "./altUser.adapter";
 import { ALTBulkUploadTeacherDto } from "src/altBulkUploadTeacher/dto/alt-bulk-upload-teacher.dto";
 import { ALTTeacherService } from "./altTeacher.adapter";
 import { TeacherDto } from "src/altTeacher/dto/alt-teacher.dto";
-import { getPassword, getClasses } from "./adapter.utils";
+import { getPassword, getClasses, getToken } from "./adapter.utils";
 import { HasuraGroupService } from "./group.adapter";
 
 @Injectable()
@@ -20,6 +20,16 @@ export class ALTBulkUploadTeacherService {
   public async createTeachers(request: any, bulkTeacherDto: [TeacherDto]) {
     const responses = [];
     const errors = [];
+    let bulkToken;
+    try {
+      const response = await getToken();
+      bulkToken = response.data.access_token;
+    } catch (e) {
+      return {
+        msg: "Error getting keycloak token",
+      };
+    }
+
     for (const teacher of bulkTeacherDto) {
       const teacherClasses = getClasses(teacher.classesTaught);
       if (!teacherClasses.length) {
@@ -61,7 +71,8 @@ export class ALTBulkUploadTeacherService {
         teacher.status = true;
         const teacherRes: any = await this.teacherService.createAndAddToGroup(
           request,
-          teacher
+          teacher,
+          bulkToken
         );
         if (teacherRes?.statusCode === 200) {
           responses.push(teacherRes.data);
