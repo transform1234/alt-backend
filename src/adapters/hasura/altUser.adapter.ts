@@ -13,6 +13,7 @@ import {
   createUserInKeyCloak,
   getUsername,
   encryptPassword,
+  checkIfUsernameExistsInKeycloak,
 } from "./adapter.utils";
 import { ALTUserUpdateDto } from "src/altUser/dto/alt-user-update.dto";
 
@@ -87,7 +88,11 @@ export class ALTHasuraUserService {
     }
   }
 
-  public async createUser(request: any, userDto: UserDto) {
+  public async checkAndAddUser(
+    request: any,
+    userDto: UserDto,
+    bulkToken: string
+  ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
@@ -95,6 +100,7 @@ export class ALTHasuraUserService {
     const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
     userDto.createdBy = userId;
     userDto.updatedBy = userId;
+
     if (!userDto.username) {
       userDto.username = getUsername(userDto);
     }
@@ -102,34 +108,130 @@ export class ALTHasuraUserService {
       userDto.email = userDto.username + "@yopmail.com";
     }
     const userSchema = new UserDto(userDto, true);
+    const usernameExistsInKeycloak = await checkIfUsernameExistsInKeycloak(
+      userDto.username,
+      bulkToken
+    );
+    if (usernameExistsInKeycloak?.data[0]?.username) {
+      // console.log("check in db", usernameExistsInKeycloak?.data[0]?.id);
 
-    let query = "";
+      const usernameExistsInDB: any = await this.getUserByUsername(
+        usernameExistsInKeycloak?.data[0]?.username,
+        request,
+        altUserRoles
+      );
+      if (usernameExistsInDB?.statusCode === 200) {
+        if (usernameExistsInDB?.data) {
+          // console.log(usernameExistsInDB, "usernameExistsInDB");
+          return {
+            user: usernameExistsInDB,
+            isNewlyCreated: false,
+          };
+        } else {
+          // const userSchema = new UserDto(userDto, true);
+          console.log(usernameExistsInDB, "username not exist in db");
+          const newlyCreatedDbUser = await this.createUserInDatabase(
+            request,
+            userDto,
+            userSchema,
+            usernameExistsInKeycloak?.data[0]?.id,
+            altUserRoles
+          );
+          return {
+            user: newlyCreatedDbUser,
+            isNewlyCreated: true,
+          };
+        }
+      }
+      userDto.userId = usernameExistsInKeycloak?.data[0]?.id;
+    } else {
+      console.log("not present in keycloak");
+      const newlyCreatedUser = await this.createUser(
+        request,
+        userDto,
+        bulkToken,
+        userSchema,
+        altUserRoles
+      );
+      return {
+        user: newlyCreatedUser,
+        isNewlyCreated: true,
+      };
+    }
+  }
+
+  public async createUser(
+    request: any,
+    userDto: UserDto,
+    bulkToken: string,
+    userSchema,
+    altUserRoles
+  ) {
+    // It is considered that if user is not present in keycloak it is not present in database as well
+
     let errKeycloak = "";
-    let resKeycloak = "";
+    let resKeycloak;
+
+    // if udser exist 1keys 2 db
 
     if (altUserRoles.includes("systemAdmin")) {
-      const response = await getToken(); // generate if required
-      const token = response.data.access_token;
-      resKeycloak = await createUserInKeyCloak(userSchema, token).catch(
-        (error) => {
-          errKeycloak = error.response?.data.errorMessage;
-          console.error(errKeycloak, "Keycloak error");
+      let token = bulkToken;
+      try {
+        if (!bulkToken) {
+          const response = await getToken(); // generating if required
+          token = response.data.access_token;
+        } else {
+          console.log("Not required" + bulkToken);
+        }
+        resKeycloak = await createUserInKeyCloak(userSchema, token).catch(
+          (error) => {
+            errKeycloak = error.response?.data.errorMessage;
+            console.error(errKeycloak, "Keycloak error");
+            return new ErrorResponse({
+              errorCode: "500",
+              errorMessage: "Something went wrong" + errKeycloak,
+            });
+          }
+        );
+
+        // console.log(resKeycloak.response.data.errorMessage, "ok");
+        if (resKeycloak?.response?.data?.errorMessage) {
           return new ErrorResponse({
-            errorCode: "500",
-            errorMessage: "Someting went wrong",
+            errorCode: "400",
+            errorMessage: "Keycloak user creation failed",
           });
         }
-      );
+        // db??
+        const databaseResponse = this.createUserInDatabase(
+          request,
+          userDto,
+          userSchema,
+          resKeycloak,
+          altUserRoles
+        );
+
+        return databaseResponse;
+      } catch (e) {
+        return e;
+      }
     } else {
       return new ErrorResponse({
         errorCode: "401",
         errorMessage: "Unauthorized",
       });
     }
+  }
 
-    const encryptedPassword = await encryptPassword((userDto["password"])
-    );
+  public async createUserInDatabase(
+    request: any,
+    userDto: UserDto,
+    userSchema,
+    resKeycloak,
+    altUserRoles
+  ) {
+    const encryptedPassword = await encryptPassword(userDto["password"]);
 
+    let query = "";
     Object.keys(userDto).forEach((e) => {
       if (userDto[e] !== "" && Object.keys(userSchema).includes(e)) {
         if (e === "role") {
@@ -171,10 +273,10 @@ export class ALTHasuraUserService {
 
     const response = await this.axios(config);
 
-    if (response?.data?.errors || resKeycloak == undefined) {
+    if (response?.data?.errors) {
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
-        errorMessage: response.data.errors[0].message + errKeycloak,
+        errorMessage: response.data.errors[0].message,
       });
     } else {
       const result = response.data.data.insert_Users_one;
@@ -347,18 +449,22 @@ export class ALTHasuraUserService {
         updatedAt: item?.updatedAt ? `${item.updatedAt}` : "",
         createdBy: item?.createdBy ? `${item.createdBy}` : "",
         updatedBy: item?.updatedBy ? `${item.updatedBy}` : "",
-        board: item?.GroupMemberships[0]?.Group?.board
-          ? `${item?.GroupMemberships[0]?.Group?.board}`
-          : "",
-        medium: item?.GroupMemberships[0]?.Group?.medium
-          ? `${item?.GroupMemberships[0]?.Group?.medium}`
-          : "",
-        grade: item?.GroupMemberships[0]?.Group?.grade
-          ? `${item?.GroupMemberships[0]?.Group?.grade}`
-          : "",
-        groupId: item?.GroupMemberships[0]?.Group?.groupId
-          ? `${item?.GroupMemberships[0]?.Group?.groupId}`
-          : "",
+        board:
+          authRes && item?.GroupMemberships[0]?.Group?.board
+            ? `${item?.GroupMemberships[0]?.Group?.board}`
+            : "",
+        medium:
+          authRes && item?.GroupMemberships[0]?.Group?.medium
+            ? `${item?.GroupMemberships[0]?.Group?.medium}`
+            : "",
+        grade:
+          authRes && item?.GroupMemberships[0]?.Group?.grade
+            ? `${item?.GroupMemberships[0]?.Group?.grade}`
+            : "",
+        groupId:
+          authRes && item?.GroupMemberships[0]?.Group?.groupId
+            ? `${item?.GroupMemberships[0]?.Group?.groupId}`
+            : "",
       };
       if (authRes) {
         return new ResponseUserDto(userMapping, false);
@@ -438,7 +544,15 @@ export class ALTHasuraUserService {
     username: string,
     newPassword: string
   ) {
-    const userData: any = await this.getUserByUsername(username, request);
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+
+    const userData: any = await this.getUserByUsername(
+      username,
+      request,
+      altUserRoles
+    );
     let userId;
 
     if (userData?.data?.userId) {
@@ -496,7 +610,7 @@ export class ALTHasuraUserService {
     }
   }
 
-  public async getUserByUsername(username: string, request: any) {
+  public async getUserByUsername(username: string, request: any, altUserRoles) {
     const data = {
       query: `query GetUserByUsername($username:String) {
         Users(where: {username: {_eq: $username}}){
@@ -519,13 +633,16 @@ export class ALTHasuraUserService {
       variables: { username: username },
     };
 
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
     const config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
-      headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
-        "Content-Type": "application/json",
-      },
+      headers: headers,
       data: data,
     };
 
