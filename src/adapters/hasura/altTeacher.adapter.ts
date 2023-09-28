@@ -173,7 +173,7 @@ export class ALTTeacherService {
     teacherDto.role = "teacher";
 
     if (altUserRoles.includes("systemAdmin")) {
-      const createdUser: any = await this.userService.createUser(
+      const createdUser: any = await this.userService.checkAndAddUser(
         request,
         teacherDto,
         bulkToken
