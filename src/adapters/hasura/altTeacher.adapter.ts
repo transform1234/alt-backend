@@ -120,6 +120,7 @@ export class ALTTeacherService {
         });
       }
       // console.log(teacherClasses, "tcs");
+      
       teacherDto.groups = [];
 
       for (let teacherClass of teacherClasses) {
