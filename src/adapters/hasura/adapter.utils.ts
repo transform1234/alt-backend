@@ -131,7 +131,7 @@ async function createUserInKeyCloak(query, token) {
   try {
     userResponse = await axios(config);
   } catch (e) {
-    console.log(e, "Keycloak Creation error");
+    console.log(e.response, "Keycloak Creation error");
     return e;
   }
 
@@ -140,6 +140,55 @@ async function createUserInKeyCloak(query, token) {
   const result = userString.substring(userId + 1);
 
   return result;
+}
+
+async function checkIfEmailExists(email, token) {
+  const axios = require("axios");
+  const config = {
+    method: "get",
+    url:
+      process.env.ALTKEYCLOAKURL +
+      `/admin/realms/hasura-app/users?email=${email}`,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + token,
+    },
+  };
+
+  let userResponse;
+  try {
+    userResponse = await axios(config);
+  } catch (e) {
+    console.log(e, "Keycloak error - email");
+    return e;
+  }
+
+  return userResponse;
+}
+
+async function checkIfUsernameExistsInKeycloak(username, token) {
+  // console.log(username);
+  const axios = require("axios");
+  const config = {
+    method: "get",
+    url:
+      process.env.ALTKEYCLOAKURL +
+      `/admin/realms/hasura-app/users?username=${username}`,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + token,
+    },
+  };
+
+  let userResponse;
+  try {
+    userResponse = await axios(config);
+  } catch (e) {
+    console.log(e, "Keycloak error - username");
+    return e;
+  }
+
+  return userResponse;
 }
 
 function getClasses(classesTaught) {
@@ -165,4 +214,6 @@ export {
   getClasses,
   encryptPassword,
   decryptPassword,
+  checkIfEmailExists,
+  checkIfUsernameExistsInKeycloak,
 };

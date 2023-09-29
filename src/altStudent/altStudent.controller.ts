@@ -59,7 +59,11 @@ export class ALTStudentController {
     @Req() request: Request,
     @Body() studentDto: StudentDto
   ) {
-    return this.altStudentService.createAndAddToGroup(request, studentDto);
+    return this.altStudentService.createAndAddToGroup(
+      request,
+      studentDto,
+      null
+    );
   }
 
   // @Put("/:id")

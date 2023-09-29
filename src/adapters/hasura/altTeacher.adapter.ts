@@ -94,7 +94,11 @@ export class ALTTeacherService {
     });
   }
 
-  public async createAndAddToGroup(request: any, teacherDto: TeacherDto) {
+  public async createAndAddToGroup(
+    request: any,
+    teacherDto: TeacherDto,
+    bulkToken: string
+  ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
@@ -117,7 +121,8 @@ export class ALTTeacherService {
       if (altUserRoles.includes("systemAdmin")) {
         const newCreatedUser: any = await this.createTeacher(
           request,
-          teacherDto
+          teacherDto,
+          bulkToken
         );
         if (newCreatedUser.statusCode === 200) {
           createdUser = newCreatedUser.data;
@@ -151,7 +156,11 @@ export class ALTTeacherService {
     }
   }
 
-  public async createTeacher(request: any, teacherDto: TeacherDto) {
+  public async createTeacher(
+    request: any,
+    teacherDto: TeacherDto,
+    bulkToken: string
+  ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
@@ -164,9 +173,10 @@ export class ALTTeacherService {
     teacherDto.role = "teacher";
 
     if (altUserRoles.includes("systemAdmin")) {
-      const createdUser: any = await this.userService.createUser(
+      const createdUser: any = await this.userService.checkAndAddUser(
         request,
-        teacherDto
+        teacherDto,
+        bulkToken
       );
 
       if (createdUser.statusCode === 200) {

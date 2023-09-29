@@ -5,7 +5,7 @@ import { HasuraGroupService } from "./group.adapter";
 import { ALTBulkUploadStudentDto } from "src/altBulkUploadStudent/dto/alt-bulk-upload-student.dto";
 import { ALTStudentService } from "./altStudent.adapter";
 import { StudentDto } from "src/altStudent/dto/alt-student.dto";
-import { getPassword } from "./adapter.utils";
+import { getPassword, getToken } from "./adapter.utils";
 @Injectable()
 export class ALTBulkUploadStudentService {
   constructor(
@@ -18,37 +18,52 @@ export class ALTBulkUploadStudentService {
   public async createStudents(request: any, bulkStudentDto: [StudentDto]) {
     const responses = [];
     const errors = [];
-    for (const student of bulkStudentDto) {
-
-      const groupRes: any = await this.groupService.getGroupBySchoolClass(
-        request,
-        student.schoolUdise,
-        student.className
-      );
-
-      if (!groupRes.data[0].groupId) {
-        errors.push({
-          name: student.name,
-          groupRes,
-        });
-      } else {
-        student.groups.push(groupRes.data[0].groupId);
-        student.board = groupRes.data[0].board;
-        student.password = getPassword(8);
-        student.status = true;
-        const studentRes: any = await this.studentService.createAndAddToGroup(
+    let bulkToken;
+    try {
+      const response = await getToken();
+      bulkToken = response.data.access_token;
+    } catch (e) {
+      console.log(e);
+      return {
+        msg: "Error getting keycloak token",
+      };
+    }
+    try {
+      for (const student of bulkStudentDto) {
+        const groupRes: any = await this.groupService.getGroupBySchoolClass(
           request,
-          student
+          student.schoolUdise,
+          student.className
         );
-        if (studentRes?.statusCode === 200) {
-          responses.push(studentRes.data);
-        } else {
+
+        if (!groupRes?.data[0]?.groupId) {
           errors.push({
             name: student.name,
-            studentRes,
+            groupRes,
           });
+        } else {
+          student.groups.push(groupRes.data[0].groupId);
+          student.board = groupRes.data[0].board;
+          student.password = getPassword(8);
+          student.status = true;
+          const studentRes: any = await this.studentService.createAndAddToGroup(
+            request,
+            student,
+            bulkToken
+          );
+          if (studentRes?.statusCode === 200) {
+            responses.push(studentRes.data);
+          } else {
+            errors.push({
+              name: student.name,
+              studentRes,
+            });
+          }
         }
       }
+    } catch (e) {
+      console.log(e);
+      errors.push(e);
     }
     return {
       totalCount: bulkStudentDto.length,
