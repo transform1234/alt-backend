@@ -4,15 +4,15 @@ import jwt_decode from "jwt-decode";
 import { SuccessResponse } from "src/success-response";
 import { TeacherDto } from "src/altTeacher/dto/alt-teacher.dto";
 import { ErrorResponse } from "src/error-response";
-import { decryptPassword, getUserRole } from "./adapter.utils";
+import { decryptPassword, getUserRole, getClasses } from "./adapter.utils";
 import { ALTHasuraUserService } from "./altUser.adapter";
 import { GroupMembershipService } from "./groupMembership.adapter";
 import { GroupMembershipDtoById } from "src/groupMembership/dto/groupMembership.dto";
-
+import { HasuraGroupService } from "./group.adapter";
 @Injectable()
 export class ALTTeacherService {
   constructor(
-    private httpService: HttpService,
+    private groupService: HasuraGroupService,
     private userService: ALTHasuraUserService,
     private groupMembershipService: GroupMembershipService
   ) {}
@@ -110,10 +110,37 @@ export class ALTTeacherService {
     teacherDto.updatedBy = creatorUserId;
     teacherDto.role = "teacher";
 
+    if (!bulkToken) {
+      let groupRes;
+      const teacherClasses = getClasses(teacherDto.classesTaught);
+      if (!teacherClasses.length) {
+        return new ErrorResponse({
+          errorCode: "400",
+          errorMessage: "Please add classesTaught",
+        });
+      }
+      // console.log(teacherClasses, "tcs");
+      teacherDto.groups = [];
+
+      for (let teacherClass of teacherClasses) {
+        groupRes = await this.groupService.getGroupBySchoolClass(
+          request,
+          teacherDto.schoolUdise,
+          teacherClass
+        );
+        if (groupRes?.data[0]?.groupId) {
+          teacherDto.groups.push(groupRes.data[0].groupId);
+        }
+      }
+      teacherDto.board = groupRes.data[0].board;
+    }
+
+    // console.log(teacherDto.groups);
+
     if (!teacherDto.groups.length) {
       return new ErrorResponse({
         errorCode: "400",
-        errorMessage: "Please add atleast one group",
+        errorMessage: "Please select Teacher class",
       });
     }
     let createdUser;
