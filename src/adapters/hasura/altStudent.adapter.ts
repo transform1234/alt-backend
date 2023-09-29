@@ -8,12 +8,12 @@ import { decryptPassword, getUserRole } from "./adapter.utils";
 import { ALTHasuraUserService } from "./altUser.adapter";
 import { GroupMembershipService } from "./groupMembership.adapter";
 import { GroupMembershipDtoById } from "src/groupMembership/dto/groupMembership.dto";
-import { query } from "express";
+import { HasuraGroupService } from "./group.adapter";
 
 @Injectable()
 export class ALTStudentService {
   constructor(
-    private httpService: HttpService,
+    private groupService: HasuraGroupService,
     private userService: ALTHasuraUserService,
     private groupMembershipService: GroupMembershipService
   ) {}
@@ -108,12 +108,24 @@ export class ALTStudentService {
     studentDto.updatedBy = creatorUserId;
     studentDto.role = "student";
 
-    if (!studentDto.groups.length) {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage: "Please add atleast one group",
-      });
+    if (!bulkToken) {
+      studentDto.groups = [];
+      const groupRes: any = await this.groupService.getGroupBySchoolClass(
+        request,
+        studentDto.schoolUdise,
+        studentDto.className
+      );
+      if (!groupRes?.data[0]?.groupId) {
+        return new ErrorResponse({
+          errorCode: "400",
+          errorMessage: "Please add atleast one group",
+        });
+      } else {
+        studentDto.board = groupRes.data[0].board;
+        studentDto.groups.push(groupRes.data[0].groupId);
+      }
     }
+
     let createdUser;
     try {
       if (altUserRoles.includes("systemAdmin")) {
@@ -415,7 +427,7 @@ export class ALTStudentService {
     }
   }
 
-  public async mappedResponseForStudent(result: any) {
+  public mappedResponseForStudent(result: any) {
     const userResponse = result.map((item: any) => {
       const userMapping = {
         userId: item?.userId ? `${item.userId}` : "",
@@ -424,6 +436,7 @@ export class ALTStudentService {
         createdAt: item?.createdAt ? `${item.createdAt}` : "",
         createdBy: item?.createdBy ? `${item.createdBy}` : "",
         groups: item?.user?.GroupMemberships ? item.user.GroupMemberships : [],
+        username: item?.user?.username ? item.user.username : "",
       };
       return userMapping;
     });
@@ -440,7 +453,8 @@ export class ALTStudentService {
           userId
           schoolUdise
           user {
-            GroupMemberships(where: {userId: {_eq: $userId}}) {
+            username
+            GroupMemberships {
               groupId
             }
           }
@@ -473,7 +487,7 @@ export class ALTStudentService {
     } else {
       const result = response.data.data.Students;
 
-      const userData = await this.mappedResponseForStudent(result);
+      const userData = this.mappedResponseForStudent(result);
 
       return new SuccessResponse({
         statusCode: response.status,
@@ -517,9 +531,11 @@ export class ALTStudentService {
           studentId
           userId
           schoolUdise
-          groups
           user {
             username
+            GroupMemberships {
+              groupId
+            }
           }
         }
       }
@@ -550,11 +566,11 @@ export class ALTStudentService {
       });
     } else {
       const result = response.data.data.insert_Students_one;
-
+      const userData = this.mappedResponseForStudent([result]);
       return new SuccessResponse({
         statusCode: 200,
         message: "Ok.",
-        data: result,
+        data: userData[0],
       });
     }
   }
