@@ -13,6 +13,7 @@ import {
   createUserInKeyCloak,
   getUsername,
   encryptPassword,
+  getPassword,
   checkIfUsernameExistsInKeycloak,
 } from "./adapter.utils";
 import { ALTUserUpdateDto } from "src/altUser/dto/alt-user-update.dto";
@@ -101,12 +102,22 @@ export class ALTHasuraUserService {
     userDto.createdBy = userId;
     userDto.updatedBy = userId;
 
+   
+    if (!bulkToken) {
+      const response = await getToken(); // generating if required
+      bulkToken = response.data.access_token;
+    }
+
     if (!userDto.username) {
       userDto.username = getUsername(userDto);
     }
     if (!userDto.email) {
       userDto.email = userDto.username + "@yopmail.com";
     }
+    if (!userDto.password) {
+      userDto.password = getPassword(8);
+    }
+    
     const userSchema = new UserDto(userDto, true);
     const usernameExistsInKeycloak = await checkIfUsernameExistsInKeycloak(
       userDto.username,
@@ -180,7 +191,7 @@ export class ALTHasuraUserService {
         if (!bulkToken) {
           const response = await getToken(); // generating if required
           token = response.data.access_token;
-        } 
+        }
         // else {
         //   console.log("Not required" + bulkToken);
         // }
