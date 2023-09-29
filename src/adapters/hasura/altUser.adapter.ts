@@ -13,6 +13,7 @@ import {
   createUserInKeyCloak,
   getUsername,
   encryptPassword,
+  getPassword,
   checkIfUsernameExistsInKeycloak,
 } from "./adapter.utils";
 import { ALTUserUpdateDto } from "src/altUser/dto/alt-user-update.dto";
@@ -101,12 +102,21 @@ export class ALTHasuraUserService {
     userDto.createdBy = userId;
     userDto.updatedBy = userId;
 
+    if (!bulkToken) {
+      const response = await getToken(); // generating if required
+      bulkToken = response.data.access_token;
+    }
+
     if (!userDto.username) {
       userDto.username = getUsername(userDto);
     }
     if (!userDto.email) {
       userDto.email = userDto.username + "@yopmail.com";
     }
+    if (!userDto.password) {
+      userDto.password = getPassword(8);
+    }
+
     const userSchema = new UserDto(userDto, true);
     const usernameExistsInKeycloak = await checkIfUsernameExistsInKeycloak(
       userDto.username,
@@ -114,7 +124,6 @@ export class ALTHasuraUserService {
     );
     if (usernameExistsInKeycloak?.data[0]?.username) {
       // console.log("check in db", usernameExistsInKeycloak?.data[0]?.id);
-
       const usernameExistsInDB: any = await this.getUserByUsername(
         usernameExistsInKeycloak?.data[0]?.username,
         request,
@@ -122,14 +131,28 @@ export class ALTHasuraUserService {
       );
       if (usernameExistsInDB?.statusCode === 200) {
         if (usernameExistsInDB?.data) {
-          console.log(usernameExistsInDB, "usernameExistsInDB");
+          // console.log(usernameExistsInDB, "usernameExistsInDB");
           return {
             user: usernameExistsInDB,
             isNewlyCreated: false,
           };
         } else {
           // const userSchema = new UserDto(userDto, true);
-          console.log(usernameExistsInDB, "username not exist in db");
+          // console.log(usernameExistsInDB, "username not exist in db");
+          const resetPasswordRes: any = await this.resetUserPassword(
+            request,
+            bulkToken,
+            userDto.password,
+            null,
+            usernameExistsInKeycloak?.data[0]?.id
+          );
+          // console.log(resetPasswordRes ,"pres");
+          if (resetPasswordRes.statusCode !== 204) {
+            return new ErrorResponse({
+              errorCode: "400",
+              errorMessage: "Something went wrong in password reset",
+            });
+          }
           const newlyCreatedDbUser = await this.createUserInDatabase(
             request,
             userDto,
@@ -180,7 +203,7 @@ export class ALTHasuraUserService {
         if (!bulkToken) {
           const response = await getToken(); // generating if required
           token = response.data.access_token;
-        } 
+        }
         // else {
         //   console.log("Not required" + bulkToken);
         // }
@@ -227,7 +250,7 @@ export class ALTHasuraUserService {
     request: any,
     userDto: UserDto,
     userSchema,
-    resKeycloak,
+    keycloakUserId,
     altUserRoles
   ) {
     const encryptedPassword = await encryptPassword(userDto["password"]);
@@ -248,7 +271,7 @@ export class ALTHasuraUserService {
     });
 
     // Add userId created in keycloak as user Id of ALT user
-    query += `userId: "${resKeycloak}"`;
+    query += `userId: "${keycloakUserId}"`;
     const data = {
       query: `mutation CreateUser {
         insert_Users_one(object: {${query}}) {
@@ -542,48 +565,49 @@ export class ALTHasuraUserService {
 
   public async resetUserPassword(
     request: any,
+    bulkToken: string,
+    newPassword: string,
     username: string,
-    newPassword: string
+    userId: string
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
 
-    const userData: any = await this.getUserByUsername(
-      username,
-      request,
-      altUserRoles
-    );
-    let userId;
-
-    if (userData?.data?.userId) {
-      userId = userData.data.userId;
-    } else {
-      return new ErrorResponse({
-        errorCode: `404`,
-        errorMessage: "User with given username not found",
-      });
+    if (!userId) {
+      const userData: any = await this.getUserByUsername(
+        username,
+        request,
+        altUserRoles
+      );
+      if (userData?.data?.userId) {
+        userId = userData.data.userId;
+      } else {
+        return new ErrorResponse({
+          errorCode: `404`,
+          errorMessage: "User with given username not found",
+        });
+      }
     }
-
     const data = JSON.stringify({
       temporary: "false",
       type: "password",
       value: newPassword,
     });
 
-    const response = await getToken();
-    const res = response.data.access_token;
+    if (!bulkToken) {
+      const response = await getToken();
+      bulkToken = response.data.access_token;
+    }
+
     let apiResponse;
 
     const config = {
       method: "put",
-      url:
-        "https://alt-shiksha.uniteframework.io/auth/admin/realms/hasura/users/" +
-        userId +
-        "/reset-password",
+      url: process.env.ALTKEYCLOAK + "/" + userId + "/reset-password",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer " + res,
+        Authorization: "Bearer " + bulkToken,
       },
       data: data,
     };

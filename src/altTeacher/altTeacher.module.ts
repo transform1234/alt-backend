@@ -4,6 +4,7 @@ import { ALTTeacherController } from "./altTeacher.controller";
 import { ALTTeacherService } from "src/adapters/hasura/altTeacher.adapter";
 import { ALTHasuraUserService } from "src/adapters/hasura/altUser.adapter";
 import { GroupMembershipService } from "src/adapters/hasura/groupMembership.adapter";
+import { HasuraGroupService } from "src/adapters/hasura/group.adapter";
 
 const ttl = process.env.TTL as never;
 
@@ -15,6 +16,11 @@ const ttl = process.env.TTL as never;
     }),
   ],
   controllers: [ALTTeacherController],
-  providers: [ALTTeacherService, ALTHasuraUserService, GroupMembershipService],
+  providers: [
+    ALTTeacherService,
+    ALTHasuraUserService,
+    GroupMembershipService,
+    HasuraGroupService,
+  ],
 })
 export class ALTTeachertModule {}

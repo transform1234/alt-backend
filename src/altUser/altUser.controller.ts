@@ -116,8 +116,10 @@ export class ALTUserController {
   ) {
     return this.hasuraUserService.resetUserPassword(
       request,
+      null, // token
+      reqBody.newPassword,
       reqBody.userName,
-      reqBody.newPassword
+      null //userId
     );
   }
 }
