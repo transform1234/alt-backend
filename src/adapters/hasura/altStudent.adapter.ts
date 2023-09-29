@@ -118,7 +118,7 @@ export class ALTStudentService {
       if (!groupRes?.data[0]?.groupId) {
         return new ErrorResponse({
           errorCode: "400",
-          errorMessage: "Please add atleast one group",
+          errorMessage: "Please add atleast one class",
         });
       } else {
         studentDto.board = groupRes.data[0].board;
