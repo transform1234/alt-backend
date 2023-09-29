@@ -119,13 +119,21 @@ export class ALTTeacherService {
     let createdUser;
     try {
       if (altUserRoles.includes("systemAdmin")) {
-        const newCreatedUser: any = await this.createTeacher(
+        const newCreatedTeacher: any = await this.createTeacher(
           request,
           teacherDto,
           bulkToken
         );
-        if (newCreatedUser.statusCode === 200) {
-          createdUser = newCreatedUser.data;
+        // console.log(newCreatedTeacher?.data, "test");
+        if (
+          newCreatedTeacher?.statusCode === 200 &&
+          newCreatedTeacher?.data?.groups[0]?.groupId
+        ) {
+          // newCreatedTeacher?.data?.user?.GroupMemberships?.groupId
+          return newCreatedTeacher;
+        } else if (newCreatedTeacher.statusCode === 200) {
+          teacherDto.userId = newCreatedTeacher?.data?.userId;
+          createdUser = newCreatedTeacher.data;
           createdUser.groupAddResponse = await this.addToGroups(
             teacherDto,
             request
@@ -138,8 +146,8 @@ export class ALTTeacherService {
           });
         } else {
           return new ErrorResponse({
-            errorCode: "500",
-            errorMessage: "Create and add to group failed",
+            errorCode: "400",
+            errorMessage: `Create and add to group failed,  ${newCreatedTeacher?.errorMessage}`,
           });
         }
       }
@@ -179,78 +187,45 @@ export class ALTTeacherService {
         bulkToken
       );
 
-      if (createdUser.statusCode === 200) {
-        teacherDto.userId = createdUser.data.userId;
-        const teacherSchema = new TeacherDto(teacherDto, false);
-        let query = "";
+      const userId = createdUser?.user.data.userId;
 
-        Object.keys(teacherDto).forEach((e) => {
-          if (
-            (teacherDto[e] || teacherDto[e] === 0) &&
-            teacherDto[e] !== "" &&
-            e != "password" &&
-            e !== "groups" &&
-            Object.keys(teacherSchema).includes(e)
-          ) {
-            if (Array.isArray(teacherDto[e])) {
-              query += `${e}: \"${JSON.stringify(teacherDto[e])
-                .replace("[", "{")
-                .replace("]", "}")
-                .replace(/\"/g, "")}\", `;
-            } else {
-              query += `${e}: ${JSON.stringify(teacherDto[e])}, `;
-            }
+      if (!createdUser?.isNewlyCreated) {
+        // console.log(createdUser, "created user is old");
+        const existingTeacher: any = await this.getTeacherByUserId(
+          userId,
+          request,
+          altUserRoles
+        );
+        // console.log(existingTeacher, "exts");
+        if (existingTeacher?.statusCode === 200) {
+          if (existingTeacher?.data) {
+            existingTeacher.data.userId = createdUser?.user.data.userId;
+            existingTeacher.data.username = createdUser?.user.data.username;
+            existingTeacher.data.message = "User Already exists";
+            return existingTeacher;
+          } else {
+            return this.createTeacherInDatabase(
+              teacherDto,
+              userId,
+              request,
+              altUserRoles
+            );
           }
-        });
-
-        const data = {
-          query: `mutation CreateTeacher {
-            insert_Teachers_one(object: {${query}}) {
-              teacherId
-              userId
-              schoolUdise
-              user {
-                username
-              }
-            }
-          }
-          `,
-          variables: {},
-        };
-
-        const headers = {
-          Authorization: request.headers.authorization,
-          "x-hasura-role": getUserRole(altUserRoles),
-          "Content-Type": "application/json",
-        };
-
-        const config = {
-          method: "post",
-          url: process.env.REGISTRYHASURA,
-          headers: headers,
-          data: data,
-        };
-
-        const response = await this.axios(config);
-        if (response?.data?.errors) {
-          console.log(response.data.errors);
-          return new ErrorResponse({
-            errorCode: response.data.errors[0].extensions,
-            errorMessage: response.data.errors[0].message,
-          });
-        } else {
-          const result = response.data.data.insert_Teachers_one;
-          return new SuccessResponse({
-            statusCode: 200,
-            message: "Ok.",
-            data: result,
-          });
         }
       } else {
-        return new ErrorResponse({
-          errorCode: "500",
-          errorMessage: createdUser?.errorMessage,
-        });
+        if (createdUser?.user.statusCode === 200) {
+          return this.createTeacherInDatabase(
+            teacherDto,
+            userId,
+            request,
+            altUserRoles
+          );
+        } else {
+          return new ErrorResponse({
+            errorCode: "500",
+            errorMessage: createdUser?.errorMessage,
+          });
+        }
       }
     } else {
       return new ErrorResponse({
@@ -465,6 +440,156 @@ export class ALTTeacherService {
       return new ErrorResponse({
         errorCode: "500",
         errorMessage: "Error while adding to group",
+      });
+    }
+  }
+
+  public mappedResponseForTeacher(result: any) {
+    const userResponse = result.map((item: any) => {
+      const userMapping = {
+        userId: item?.userId ? `${item.userId}` : "",
+        teacherId: item?.teacherId ? `${item.teacherId}` : "",
+        schoolUdise: item?.schoolUdise ? `${item.schoolUdise}` : "",
+        createdAt: item?.createdAt ? `${item.createdAt}` : "",
+        createdBy: item?.createdBy ? `${item.createdBy}` : "",
+        groups: item?.user?.GroupMemberships ? item.user.GroupMemberships : [],
+        username: item?.user?.username ? item.user.username : "",
+      };
+      return userMapping;
+    });
+    return userResponse;
+  }
+
+  public async getTeacherByUserId(userId: string, request: any, altUserRoles) {
+    const data = {
+      query: `query GetTeacherByUserId($userId:uuid!) {
+        Teachers(where: {userId: {_eq: $userId}}){
+          createdAt
+          createdBy
+          teacherId
+          userId
+          schoolUdise
+          user {
+            username
+            GroupMemberships(where: {userId: {_eq: $userId}}) {
+              groupId
+            }
+          }
+        }
+      }
+      `,
+      variables: { userId: userId },
+    };
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    } else {
+      const result = response.data.data.Teachers;
+
+      const userData = this.mappedResponseForTeacher(result);
+
+      return new SuccessResponse({
+        statusCode: response.status,
+        message: "Ok.",
+        data: userData[0],
+      });
+    }
+  }
+
+  public async createTeacherInDatabase(
+    teacherDto,
+    createdUserId,
+    request,
+    altUserRoles
+  ) {
+    teacherDto.userId = createdUserId;
+    const teacherSchema = new TeacherDto(teacherDto, false);
+    let query = "";
+
+    Object.keys(teacherDto).forEach((e) => {
+      if (
+        (teacherDto[e] || teacherDto[e] === 0) &&
+        teacherDto[e] !== "" &&
+        e != "password" &&
+        e !== "groups" &&
+        Object.keys(teacherSchema).includes(e)
+      ) {
+        if (Array.isArray(teacherDto[e])) {
+          query += `${e}: \"${JSON.stringify(teacherDto[e])
+            .replace("[", "{")
+            .replace("]", "}")
+            .replace(/\"/g, "")}\", `;
+        } else {
+          query += `${e}: ${JSON.stringify(teacherDto[e])}, `;
+        }
+      }
+    });
+
+    const data = {
+      query: `mutation CreateTeacher {
+        insert_Teachers_one(object: {${query}}) {
+          createdAt
+          createdBy
+          teacherId
+          userId
+          schoolUdise
+          user {
+            username
+            GroupMemberships {
+              groupId
+            }
+          }
+        }
+      }
+      `,
+      variables: {},
+    };
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+    if (response?.data?.errors) {
+      console.log(response.data.errors);
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    } else {
+      const result = response.data.data.insert_Teachers_one;
+      const userData = this.mappedResponseForTeacher([result]);
+      return new SuccessResponse({
+        statusCode: 200,
+        message: "Ok.",
+        data: userData[0],
       });
     }
   }
