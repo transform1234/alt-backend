@@ -122,7 +122,7 @@ export class ALTHasuraUserService {
       );
       if (usernameExistsInDB?.statusCode === 200) {
         if (usernameExistsInDB?.data) {
-          // console.log(usernameExistsInDB, "usernameExistsInDB");
+          console.log(usernameExistsInDB, "usernameExistsInDB");
           return {
             user: usernameExistsInDB,
             isNewlyCreated: false,
@@ -180,9 +180,10 @@ export class ALTHasuraUserService {
         if (!bulkToken) {
           const response = await getToken(); // generating if required
           token = response.data.access_token;
-        } else {
-          console.log("Not required" + bulkToken);
-        }
+        } 
+        // else {
+        //   console.log("Not required" + bulkToken);
+        // }
         resKeycloak = await createUserInKeyCloak(userSchema, token).catch(
           (error) => {
             errKeycloak = error.response?.data.errorMessage;
