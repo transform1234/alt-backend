@@ -34,7 +34,6 @@ function getPassword(length: number) {
     result += chars[Math.floor(Math.random() * chars.length)];
   // let timestamp = Math.floor(Date.now() / 1000).toString();
   // result += timestamp;
-  console.log(result , "PASSWORD")
   return result;
 }
 
