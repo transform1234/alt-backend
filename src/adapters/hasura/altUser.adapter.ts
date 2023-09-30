@@ -271,7 +271,7 @@ export class ALTHasuraUserService {
       }
     });
 
-    // Add userId created in keycloak as user Id of ALT user
+    // Add userId created in keycloak as user Id of ALT user in database
     query += `userId: "${keycloakUserId}"`;
     const data = {
       query: `mutation CreateUser {
