@@ -52,6 +52,13 @@ export class ALTUserUpdateDto {
   @Expose()
   status: boolean;
 
+  @ApiProperty({
+    type: String,
+    description: "Password",
+  })
+  @Expose()
+  password: string;
+
   @Expose()
   createdAt: string;
 

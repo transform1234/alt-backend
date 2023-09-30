@@ -139,7 +139,7 @@ export class ALTHasuraUserService {
         } else {
           // const userSchema = new UserDto(userDto, true);
           // console.log(usernameExistsInDB, "username not exist in db");
-          const resetPasswordRes: any = await this.resetUserPassword(
+          const resetPasswordRes: any = await this.resetKeycloakPassword(
             request,
             bulkToken,
             userDto.password,
@@ -254,6 +254,7 @@ export class ALTHasuraUserService {
     altUserRoles
   ) {
     const encryptedPassword = await encryptPassword(userDto["password"]);
+    const encPass = encryptedPassword.toString();
 
     let query = "";
     Object.keys(userDto).forEach((e) => {
@@ -261,7 +262,7 @@ export class ALTHasuraUserService {
         if (e === "role") {
           query += `${e}: ${userDto[e]},`;
         } else if (e === "password") {
-          query += `${e}: ${JSON.stringify(encryptedPassword)}, `;
+          query += `${e}: ${encPass},`;
         } else if (Array.isArray(userDto[e])) {
           query += `${e}: ${JSON.stringify(userDto[e])}, `;
         } else {
@@ -322,13 +323,11 @@ export class ALTHasuraUserService {
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
 
-    const userSchema = new UserUpdateDto(userUpdateDto);
+    const userSchema = new ALTUserUpdateDto(userUpdateDto);
     let userUpdate = "";
     Object.keys(userUpdateDto).forEach((e) => {
-      if (Object.keys(userSchema).includes(e)) {
-        if (e === "role") {
-          userUpdate += `${e}: ${userUpdateDto[e]},`;
-        } else if (Array.isArray(userUpdateDto[e])) {
+      if (userUpdateDto[e] !== "" && Object.keys(userSchema).includes(e)) {
+        if (Array.isArray(userUpdateDto[e])) {
           userUpdate += `${e}: ${JSON.stringify(userUpdateDto[e])}, `;
         } else {
           userUpdate += `${e}: ${JSON.stringify(userUpdateDto[e])}, `;
@@ -563,7 +562,61 @@ export class ALTHasuraUserService {
     }
   }
 
-  public async resetUserPassword(
+  public async getUserByUsername(username: string, request: any, altUserRoles) {
+    const data = {
+      query: `query GetUserByUsername($username:String) {
+        Users(where: {username: {_eq: $username}}){
+          userId
+          name
+          username
+          email
+          mobile
+          gender
+          dateOfBirth
+          role
+          status
+          createdAt
+          updatedAt
+          createdBy
+          updatedBy
+        }
+      }
+      `,
+      variables: { username: username },
+    };
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    } else {
+      const result = response.data.data.Users;
+      const userData = await this.mappedResponse(result, false);
+      return new SuccessResponse({
+        statusCode: response.status,
+        message: "Ok.",
+        data: userData[0],
+      });
+    }
+  }
+
+  public async resetKeycloakPassword(
     request: any,
     bulkToken: string,
     newPassword: string,
@@ -635,56 +688,64 @@ export class ALTHasuraUserService {
     }
   }
 
-  public async getUserByUsername(username: string, request: any, altUserRoles) {
-    const data = {
-      query: `query GetUserByUsername($username:String) {
-        Users(where: {username: {_eq: $username}}){
-          userId
-          name
-          username
-          email
-          mobile
-          gender
-          dateOfBirth
-          role
-          status
-          createdAt
-          updatedAt
-          createdBy
-          updatedBy
-        }
-      }
-      `,
-      variables: { username: username },
-    };
+  public async resetUserPassword(
+    request: any,
+    password: string,
+    username: string
+  ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    let userId;
 
-    const headers = {
-      Authorization: request.headers.authorization,
-      "x-hasura-role": getUserRole(altUserRoles),
-      "Content-Type": "application/json",
-    };
-
-    const config = {
-      method: "post",
-      url: process.env.REGISTRYHASURA,
-      headers: headers,
-      data: data,
-    };
-
-    const response = await this.axios(config);
-
-    if (response?.data?.errors) {
+    const userData: any = await this.getUserByUsername(
+      username,
+      request,
+      altUserRoles
+    );
+    if (userData?.data?.userId) {
+      userId = userData.data.userId;
+    } else {
       return new ErrorResponse({
-        errorCode: response.data.errors[0].extensions,
-        errorMessage: response.data.errors[0].message,
+        errorCode: `404`,
+        errorMessage: "User with given username not found",
+      });
+    }
+    const resetPasswordRes: any = await this.resetKeycloakPassword(
+      request,
+      null,
+      password,
+      null,
+      userId
+    );
+
+    if (resetPasswordRes.statusCode !== 204) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Something went wrong in password reset",
+      });
+    }
+    const encryptedPassword = await encryptPassword(password);
+
+    const encPass = encryptedPassword.toString();
+
+    const userPasswordSchema = new ALTUserUpdateDto({ password: encPass });
+
+    const updatedPassword: any = await this.updateUser(
+      userId,
+      request,
+      userPasswordSchema
+    );
+
+    if (updatedPassword.statusCode === 200) {
+      return new SuccessResponse({
+        statusCode: updatedPassword.statusCode,
+        message: "Password reset successful!",
       });
     } else {
-      const result = response.data.data.Users;
-      const userData = await this.mappedResponse(result, false);
-      return new SuccessResponse({
-        statusCode: response.status,
-        message: "Ok.",
-        data: userData[0],
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Something went wrong in password reset",
       });
     }
   }
