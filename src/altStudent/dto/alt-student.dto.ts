@@ -146,6 +146,9 @@ export class StudentDto {
   @Expose()
   noOfSiblings: number;
 
+  @Expose()
+  schoolName: string;
+
   constructor(obj: any, all: boolean) {
     this.userId = obj?.userId ? `${obj.userId}` : "";
     this.studentId = obj?.studentId ? `${obj.studentId}` : "";
@@ -173,6 +176,8 @@ export class StudentDto {
       this.role = obj?.role ? `${obj?.role}` : "";
       this.username = obj?.username ? `${obj?.username}` : "";
       this.password = obj?.password ? `${obj?.password}` : "";
+      this.schoolName = obj?.schoolName ? `${obj?.schoolName}` : "";
+      this.className = obj?.className ? `${obj?.className}` : "";
     }
   }
 }
