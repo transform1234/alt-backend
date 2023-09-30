@@ -189,7 +189,7 @@ export class ALTStudentService {
     studentDto.createdBy = creatorUserId;
     studentDto.updatedBy = creatorUserId;
     studentDto.role = "student";
-
+    let userId;
     if (altUserRoles.includes("systemAdmin")) {
       const createdUser: any = await this.userService.checkAndAddUser(
         request,
@@ -198,7 +198,11 @@ export class ALTStudentService {
       );
       // entry in student
 
-      const userId = createdUser?.user.data.userId;
+      try {
+        userId = createdUser?.user.data.userId;
+      } catch (e) {
+        return createdUser?.user;
+      }
 
       if (!createdUser?.isNewlyCreated) {
         // console.log(createdUser, "created user is old");
