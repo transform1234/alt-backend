@@ -110,16 +110,14 @@ export class ALTUserController {
     @Req() request: Request,
     @Body()
     reqBody: {
-      userName: string;
+      username: string;
       newPassword: string;
     }
   ) {
     return this.hasuraUserService.resetUserPassword(
       request,
-      null, // token
       reqBody.newPassword,
-      reqBody.userName,
-      null //userId
+      reqBody.username,
     );
   }
 }

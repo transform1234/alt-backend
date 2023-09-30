@@ -118,7 +118,7 @@ export class ALTStudentService {
       if (!groupRes?.data[0]?.groupId) {
         return new ErrorResponse({
           errorCode: "400",
-          errorMessage: "Please add atleast one class",
+          errorMessage: "No group found for given class and school",
         });
       } else {
         studentDto.board = groupRes.data[0].board;
@@ -189,7 +189,7 @@ export class ALTStudentService {
     studentDto.createdBy = creatorUserId;
     studentDto.updatedBy = creatorUserId;
     studentDto.role = "student";
-
+    let userId;
     if (altUserRoles.includes("systemAdmin")) {
       const createdUser: any = await this.userService.checkAndAddUser(
         request,
@@ -198,7 +198,11 @@ export class ALTStudentService {
       );
       // entry in student
 
-      const userId = createdUser?.user.data.userId;
+      try {
+        userId = createdUser?.user.data.userId;
+      } catch (e) {
+        return createdUser?.user;
+      }
 
       if (!createdUser?.isNewlyCreated) {
         // console.log(createdUser, "created user is old");
@@ -276,6 +280,12 @@ export class ALTStudentService {
         name: item?.user?.name ? `${item.user.name}` : "",
         role: item?.user?.role ? `${item.user.role}` : "",
         username: item?.user?.username ? `${item.user.username}` : "",
+        className: item?.user?.GroupMemberships[0]?.Group?.name
+          ? `${item?.user?.GroupMemberships[0]?.Group?.name}`
+          : "",
+        schoolName: item?.user?.GroupMemberships[0]?.School?.name
+          ? `${item?.user?.GroupMemberships[0]?.School?.name}`
+          : "",
       };
       promises.push(new StudentDto(studentMapping, true));
       //  return new StudentDto(studentMapping, true);
@@ -350,6 +360,14 @@ export class ALTStudentService {
                 dateOfBirth
                 createdBy
                 createdAt
+                GroupMemberships {
+                  School {
+                    name
+                  }
+                  Group {
+                    name
+                  }
+                }  
               }
             }
           }`,
