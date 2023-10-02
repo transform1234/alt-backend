@@ -7,7 +7,6 @@ import { SchoolDto } from "src/school/dto/school.dto";
 import { SchoolSearchDto } from "src/school/dto/school-search.dto";
 import { IServicelocator } from "../schoolservicelocator";
 import { getUserGroup, getUserRole } from "./adapter.utils";
-import { log } from "console";
 
 export const HasuraSchoolToken = "HasuraSchool";
 @Injectable()
@@ -34,8 +33,7 @@ export class SchoolHasuraService implements IServicelocator {
           e === "management" ||
         e === "headmasterType" ||
           e === "composition" ||
-          e === "mediumOfInstruction" ||
-          e === "headmaster" || e === "smartBoardFunctionalClass6" || e === "smartBoardFunctionalClass7"
+          e === "mediumOfInstruction" || e === "smartBoardFunctionalClass6" || e === "smartBoardFunctionalClass7"
           || e === "smartBoardFunctionalClass8" || e ==="smartBoardFunctionalClass9" || e === "smartBoardFunctionalClass10" ||
           e === "location" || e === "computerLabFunctional"
         ) {
