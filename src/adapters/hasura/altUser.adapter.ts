@@ -94,6 +94,7 @@ export class ALTHasuraUserService {
     userDto: UserDto,
     bulkToken: string
   ) {
+
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
@@ -160,6 +161,7 @@ export class ALTHasuraUserService {
             usernameExistsInKeycloak?.data[0]?.id,
             altUserRoles
           );
+          
           return {
             user: newlyCreatedDbUser,
             isNewlyCreated: true,
@@ -262,7 +264,7 @@ export class ALTHasuraUserService {
         if (e === "role") {
           query += `${e}: ${userDto[e]},`;
         } else if (e === "password") {
-          query += `${e}: ${encPass},`;
+          query += `${e}: "${encPass}",`;
         } else if (Array.isArray(userDto[e])) {
           query += `${e}: ${JSON.stringify(userDto[e])}, `;
         } else {
