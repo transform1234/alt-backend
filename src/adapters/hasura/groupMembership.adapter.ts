@@ -263,16 +263,15 @@ export class GroupMembershipService {
     request: any,
     groupMembershipSearchDto: GroupMembershipSearchDto
   ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     let offset = 0;
     if (groupMembershipSearchDto.page > 1) {
       offset =
         parseInt(groupMembershipSearchDto.limit) *
         (groupMembershipSearchDto.page - 1);
     }
-
-    const decoded: any = jwt_decode(request.headers.authorization);
-    groupMembershipSearchDto.filters.userId =
-      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
     let query = "";
     Object.keys(groupMembershipSearchDto.filters).forEach((e) => {
@@ -287,15 +286,19 @@ export class GroupMembershipService {
     var data = {
       query: `query SearchGroupMembership($limit:Int, $offset:Int) {
            GroupMembership(where:{${query}}, limit: $limit, offset: $offset,) {
-            created_at
-            groupId
             groupMembershipId
-            schoolId
-            role
-            updated_at
+            schoolUdise
             userId
+            groupId
+            role
             createdBy
             updatedBy
+            createdAt
+            updatedAt
+            Group {
+              groupId
+              name
+            }
             }
           }`,
       variables: {
@@ -308,6 +311,7 @@ export class GroupMembershipService {
       url: process.env.REGISTRYHASURA,
       headers: {
         Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
         "Content-Type": "application/json",
       },
       data: data,
@@ -342,12 +346,13 @@ export class GroupMembershipService {
         userId: obj?.userId ? `${obj.userId}` : "",
         groupId: obj?.groupId ? `${obj.groupId}` : "",
         role: obj?.role ? `${obj.role}` : "",
-        createdAt: obj?.created_at ? `${obj.created_at}` : "",
-        updatedAt: obj?.updated_at ? `${obj.updated_at}` : "",
+        createdAt: obj?.createdAt ? `${obj.createdAt}` : "",
+        updatedAt: obj?.updatedAt ? `${obj.updatedAt}` : "",
         createdBy: obj?.createdBy ? `${obj.createdBy}` : "",
         updatedBy: obj?.updatedBy ? `${obj.updatedBy}` : "",
+        groupName: obj?.Group.name ? `${obj.Group.name}` : "",
       };
-      return new GroupMembershipDto(groupMembershipMapping);
+      return new GroupMembershipDtoById(groupMembershipMapping);
     });
 
     return groupMembershipResponse;

@@ -6,22 +6,25 @@ export class GroupMembershipDto {
   @Expose()
   groupMembershipId: string;
 
-  @ApiProperty()
+  // @ApiProperty()
   @Expose()
   groupId: string;
 
-  @ApiProperty()
+  // @ApiProperty()
   @Expose()
   schoolId: string;
-
+ 
+  @ApiProperty()
   @Expose()
   @IsNotEmpty()
   @IsUUID()
   userId: string;
 
-  @ApiProperty()
+  // @ApiProperty()
   @Expose()
   role: string;
+
+
 
   @Expose()
   createdBy: string;
@@ -74,6 +77,9 @@ export class GroupMembershipDtoById {
   @Expose()
   updatedAt: string;
 
+  @Expose()
+  groupName: string;
+
   constructor(obj: any) {
     this.groupMembershipId = obj?.groupMembershipId
       ? `${obj?.groupMembershipId}`
@@ -86,5 +92,7 @@ export class GroupMembershipDtoById {
     this.updatedBy = obj?.updatedBy ? `${obj.updatedBy}` : "";
     this.createdAt = obj?.createdAt ? `${obj.createdAt}` : "";
     this.updatedAt = obj?.updatedAt ? `${obj.updatedAt}` : "";
+
+    this.groupName = obj?.groupName ? `${obj.groupName}` : "";
   }
 }
