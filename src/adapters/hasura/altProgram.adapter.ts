@@ -7,6 +7,8 @@ import { IProgramServicelocator } from "../programservicelocator";
 import { ErrorResponse } from "src/error-response";
 import { UpdateALTProgramDto } from "src/altProgram/dto/updateAltProgram.dto";
 import { ALTProgramSearch } from "src/altProgram/dto/searchAltProgram.dto";
+import { getUserRole } from "./adapter.utils";
+import jwt_decode from "jwt-decode";
 
 @Injectable()
 export class ProgramService implements IProgramServicelocator {
@@ -32,7 +34,7 @@ export class ProgramService implements IProgramServicelocator {
     return programResponse;
   }
 
-  public async getProgramDetailsById(request: any,programId: string) {
+  public async getProgramDetailsById(request: any, programId: string) {
     const programData = {
       query: `query GetProgramDetailsById ($programId:uuid!) {
               AssessProgram_by_pk(programId:$programId) {
@@ -55,7 +57,7 @@ export class ProgramService implements IProgramServicelocator {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: programData,
@@ -111,7 +113,7 @@ export class ProgramService implements IProgramServicelocator {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: programData,
@@ -140,6 +142,9 @@ export class ProgramService implements IProgramServicelocator {
   }
 
   public async createProgram(request: any, programdto: ProgramDto) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     const programSchema = new ProgramDto(programdto);
     let newProgramData = "";
     Object.keys(programdto).forEach((key) => {
@@ -160,12 +165,13 @@ export class ProgramService implements IProgramServicelocator {
           }`,
       variables: {},
     };
-
     const configData = {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+
         "Content-Type": "application/json",
       },
       data: programData,
@@ -181,7 +187,6 @@ export class ProgramService implements IProgramServicelocator {
     }
 
     const result = response.data.data.insert_AssessProgram_one;
-
     return new SuccessResponse({
       statusCode: 200,
       message: "Ok.",
@@ -190,7 +195,7 @@ export class ProgramService implements IProgramServicelocator {
   }
 
   // public async updateProgram(
-    // request: any,
+  // request: any,
   //   programId: string,
   //   updateAltProgramDto: UpdateALTProgramDto
   // ) {
@@ -259,8 +264,14 @@ export class ProgramService implements IProgramServicelocator {
   //   });
   // }
 
-  public async searchALTProgram(request: any,altProgramSearch: ALTProgramSearch) {
+  public async searchALTProgram(
+    request: any,
+    altProgramSearch: ALTProgramSearch
+  ) {
     var axios = require("axios");
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
 
     let query = "";
     Object.keys(altProgramSearch.filters).forEach((e) => {
@@ -295,7 +306,9 @@ export class ProgramService implements IProgramServicelocator {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+
         "Content-Type": "application/json",
       },
       data: searchData,

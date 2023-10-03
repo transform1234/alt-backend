@@ -7,6 +7,8 @@ import { ProgramAssociationDto } from "src/altProgramAssociation/dto/altProgramA
 import { UpdateALTProgramAssociationDto } from "src/altProgramAssociation/dto/updateAltProgramAssociation.dto";
 import { ErrorResponse } from "src/error-response";
 import { ALTProgramAssociationSearch } from "src/altProgramAssociation/dto/searchAltProgramAssociation.dto";
+import jwt_decode from "jwt-decode";
+import { getUserRole } from "./adapter.utils";
 
 Injectable();
 export class ALTProgramAssociationService {
@@ -61,7 +63,7 @@ export class ALTProgramAssociationService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: subjectListData,
@@ -114,7 +116,7 @@ export class ALTProgramAssociationService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: TermsProgramtoRulesData,
@@ -143,12 +145,15 @@ export class ALTProgramAssociationService {
     programAssociationDto: ProgramAssociationDto
   ) {
     const programSchema = new ProgramAssociationDto(programAssociationDto);
-
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     let newProgramAssociationData = "";
+
     Object.keys(programAssociationDto).forEach((key) => {
       if (
-        programAssociationDto[key] &&
-        programAssociationDto[key] != "" &&
+        // programAssociationDto[key] &&
+        // programAssociationDto[key] != "" &&
         Object.keys(programSchema).includes(key)
       ) {
         newProgramAssociationData += `${key}: ${JSON.stringify(
@@ -157,27 +162,41 @@ export class ALTProgramAssociationService {
       }
     });
 
-    const programData = {
-      query: `mutation CreateProgram {
-                insert_ProgramTermAssoc_one(object: {${newProgramAssociationData}}) {
-                  progAssocNo
-            }
-          }`,
-      variables: {},
-    };
+    const rulesString = JSON.stringify(programAssociationDto.rules);
 
+    const programData = {
+      query: ` mutation CreateProgram($rules: String) {
+        insert_ProgramTermAssoc_one(object: {
+          board: "${programAssociationDto.board}",
+          medium: "${programAssociationDto.medium}",
+          grade: "${programAssociationDto.grade}",
+          subject: "${programAssociationDto.subject}",
+          programId: "${programAssociationDto.programId}",
+          rules: $rules
+        }) {
+          progAssocNo
+          board
+          medium
+          grade
+        }
+      }`,
+      variables: {
+        rules: rulesString,
+      },
+    };
     const configData = {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+
         "Content-Type": "application/json",
       },
       data: programData,
     };
 
     const response = await this.axios(configData);
-
     if (response?.data?.errors) {
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
@@ -301,7 +320,7 @@ export class ALTProgramAssociationService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: searchData,

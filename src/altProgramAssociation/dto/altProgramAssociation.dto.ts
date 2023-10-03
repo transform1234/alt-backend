@@ -47,10 +47,12 @@ export class ProgramAssociationDto {
   @IsString()
   @IsNotEmpty()
   @ApiProperty({
-    type: String,
+    type: Object,
     description: "Rules of respctive courses",
   })
-  rules: string;
+  rules: object;
+
+ 
 
   @Expose()
   @IsUUID()
@@ -61,11 +63,7 @@ export class ProgramAssociationDto {
   })
   programId: string;
 
-  @Expose()
-  created_at: string;
-
-  @Expose()
-  updated_at: string;
+ 
 
   constructor(obj: any) {
     Object.assign(this, obj);
