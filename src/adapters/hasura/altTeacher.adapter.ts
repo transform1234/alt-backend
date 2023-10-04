@@ -207,6 +207,7 @@ export class ALTTeacherService {
     teacherDto.createdBy = creatorUserId;
     teacherDto.updatedBy = creatorUserId;
     teacherDto.role = "teacher";
+    let userId;
 
     if (altUserRoles.includes("systemAdmin")) {
       const createdUser: any = await this.userService.checkAndAddUser(
@@ -215,7 +216,11 @@ export class ALTTeacherService {
         bulkToken
       );
 
-      const userId = createdUser?.user.data.userId;
+      try {
+        userId = createdUser?.user.data.userId;
+      } catch (e) {
+        return createdUser?.user;
+      }
 
       if (!createdUser?.isNewlyCreated) {
         // console.log(createdUser, "created user is old");
