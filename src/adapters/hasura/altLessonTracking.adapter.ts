@@ -37,6 +37,8 @@ export class ALTLessonTrackingService {
         score: item?.score ? `${item.score}` : 0,
         status: item?.status ? `${item.status}` : 0,
         scoreDetails: item?.scoreDetails ? `${item.scoreDetails}` : "",
+        duration: item?.duration ? `${item.duration}` : "",
+        contentType: item?.contentType ? `${item.contentType}` : "",
       };
 
       return new ALTLessonTrackingDto(altLessonMapping);
@@ -63,6 +65,8 @@ export class ALTLessonTrackingService {
             createdBy
             status
             attempts
+            duration
+            contentType
         } }`,
       variables: {
         userId: altUserId,
@@ -75,7 +79,7 @@ export class ALTLessonTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altLessonTrackingRecord,
@@ -128,7 +132,7 @@ export class ALTLessonTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altLastLessonTrackingRecord,
@@ -183,6 +187,8 @@ export class ALTLessonTrackingService {
                   attempts
                   status
                   score
+                  duration
+                  contentType
                   scoreDetails
                 }
               }                 
@@ -197,7 +203,7 @@ export class ALTLessonTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: ALTLessonTrackingData,
@@ -381,7 +387,7 @@ export class ALTLessonTrackingService {
               }
 
               if (lastRecord[0]?.status !== "completed") {
-                const lessonTrack : any = await this.updateALTLessonTracking(
+                const lessonTrack: any = await this.updateALTLessonTracking(
                   request,
                   altLessonTrackingDto.lessonId,
                   altLessonTrackingDto,
@@ -391,7 +397,8 @@ export class ALTLessonTrackingService {
                 // Adding to module only when its first attempt and increasing count in module for lesson
                 if (
                   altLessonTrackingDto.status === "completed" &&
-                  lastRecord[0].attempts === 1 && lessonTrack?.statusCode === 200
+                  lastRecord[0].attempts === 1 &&
+                  lessonTrack?.statusCode === 200
                 ) {
                   tracklessonModule = await this.lessonToModuleTracking(
                     request,
@@ -471,6 +478,8 @@ export class ALTLessonTrackingService {
                 moduleId
                 lessonProgressId
                 score
+                duration
+                contentType
                 scoreDetails                
           }
         }`,
@@ -481,7 +490,7 @@ export class ALTLessonTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altLessonTrackingData,
@@ -567,7 +576,7 @@ export class ALTLessonTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altLessonUpdateTrackingData,
@@ -627,6 +636,8 @@ export class ALTLessonTrackingService {
           status
           attempts
           score
+          duration
+          contentType
           scoreDetails
         }
     }`,
@@ -639,7 +650,7 @@ export class ALTLessonTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: searchData,

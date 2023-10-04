@@ -46,6 +46,24 @@ export class ALTLessonTrackingDto {
 
   @Expose()
   @IsNotEmpty()
+  @IsString()
+  @ApiProperty({
+    type: String,
+    description: "Type of lesson",
+  })
+  contentType: string;
+
+  @Expose()
+  @IsNotEmpty()
+  @IsString()
+  @ApiProperty({
+    type: String,
+    description: "Time spent on lesson",
+  })
+  duration: string;
+
+  @Expose()
+  @IsNotEmpty()
   @IsNumber()
   attempts: number;
 
