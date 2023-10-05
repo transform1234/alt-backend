@@ -60,7 +60,7 @@ export class ALTLessonTrackingDto {
     type: String,
     description: "Time spent on lesson",
   })
-  duration: string;
+  timeSpent: string;
 
   @Expose()
   @IsNotEmpty()

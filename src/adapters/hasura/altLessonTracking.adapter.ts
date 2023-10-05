@@ -37,7 +37,7 @@ export class ALTLessonTrackingService {
         score: item?.score ? `${item.score}` : 0,
         status: item?.status ? `${item.status}` : 0,
         scoreDetails: item?.scoreDetails ? `${item.scoreDetails}` : "",
-        duration: item?.duration ? `${item.duration}` : "",
+        timeSpent: item?.timeSpent ? `${item.timeSpent}` : "",
         contentType: item?.contentType ? `${item.contentType}` : "",
       };
 
@@ -65,7 +65,7 @@ export class ALTLessonTrackingService {
             createdBy
             status
             attempts
-            duration
+            timeSpent
             contentType
         } }`,
       variables: {
@@ -187,7 +187,7 @@ export class ALTLessonTrackingService {
                   attempts
                   status
                   score
-                  duration
+                  timeSpent
                   contentType
                   scoreDetails
                 }
@@ -413,6 +413,7 @@ export class ALTLessonTrackingService {
                   tracking: tracklessonModule,
                 };
               } else if (lastRecord[0]?.status === "completed") {
+                // for repeat attempts 
                 altLessonTrackingDto.attempts = numberOfRecords + 1;
                 const lessonTrack = await this.createALTLessonTracking(
                   request,
@@ -478,7 +479,7 @@ export class ALTLessonTrackingService {
                 moduleId
                 lessonProgressId
                 score
-                duration
+                timeSpent
                 contentType
                 scoreDetails                
           }
@@ -636,7 +637,7 @@ export class ALTLessonTrackingService {
           status
           attempts
           score
-          duration
+          timeSpent
           contentType
           scoreDetails
         }
@@ -705,7 +706,7 @@ export class ALTLessonTrackingService {
       status: "ongoing",
       totalNumberOfLessonsCompleted: 1,
       totalNumberOfLessons: currentModule.children.length,
-      calculatedScore: 0,
+      timeSpent: "",
       createdBy: altLessonTrackingDto.userId,
       updatedBy: altLessonTrackingDto.userId,
     };
