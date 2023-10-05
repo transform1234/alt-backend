@@ -8,7 +8,7 @@ const resolvePath = require("object-resolve-path");
 import { GroupDto } from "src/group/dto/group.dto";
 import { GroupSearchDto } from "src/group/dto/group-search.dto";
 import { IServicelocatorgroup } from "../groupservicelocator";
-import { UserDto } from "src/user/dto/user.dto";
+import { UserDto } from "src/altUser/dto/alt-user.dto";
 import { StudentDto } from "src/student/dto/student.dto";
 export const HasuraGroupToken = "HasuraGroup";
 import { getUserGroup, getUserRole } from "./adapter.utils";
@@ -299,35 +299,20 @@ export class HasuraGroupService implements IServicelocatorgroup {
     let userData = [];
 
     var findMember = {
-      query: `query GetGroupMembership($groupId:uuid,$role:UserRole_enum) {
+      query: `query GetGroupMembership($groupId:uuid,$role:String) {
        GroupMembership(where: {groupId: {_eq: $groupId}, role: {_eq: $role}}) {
         User {
-          birthDate
-          block
-          bloodGroup
-          board
+          dateOfBirth
           createdBy
-          created_at
-          district
+          createdAt
           email
-          father
-          grade
           gender
-          image
-          medium
-          mobileNumber
-          mother
+          mobile
           name
           role
-          school
-          section
-          serialNo
-          state
           status
-          udise
-          uniqueId
           updatedBy
-          updated_at
+          updatedAt
           userId
           username
         }
@@ -384,25 +369,22 @@ export class HasuraGroupService implements IServicelocatorgroup {
   public async findGroupsByUserId(userId: string, role: string, request: any) {
     let axios = require("axios");
     var findMember = {
-      query: `query GetGroup($userId:uuid!,$role:UserRole_enum) {
+      query: `query GetGroup($userId:uuid!,$role:String) {
         GroupMembership(where: {userId: {_eq: $userId}, role: {_eq: $role}}) {
           Group {
-            created_at
-            deactivationReason
-            gradeLevel
             groupId
-            image
-            mediumOfInstruction
-            metaData
+            schoolUdise
+            board
+            medium
+            grade
             name
-            option
-            schoolId
             section
             status
-            teacherId
             type
-            updated_at
-            parentGroupId
+            createdAt
+            updatedAt
+            createdBy
+            updatedBy
           }
         }
       }
@@ -783,31 +765,18 @@ export class HasuraGroupService implements IServicelocatorgroup {
         userId: item?.userId ? `${item.userId}` : "",
         name: item?.name ? `${item.name}` : "",
         username: item?.username ? `${item.username}` : "",
-        father: item?.father ? `${item.father}` : "",
-        mother: item?.mother ? `${item.mother}` : "",
-        uniqueId: item?.uniqueId ? `${item.uniqueId}` : "",
-        school: item?.school ? `${item.school}` : "",
         email: item?.email ? `${item.email}` : "",
-        mobileNumber: item?.mobileNumber ? item.mobileNumber : "",
+        mobile: item?.mobile ? item.mobile : "",
         gender: item?.gender ? `${item.gender}` : "",
-        udise: item?.udise ? `${item.udise}` : "",
-        board: item?.board ? `${item.board}` : "",
-        medium: item?.medium ? `${item.medium}` : "",
-        grade: item?.grade ? `${item.grade}` : "",
-        section: item?.section ? `${item.section}` : "",
-        birthDate: item?.birthDate ? `${item.birthDate}` : "",
+        dateOfBirth: item?.dateOfBirth ? `${item.dateOfBirth}` : "",
         status: item?.status ? `${item.status}` : "",
-        image: item?.image ? `${item.image}` : "",
-        block: item?.block ? `${item.block}` : "",
-        district: item?.district ? `${item.district}` : "",
-        state: item?.state ? `${item.state}` : "",
         role: item?.role ? `${item.role}` : "",
-        created_at: item?.created_at ? `${item.created_at}` : "",
-        updated_at: item?.updated_at ? `${item.updated_at}` : "",
+        createdAt: item?.createdAt ? `${item.createdAt}` : "",
+        updatedAt: item?.updatedAt ? `${item.updatedAt}` : "",
         createdBy: item?.createdBy ? `${item.createdBy}` : "",
         updatedBy: item?.updatedBy ? `${item.updatedBy}` : "",
       };
-      return new UserDto(userMapping);
+      return new UserDto(userMapping, false);
     });
 
     return userResponse;
