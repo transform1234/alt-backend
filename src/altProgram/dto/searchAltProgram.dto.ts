@@ -9,11 +9,24 @@ export class ALTProgramSearch {
   limit: number;
 
   @ApiProperty({
-    type: ProgramDto,
+    type: Number,
+    description: "Page",
+  })
+  page: number;
+
+  @ApiProperty({
+    type: Object,
     description: "Filters",
   })
   @ApiPropertyOptional()
-  filters: ProgramDto;
+  filters: Object;
+
+  // @ApiProperty({
+  //   type: Object,
+  //   description: "Filters",
+  // })
+  // @ApiPropertyOptional()
+  // filters: object;
 
   constructor(partial: Partial<ALTProgramSearch>) {
     Object.assign(this, partial);

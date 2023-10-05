@@ -15,11 +15,11 @@ export class GroupMembershipSearchDto {
   page: number;
 
   @ApiProperty({
-    type: GroupMembershipDto,
+    type: Object,
     description: "Filters",
   })
   @ApiPropertyOptional()
-  filters: GroupMembershipDto;
+  filters: Object;
 
   constructor(partial: Partial<GroupMembershipSearchDto>) {
     Object.assign(this, partial);

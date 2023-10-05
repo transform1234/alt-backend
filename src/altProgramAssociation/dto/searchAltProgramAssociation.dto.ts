@@ -8,13 +8,26 @@ export class ALTProgramAssociationSearch {
   })
   limit: number;
 
+
   @ApiProperty({
-    type: ProgramAssociationDto,
+    type: Number,
+    description: "Page",
+  })
+  page: number;
+
+  // @ApiProperty({
+  //   type: ProgramAssociationDto,
+  //   description: "Filters",
+  // })
+  // @ApiPropertyOptional()
+  // filters: ProgramAssociationDto;
+
+  @ApiProperty({
+    type: Object,
     description: "Filters",
   })
   @ApiPropertyOptional()
-  filters: ProgramAssociationDto;
-
+  filters: Object;
   constructor(partial: Partial<ALTProgramAssociationSearch>) {
     Object.assign(this, partial);
   }
