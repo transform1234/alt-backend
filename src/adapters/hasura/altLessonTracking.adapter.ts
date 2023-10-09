@@ -235,6 +235,22 @@ export class ALTLessonTrackingService {
     subject: string,
     altLessonTrackingDto: ALTLessonTrackingDto
   ) {
+    const scoreDetails = altLessonTrackingDto?.scoreDetails;
+
+    if (Array.isArray(scoreDetails) && !scoreDetails.length) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Score Details is empty",
+      });
+    }
+
+    if (Object.keys(scoreDetails).length === 0) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Score Details is empty",
+      });
+    }
+
     const decoded: any = jwt_decode(request.headers.authorization);
     altLessonTrackingDto.userId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
@@ -413,7 +429,7 @@ export class ALTLessonTrackingService {
                   tracking: tracklessonModule,
                 };
               } else if (lastRecord[0]?.status === "completed") {
-                // for repeat attempts 
+                // for repeat attempts
                 altLessonTrackingDto.attempts = numberOfRecords + 1;
                 const lessonTrack = await this.createALTLessonTracking(
                   request,
