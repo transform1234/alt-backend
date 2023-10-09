@@ -29,7 +29,7 @@ export class ALTModuleTrackingService {
         userId: item?.userId ? `${item.userId}` : "",
         courseId: item?.courseId ? `${item.courseId}` : "",
         moduleId: item?.moduleId ? `${item.moduleId}` : "",
-        calculatedScore: item?.calculatedScore ? `${item.calculatedScore}` : 0,
+        timeSpent: item?.timeSpent ? `${item.timeSpent}` : 0,
         status: item?.status ? `${item.status}` : "",
         totalNumberOfLessonsCompleted: item?.totalNumberOfLessonsCompleted
           ? `${item.totalNumberOfLessonsCompleted}`
@@ -64,7 +64,7 @@ export class ALTModuleTrackingService {
             moduleId
             courseId
             status
-            calculatedScore
+            timeSpent
             totalNumberOfLessonsCompleted
             totalNumberOfLessons
             created_at
@@ -120,7 +120,7 @@ export class ALTModuleTrackingService {
                   moduleId
                   userId
                   status
-                  calculatedScore
+                  timeSpent
                   totalNumberOfLessonsCompleted
                   totalNumberOfLessons
                   created_at
@@ -335,7 +335,7 @@ export class ALTModuleTrackingService {
                 courseId
                 moduleId
                 moduleProgressId
-                calculatedScore
+                timeSpent
                 totalNumberOfLessonsCompleted
                 totalNumberOfLessons
                 createdBy
@@ -479,7 +479,7 @@ export class ALTModuleTrackingService {
           courseId
           moduleId
           status
-          calculatedScore
+          timeSpent
           totalNumberOfLessonsCompleted
           totalNumberOfLessons
           created_at
@@ -532,7 +532,7 @@ export class ALTModuleTrackingService {
       courseId: altModuleTrackingDto.courseId,
       totalNumberOfModulesCompleted: 0,
       totalNumberOfModules: tnoOfModules,
-      calculatedScore: 0,
+      timeSpent: 0,
       status: altModuleTrackingDto.status,
       createdBy: altModuleTrackingDto.createdBy,
       updatedBy: altModuleTrackingDto.updatedBy,

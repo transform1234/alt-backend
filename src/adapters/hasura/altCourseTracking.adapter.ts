@@ -29,7 +29,7 @@ export class ALTCourseTrackingService {
         totalNumberOfModules: item?.totalNumberOfModules
           ? `${item.totalNumberOfModules}`
           : 0,
-        calculatedScore: item?.calculatedScore ? `${item.calculatedScore}` : 0,
+        timeSpent: item?.timeSpent ? `${item.timeSpent}` : 0,
         status: item?.status ? `${item.status}` : "",
         createdBy: item?.createdBy ? `${item.createdBy}` : "",
         updatedBy: item?.updatedBy ? `${item.updatedBy}` : "",
@@ -77,7 +77,7 @@ export class ALTCourseTrackingService {
                   userId
                   totalNumberOfModulesCompleted
                   totalNumberOfModules
-                  calculatedScore
+                  timeSpent
                   status
                   created_at
                   updated_at
@@ -154,7 +154,7 @@ export class ALTCourseTrackingService {
               courseProgressId
               courseId
               userId
-              calculatedScore
+              timeSpent
               status
               created_at
               updated_at
@@ -294,7 +294,7 @@ export class ALTCourseTrackingService {
           userId
           courseId
           status
-          calculatedScore
+          timeSpent
           status
           created_at
           updated_at
@@ -420,7 +420,7 @@ export class ALTCourseTrackingService {
                     status
                     totalNumberOfModulesCompleted
                     totalNumberOfModules
-                    calculatedScore
+                    timeSpent
                     status
                     createdBy
                     updatedBy
