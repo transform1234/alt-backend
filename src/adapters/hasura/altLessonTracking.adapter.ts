@@ -237,6 +237,7 @@ export class ALTLessonTrackingService {
   ) {
     const scoreDetails = altLessonTrackingDto?.scoreDetails;
 
+    // Not allowing blank array and objects in database
     if (Array.isArray(scoreDetails) && !scoreDetails.length) {
       return new ErrorResponse({
         errorCode: "400",
