@@ -96,7 +96,7 @@ export class ALTCourseTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: ALTCourseTrackingData,
@@ -169,7 +169,7 @@ export class ALTCourseTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altCourseTrackingData,
@@ -237,7 +237,7 @@ export class ALTCourseTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altCourseUpdateTrackingQuery,
@@ -311,7 +311,7 @@ export class ALTCourseTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: searchData,
@@ -369,8 +369,12 @@ export class ALTCourseTrackingService {
       } else if (moduleStatus === "completed") {
         altCourseTrackingDto.status = "ongoing";
       }
-      altCourseTrackingDto.totalNumberOfModulesCompleted =
-        altCourseTrackingDto.totalNumberOfModulesCompleted + 1;
+
+      if (moduleStatus === "completed") {
+        altCourseTrackingDto.totalNumberOfModulesCompleted =
+          altCourseTrackingDto.totalNumberOfModulesCompleted + 1;
+      }
+
       return this.createALTCourseTracking(request, altCourseTrackingDto);
     } else if (
       numberOfRecords === 1 &&
@@ -439,29 +443,29 @@ export class ALTCourseTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-          "Authorization": request.headers.authorization,
-          "Content-Type": "application/json",
-        },
-        data: ALTCourseTrackingData,
-      };
-  
-      const response = await this.axios(configData);
-  
-      if (response?.data?.errors) {
-        return new ErrorResponse({
-          errorCode: response.data.errors[0].extensions,
-          errorMessage: response.data.errors[0].message,
-        });
-      }
-  
-      const result = response.data.data.CourseProgressTracking;
-  
-      const data = await this.mappedResponse(result);
-  
-      return new SuccessResponse({
-        statusCode: 200,
-        message: "Ok.",
-        data: data,
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: ALTCourseTrackingData,
+    };
+
+    const response = await this.axios(configData);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
       });
+    }
+
+    const result = response.data.data.CourseProgressTracking;
+
+    const data = await this.mappedResponse(result);
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: data,
+    });
   }
 }
