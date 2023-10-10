@@ -37,7 +37,7 @@ export class ALTLessonTrackingService {
         score: item?.score ? `${item.score}` : 0,
         status: item?.status ? `${item.status}` : 0,
         scoreDetails: item?.scoreDetails ? `${item.scoreDetails}` : "",
-        timeSpent: item?.timeSpent ? `${item.timeSpent}` : "",
+        timeSpent: item?.timeSpent ? `${item.timeSpent}` : 0,
         contentType: item?.contentType ? `${item.contentType}` : "",
       };
 
@@ -723,7 +723,7 @@ export class ALTLessonTrackingService {
       status: "ongoing",
       totalNumberOfLessonsCompleted: 1,
       totalNumberOfLessons: currentModule.children.length,
-      timeSpent: "",
+      timeSpent: 0,
       createdBy: altLessonTrackingDto.userId,
       updatedBy: altLessonTrackingDto.userId,
     };
