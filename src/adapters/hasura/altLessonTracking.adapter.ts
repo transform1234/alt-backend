@@ -393,7 +393,7 @@ export class ALTLessonTrackingService {
                 });
               });
 
-              if (!lastRecord[0].status) {
+              if (!lastRecord[0]?.status) {
                 return new ErrorResponse({
                   errorCode: "400",
                   errorMessage:
