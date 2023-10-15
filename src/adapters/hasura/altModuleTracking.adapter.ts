@@ -83,7 +83,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altModuleTrackingRecord,
@@ -140,7 +140,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: ALTModuleTrackingData,
@@ -171,6 +171,7 @@ export class ALTModuleTrackingService {
     programId: string,
     subject: string,
     noOfModules: number,
+    repeatAttempt: boolean,
     altModuleTrackingDto: ALTModuleTrackingDto
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
@@ -239,10 +240,12 @@ export class ALTModuleTrackingService {
             } else {
               altModuleTrackingDto.status = "ongoing";
             }
+            // timeSpent same as first content played
             courseAck = await this.moduleToCourseTracking(
               request,
               altModuleTrackingDto,
-              noOfModules
+              noOfModules,
+              repeatAttempt
             );
             if (courseAck.statusCode != 200) {
               return new ErrorResponse({
@@ -257,7 +260,8 @@ export class ALTModuleTrackingService {
             }
           } else if (
             numberOfRecords === 1 &&
-            recordList.data[0].status !== "completed"
+            recordList.data[0].status !== "completed" &&
+            !repeatAttempt
           ) {
             if (
               parseInt(recordList.data[0].totalNumberOfLessonsCompleted) + 1 ===
@@ -265,34 +269,71 @@ export class ALTModuleTrackingService {
             ) {
               altModuleTrackingDto.status = "completed";
             }
+
             altModuleTrackingDto.totalNumberOfLessonsCompleted =
               recordList.data[0].totalNumberOfLessonsCompleted + 1;
 
-            if (altModuleTrackingDto.status === "completed") {
-              courseAck = await this.moduleToCourseTracking(
-                request,
-                altModuleTrackingDto,
-                noOfModules
-              );
+            courseAck = await this.moduleToCourseTracking(
+              request,
+              altModuleTrackingDto,
+              noOfModules,
+              repeatAttempt
+            );
 
-              if (courseAck.statusCode != 200) {
-                return new ErrorResponse({
-                  errorCode: "400",
-                  errorMessage: courseAck.errorMessage,
-                });
-              }
+            if (courseAck.statusCode != 200) {
+              return new ErrorResponse({
+                errorCode: "400",
+                errorMessage: courseAck.errorMessage,
+              });
             }
+
+            altModuleTrackingDto.timeSpent =
+              parseInt(recordList.data[0].timeSpent) +
+              altModuleTrackingDto.timeSpent;
+
             return await this.updateALTModuleTracking(
               request,
               altModuleTrackingDto.moduleId,
               altModuleTrackingDto.courseId,
               altModuleTrackingDto
             );
-          } else if (
-            numberOfRecords === 1 &&
-            recordList.data[0].status === "completed"
-          ) {
-            console.log("recal scorehere");
+          } else if (numberOfRecords === 1 && repeatAttempt) {
+            // for repeat attempts
+
+            // keep existing lesson count as it is
+            altModuleTrackingDto.totalNumberOfLessonsCompleted =
+              recordList.data[0].totalNumberOfLessonsCompleted;
+
+            if (
+              parseInt(recordList.data[0].totalNumberOfLessons) ===
+              parseInt(recordList.data[0].totalNumberOfLessonsCompleted)
+            ) {
+              altModuleTrackingDto.status = "completed";
+            }
+
+            courseAck = await this.moduleToCourseTracking(
+              request,
+              altModuleTrackingDto,
+              noOfModules,
+              repeatAttempt
+            );
+
+            if (courseAck.statusCode != 200) {
+              return new ErrorResponse({
+                errorCode: "400",
+                errorMessage: courseAck.errorMessage,
+              });
+            }
+
+            altModuleTrackingDto.timeSpent =
+              recordList.data[0].timeSpent + altModuleTrackingDto.timeSpent;
+
+            return await this.updateALTModuleTracking(
+              request,
+              altModuleTrackingDto.moduleId,
+              altModuleTrackingDto.courseId,
+              altModuleTrackingDto
+            );
           } else {
             return new ErrorResponse({
               errorCode: "400",
@@ -349,7 +390,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altLessonTrackingData,
@@ -422,7 +463,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altModuleUpdateTrackingData,
@@ -497,7 +538,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: searchData,
@@ -525,14 +566,15 @@ export class ALTModuleTrackingService {
   public async moduleToCourseTracking(
     request: any,
     altModuleTrackingDto: ALTModuleTrackingDto,
-    tnoOfModules: number
+    tnoOfModules: number,
+    repeatAttempt: boolean
   ) {
     let altCourseTracking = {
       userId: altModuleTrackingDto.userId,
       courseId: altModuleTrackingDto.courseId,
       totalNumberOfModulesCompleted: 0,
       totalNumberOfModules: tnoOfModules,
-      timeSpent: 0,
+      timeSpent: altModuleTrackingDto.timeSpent,
       status: altModuleTrackingDto.status,
       createdBy: altModuleTrackingDto.createdBy,
       updatedBy: altModuleTrackingDto.updatedBy,
@@ -544,7 +586,8 @@ export class ALTModuleTrackingService {
     courseTracking = await this.altCourseTrackingService.addALTCourseTracking(
       request,
       altCourseTrackingDto,
-      altModuleTrackingDto.status
+      altModuleTrackingDto.status,
+      repeatAttempt
     );
 
     if (courseTracking?.statusCode != 200) {

@@ -339,7 +339,8 @@ export class ALTCourseTrackingService {
   public async addALTCourseTracking(
     request: any,
     altCourseTrackingDto: ALTCourseTrackingDto,
-    moduleStatus: string
+    moduleStatus: string,
+    repeatAttempt: boolean
   ) {
     let errorExRec = "";
     let recordList: any = {};
@@ -378,7 +379,8 @@ export class ALTCourseTrackingService {
       return this.createALTCourseTracking(request, altCourseTrackingDto);
     } else if (
       numberOfRecords === 1 &&
-      recordList.data[0].status !== "completed"
+      recordList.data[0].status !== "completed" &&
+      !repeatAttempt
     ) {
       if (
         parseInt(recordList.data[0].totalNumberOfModulesCompleted) + 1 ===
@@ -393,6 +395,27 @@ export class ALTCourseTrackingService {
         altCourseTrackingDto.totalNumberOfModulesCompleted =
           parseInt(recordList.data[0].totalNumberOfModulesCompleted) + 1;
       }
+
+      altCourseTrackingDto.timeSpent =
+        parseInt(recordList.data[0].timeSpent) + altCourseTrackingDto.timeSpent;
+
+      return await this.updateALTCourseTracking(request, altCourseTrackingDto);
+    } else if (numberOfRecords === 1 && repeatAttempt) {
+      // for repeat attempts
+
+      if (
+        parseInt(recordList.data[0].totalNumberOfModules) ===
+        parseInt(recordList.data[0].totalNumberOfModulesCompleted)
+      ) {
+        altCourseTrackingDto.status = "completed";
+      }
+
+      // keep existing module count as it is
+      altCourseTrackingDto.totalNumberOfModulesCompleted =
+        recordList.data[0].totalNumberOfModulesCompleted;
+
+      altCourseTrackingDto.timeSpent =
+        parseInt(recordList.data[0].timeSpent) + altCourseTrackingDto.timeSpent;
 
       return await this.updateALTCourseTracking(request, altCourseTrackingDto);
     } else if (numberOfRecords > 1) {
