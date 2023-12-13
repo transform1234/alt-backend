@@ -96,6 +96,7 @@ export class CourseController {
       return this.khanAcademyProvider.getCoursesByIds(courseIds, request);
     }
   }
+
   @Get(":adapter/hierarchy/contentid")
   @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
   @ApiOkResponse({ description: "Get content hierarchy detail." })
@@ -137,15 +138,9 @@ export class CourseController {
 
   @Post("/questionset")
   @ApiBody({ type: CourseSearchDto })
-  @UseInterceptors(ClassSerializerInterceptor)
   @ApiCreatedResponse({ description: "Get all Course detail." })
-  // @ApiForbiddenResponse({ description: "Forbidden" })
-  @SerializeOptions({
-    strategy: "excludeAll",
-  })
-  public async getQuestionset(@Body() CourseSearchDto: CourseSearchDto) {
-    return this.dikshaProvider.getQuestionset(CourseSearchDto);
-    //return { id: "sdgkf" };
+  public async getQuestionset(@Body() courseSearchDto: CourseSearchDto) {
+    return this.dikshaProvider.getQuestionset(courseSearchDto);
   }
 
   @Get(":questionset/questionsetid")
