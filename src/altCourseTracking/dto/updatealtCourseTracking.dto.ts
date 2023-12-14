@@ -37,12 +37,11 @@ export class UpdateALTCourseTrackingDto {
 
   @Expose()
   @IsNotEmpty()
-  @IsString()
   @ApiProperty({
     type: Number,
-    description: "Score of the course",
+    description: "Time spent on the course",
   })
-  calculatedScore: number;
+  timeSpent: number;
 
   @Expose()
   @IsNotEmpty()

@@ -94,7 +94,6 @@ export class ALTHasuraUserService {
     userDto: UserDto,
     bulkToken: string
   ) {
-
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
@@ -161,7 +160,7 @@ export class ALTHasuraUserService {
             usernameExistsInKeycloak?.data[0]?.id,
             altUserRoles
           );
-          
+
           return {
             user: newlyCreatedDbUser,
             isNewlyCreated: true,
@@ -222,9 +221,12 @@ export class ALTHasuraUserService {
 
         // console.log(resKeycloak.response.data.errorMessage, "ok");
         if (resKeycloak?.response?.data?.errorMessage) {
+          console.log(resKeycloak?.response?.data?.errorMessage);
           return new ErrorResponse({
             errorCode: "400",
-            errorMessage: "Keycloak user creation failed",
+            errorMessage:
+              "Keycloak user creation failed " +
+              resKeycloak?.response?.data?.errorMessage,
           });
         }
         // db??

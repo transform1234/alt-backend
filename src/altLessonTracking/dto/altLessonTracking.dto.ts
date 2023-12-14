@@ -55,12 +55,11 @@ export class ALTLessonTrackingDto {
 
   @Expose()
   @IsNotEmpty()
-  @IsString()
   @ApiProperty({
-    type: String,
+    type: Number,
     description: "Time spent on lesson",
   })
-  duration: string;
+  timeSpent: number;
 
   @Expose()
   @IsNotEmpty()

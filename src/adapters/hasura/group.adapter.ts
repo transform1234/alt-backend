@@ -662,6 +662,11 @@ export class HasuraGroupService implements IServicelocatorgroup {
 
     if (!result.length) {
       result = `No matching record found for the current combination of school and class.`;
+      return new SuccessResponse({
+        statusCode: 404,
+        message: "Not found",
+        data: result,
+      });
     }
 
     return new SuccessResponse({
