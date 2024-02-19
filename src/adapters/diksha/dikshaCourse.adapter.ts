@@ -159,6 +159,7 @@ export class DikshaCourseService implements IServicelocator {
           `/learner/questionset/v1/hierarchy/${value}?orgdetails=orgName,email&licenseDetails=name,description,url`,
       };
       const response = await axios(config);
+      console.log(response,"res")
       const data = response?.data.result.questionSet;
       return new SuccessResponse({
         statusCode: 200,
