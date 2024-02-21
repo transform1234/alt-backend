@@ -206,15 +206,14 @@ export class DikshaCourseService implements IServicelocator {
 
     const question = { questions: qu, count: data.result.count };
     const questions = new questionsetSearchDto(question);
-    // console.log(data.result);
+    
     return new QuestionsetlistResponse({
       id: data.id,
       ver: data.ver,
       ts: data.ts,
       params: data.params,
       responseCode: data.responseCode,
-      result: questions,
-      // ...data,
+      result: questions
     });
   }
 

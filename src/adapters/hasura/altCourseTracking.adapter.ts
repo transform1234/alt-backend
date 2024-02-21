@@ -160,7 +160,8 @@ export class ALTCourseTrackingService {
               updated_at
               createdBy
               updatedBy
-          }
+              programId
+            }
         }`,
       variables: {},
     };

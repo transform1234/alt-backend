@@ -20,6 +20,7 @@ export class ALTBulkUploadStudentService {
     const errors = [];
     let bulkToken;
     try {
+      // Generate only one token per batch dont generate for each row of csv
       const response = await getToken();
       bulkToken = response.data.access_token;
     } catch (e) {

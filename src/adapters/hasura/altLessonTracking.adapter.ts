@@ -269,7 +269,7 @@ export class ALTLessonTrackingService {
     altLessonTrackingDto.updatedBy = altLessonTrackingDto.userId;
     altLessonTrackingDto.timeSpent =
       altLessonTrackingDto.timeSpent > 0 ? altLessonTrackingDto.timeSpent : 0;
-
+    altLessonTrackingDto.programId = programId;
     let errorExRec = "";
     let recordList: any;
     recordList = await this.getExistingLessonTrackingRecords(
@@ -528,7 +528,8 @@ export class ALTLessonTrackingService {
                 score
                 timeSpent
                 contentType
-                scoreDetails                
+                scoreDetails  
+                programId
           }
         }`,
       variables: {},

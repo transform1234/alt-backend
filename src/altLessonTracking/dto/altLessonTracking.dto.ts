@@ -85,6 +85,11 @@ export class ALTLessonTrackingDto {
   scoreDetails: String;
 
   @Expose()
+  @IsNotEmpty()
+  @IsString()
+  programId: String;
+
+  @Expose()
   created_at: string;
 
   @Expose()
