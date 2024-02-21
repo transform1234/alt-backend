@@ -240,7 +240,7 @@ export class ALTLessonTrackingService {
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
     altLessonTrackingDto.createdBy = altLessonTrackingDto.userId;
     altLessonTrackingDto.updatedBy = altLessonTrackingDto.userId;
-
+    altLessonTrackingDto.programId = programId;
     let errorExRec = "";
     let recordList: any;
     recordList = await this.getExistingLessonTrackingRecords(
@@ -480,7 +480,8 @@ export class ALTLessonTrackingService {
                 score
                 duration
                 contentType
-                scoreDetails                
+                scoreDetails  
+                programId
           }
         }`,
       variables: {},

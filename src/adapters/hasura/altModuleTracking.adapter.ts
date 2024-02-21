@@ -83,7 +83,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altModuleTrackingRecord,
@@ -140,7 +140,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: ALTModuleTrackingData,
@@ -177,6 +177,7 @@ export class ALTModuleTrackingService {
     altModuleTrackingDto.userId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
     let errorExRec = "";
+    altModuleTrackingDto.programId = programId;
 
     // userId=""
     let recordList: any = {};
@@ -339,17 +340,17 @@ export class ALTModuleTrackingService {
                 totalNumberOfLessonsCompleted
                 totalNumberOfLessons
                 createdBy
-                created_at                
+                created_at  
+                programId              
           }
         }`,
       variables: {},
     };
-
     const configDataforCreate = {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altLessonTrackingData,
@@ -422,7 +423,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altModuleUpdateTrackingData,
@@ -497,7 +498,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: searchData,
