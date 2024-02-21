@@ -63,6 +63,11 @@ export class ALTModuleTrackingDto {
   status: string;
 
   @Expose()
+  @IsNotEmpty()
+  @IsString()
+  programId: String;
+
+  @Expose()
   createdBy: string;
 
   @Expose()
