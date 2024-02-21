@@ -96,7 +96,7 @@ export class ALTCourseTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: ALTCourseTrackingData,
@@ -160,16 +160,16 @@ export class ALTCourseTrackingService {
               updated_at
               createdBy
               updatedBy
+              programId
           }
         }`,
       variables: {},
     };
-
     const configData = {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altCourseTrackingData,
@@ -237,7 +237,7 @@ export class ALTCourseTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altCourseUpdateTrackingQuery,
@@ -311,7 +311,7 @@ export class ALTCourseTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: searchData,
@@ -439,29 +439,29 @@ export class ALTCourseTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-          "Authorization": request.headers.authorization,
-          "Content-Type": "application/json",
-        },
-        data: ALTCourseTrackingData,
-      };
-  
-      const response = await this.axios(configData);
-  
-      if (response?.data?.errors) {
-        return new ErrorResponse({
-          errorCode: response.data.errors[0].extensions,
-          errorMessage: response.data.errors[0].message,
-        });
-      }
-  
-      const result = response.data.data.CourseProgressTracking;
-  
-      const data = await this.mappedResponse(result);
-  
-      return new SuccessResponse({
-        statusCode: 200,
-        message: "Ok.",
-        data: data,
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: ALTCourseTrackingData,
+    };
+
+    const response = await this.axios(configData);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
       });
+    }
+
+    const result = response.data.data.CourseProgressTracking;
+
+    const data = await this.mappedResponse(result);
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: data,
+    });
   }
 }

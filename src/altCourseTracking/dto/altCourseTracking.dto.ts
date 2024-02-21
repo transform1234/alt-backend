@@ -54,6 +54,16 @@ export class ALTCourseTrackingDto {
   status: string;
 
   @Expose()
+  @IsNotEmpty()
+  @IsString()
+  @ApiProperty({
+    type: String,
+    description: "Status of course",
+  })
+  programId: string;
+
+
+  @Expose()
   createdBy: string;
 
   @Expose()
