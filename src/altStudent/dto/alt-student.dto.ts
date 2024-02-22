@@ -146,6 +146,10 @@ export class StudentDto {
   @Expose()
   noOfSiblings: number;
 
+  @ApiProperty()
+  @Expose()
+  studentEnrollId: string;
+
   @Expose()
   schoolName: string;
 
@@ -155,6 +159,7 @@ export class StudentDto {
     this.groups = obj?.groups ? obj.groups : [];
     this.religion = obj?.religion ? `${obj.religion}` : "";
     this.board = obj?.board ? `${obj.board}` : "";
+    this.studentEnrollId = obj?.studentEnrollId ? `${obj.studentEnrollId}` : "";
     this.schoolUdise = obj?.schoolUdise ? obj.schoolUdise : "";
     this.caste = obj?.caste ? `${obj.caste}` : "";
     this.annualIncome = obj?.annualIncome ? `${obj.annualIncome}` : "";

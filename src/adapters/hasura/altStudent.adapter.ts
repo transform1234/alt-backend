@@ -46,7 +46,8 @@ export class ALTStudentService {
         board
         createdBy
         updatedBy
-        user {
+        studentEnrollId
+         user {
           userId
           email
           dateOfBirth
@@ -286,6 +287,9 @@ export class ALTStudentService {
         schoolName: item?.user?.GroupMemberships[0]?.School?.name
           ? `${item?.user?.GroupMemberships[0]?.School?.name}`
           : "",
+        studentEnrollId: item?.studentEnrollId?.studentEnrollId
+          ? `${item.studentEnrollId.studentEnrollId}`
+          : "",
       };
       promises.push(new StudentDto(studentMapping, true));
       //  return new StudentDto(studentMapping, true);
@@ -455,6 +459,7 @@ export class ALTStudentService {
         createdBy: item?.createdBy ? `${item.createdBy}` : "",
         groups: item?.user?.GroupMemberships ? item.user.GroupMemberships : [],
         username: item?.user?.username ? item.user.username : "",
+        studentEnrollId: item.studentEnrollId ? item.studentEnrollId : "",
       };
       return userMapping;
     });
@@ -524,7 +529,6 @@ export class ALTStudentService {
     studentDto.userId = createdUserId;
     const studentSchema = new StudentDto(studentDto, false);
     let query = "";
-
     Object.keys(studentDto).forEach((e) => {
       if (
         (studentDto[e] || studentDto[e] === 0) &&
@@ -542,13 +546,13 @@ export class ALTStudentService {
         }
       }
     });
-
     const data = {
       query: `mutation CreateStudent {
         insert_Students_one(object: {${query}}) {
           studentId
           userId
           schoolUdise
+          studentEnrollId
           user {
             username
             GroupMemberships {
