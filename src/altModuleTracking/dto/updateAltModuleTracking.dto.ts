@@ -14,12 +14,11 @@ export class UpdateALTModuleTrackingDto {
 
   @Expose()
   @IsNotEmpty()
-  @IsString()
   @ApiProperty({
     type: Number,
-    description: "Score of the Module",
+    description: "Time spent on the Module",
   })
-  calculatedScore: number;
+  timeSpent: number;
 
   @Expose()
   @IsNotEmpty()

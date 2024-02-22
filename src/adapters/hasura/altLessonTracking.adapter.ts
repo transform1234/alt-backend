@@ -37,7 +37,7 @@ export class ALTLessonTrackingService {
         score: item?.score ? `${item.score}` : 0,
         status: item?.status ? `${item.status}` : 0,
         scoreDetails: item?.scoreDetails ? `${item.scoreDetails}` : "",
-        duration: item?.duration ? `${item.duration}` : "",
+        timeSpent: item?.timeSpent ? `${item.timeSpent}` : 0,
         contentType: item?.contentType ? `${item.contentType}` : "",
       };
 
@@ -65,7 +65,7 @@ export class ALTLessonTrackingService {
             createdBy
             status
             attempts
-            duration
+            timeSpent
             contentType
         } }`,
       variables: {
@@ -187,7 +187,7 @@ export class ALTLessonTrackingService {
                   attempts
                   status
                   score
-                  duration
+                  timeSpent
                   contentType
                   scoreDetails
                 }
@@ -235,11 +235,40 @@ export class ALTLessonTrackingService {
     subject: string,
     altLessonTrackingDto: ALTLessonTrackingDto
   ) {
+    const scoreDetails = altLessonTrackingDto?.scoreDetails;
+
+    // Not allowing blank array and objects in database
+    if (Array.isArray(scoreDetails) && !scoreDetails.length) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Score Details is empty",
+      });
+    }
+
+    if (Object.keys(scoreDetails).length === 0) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Score Details is empty",
+      });
+    }
+
+    if (
+      JSON.stringify(scoreDetails) === "{}" ||
+      JSON.stringify(scoreDetails) === "[]"
+    ) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Score Details is empty",
+      });
+    }
+
     const decoded: any = jwt_decode(request.headers.authorization);
     altLessonTrackingDto.userId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
     altLessonTrackingDto.createdBy = altLessonTrackingDto.userId;
     altLessonTrackingDto.updatedBy = altLessonTrackingDto.userId;
+    altLessonTrackingDto.timeSpent =
+      altLessonTrackingDto.timeSpent > 0 ? altLessonTrackingDto.timeSpent : 0;
     altLessonTrackingDto.programId = programId;
     let errorExRec = "";
     let recordList: any;
@@ -258,7 +287,7 @@ export class ALTLessonTrackingService {
     if (!recordList?.data) {
       return new ErrorResponse({
         errorCode: "400",
-        errorMessage: errorExRec,
+        errorMessage: recordList?.errorMessage,
       });
     }
 
@@ -308,6 +337,7 @@ export class ALTLessonTrackingService {
           const numberOfRecords = parseInt(recordList?.data.length);
           const allowedAttempts = parseInt(course.allowedAttempts);
           if (course.contentType == "assessment" && allowedAttempts === 1) {
+            // handling baseline assessment
             if (numberOfRecords === 0) {
               altLessonTrackingDto.attempts = 1;
               return await this.createALTLessonTracking(
@@ -340,6 +370,7 @@ export class ALTLessonTrackingService {
               });
             }
           } else if (course.contentType == "course" && allowedAttempts === 0) {
+            // if course content handling creation and updation of lesson with module
             if (numberOfRecords === 0) {
               altLessonTrackingDto.attempts = 1;
 
@@ -356,7 +387,8 @@ export class ALTLessonTrackingService {
                   request,
                   altLessonTrackingDto,
                   programId,
-                  subject
+                  subject,
+                  false
                 );
               }
 
@@ -377,16 +409,15 @@ export class ALTLessonTrackingService {
                 });
               });
 
-              if (!lastRecord[0].status) {
+              if (!lastRecord[0]?.status) {
                 return new ErrorResponse({
                   errorCode: "400",
-                  errorMessage:
-                    lastRecord +
-                    "Duplicate entry found in DataBase for Baseline Assessment",
+                  errorMessage: lastRecord + "Error getting last record",
                 });
               }
 
               if (lastRecord[0]?.status !== "completed") {
+                // if last record is not completed complete it first and update
                 const lessonTrack: any = await this.updateALTLessonTracking(
                   request,
                   altLessonTrackingDto.lessonId,
@@ -404,7 +435,8 @@ export class ALTLessonTrackingService {
                     request,
                     altLessonTrackingDto,
                     programId,
-                    subject
+                    subject,
+                    false
                   );
                 }
 
@@ -413,11 +445,27 @@ export class ALTLessonTrackingService {
                   tracking: tracklessonModule,
                 };
               } else if (lastRecord[0]?.status === "completed") {
+                // for repeat attempts
                 altLessonTrackingDto.attempts = numberOfRecords + 1;
-                const lessonTrack = await this.createALTLessonTracking(
+                const lessonTrack: any = await this.createALTLessonTracking(
                   request,
                   altLessonTrackingDto
                 );
+
+                // modify module time here
+                if (
+                  altLessonTrackingDto.status === "completed" &&
+                  lessonTrack?.statusCode === 200
+                ) {
+                  tracklessonModule = await this.lessonToModuleTracking(
+                    request,
+                    altLessonTrackingDto,
+                    programId,
+                    subject,
+                    true
+                  );
+                }
+
                 return {
                   lessonTrack: lessonTrack,
                   tracking: "Multiple attempt for lesson added",
@@ -478,7 +526,7 @@ export class ALTLessonTrackingService {
                 moduleId
                 lessonProgressId
                 score
-                duration
+                timeSpent
                 contentType
                 scoreDetails  
                 programId
@@ -637,7 +685,7 @@ export class ALTLessonTrackingService {
           status
           attempts
           score
-          duration
+          timeSpent
           contentType
           scoreDetails
         }
@@ -680,7 +728,8 @@ export class ALTLessonTrackingService {
     request: any,
     altLessonTrackingDto: ALTLessonTrackingDto,
     programId: string,
-    subject: string
+    subject: string,
+    repeatAttempt: boolean
   ) {
     const currentUrl = process.env.SUNBIRDURL;
 
@@ -706,7 +755,7 @@ export class ALTLessonTrackingService {
       status: "ongoing",
       totalNumberOfLessonsCompleted: 1,
       totalNumberOfLessons: currentModule.children.length,
-      calculatedScore: 0,
+      timeSpent: altLessonTrackingDto.timeSpent,
       createdBy: altLessonTrackingDto.userId,
       updatedBy: altLessonTrackingDto.userId,
     };
@@ -720,6 +769,7 @@ export class ALTLessonTrackingService {
         programId,
         subject,
         noOfModules,
+        repeatAttempt,
         altModuleTrackingDto
       );
 

@@ -29,7 +29,7 @@ export class ALTCourseTrackingService {
         totalNumberOfModules: item?.totalNumberOfModules
           ? `${item.totalNumberOfModules}`
           : 0,
-        calculatedScore: item?.calculatedScore ? `${item.calculatedScore}` : 0,
+        timeSpent: item?.timeSpent ? `${item.timeSpent}` : 0,
         status: item?.status ? `${item.status}` : "",
         createdBy: item?.createdBy ? `${item.createdBy}` : "",
         updatedBy: item?.updatedBy ? `${item.updatedBy}` : "",
@@ -77,7 +77,7 @@ export class ALTCourseTrackingService {
                   userId
                   totalNumberOfModulesCompleted
                   totalNumberOfModules
-                  calculatedScore
+                  timeSpent
                   status
                   created_at
                   updated_at
@@ -154,7 +154,7 @@ export class ALTCourseTrackingService {
               courseProgressId
               courseId
               userId
-              calculatedScore
+              timeSpent
               status
               created_at
               updated_at
@@ -295,7 +295,7 @@ export class ALTCourseTrackingService {
           userId
           courseId
           status
-          calculatedScore
+          timeSpent
           status
           created_at
           updated_at
@@ -340,7 +340,8 @@ export class ALTCourseTrackingService {
   public async addALTCourseTracking(
     request: any,
     altCourseTrackingDto: ALTCourseTrackingDto,
-    moduleStatus: string
+    moduleStatus: string,
+    repeatAttempt: boolean
   ) {
     let errorExRec = "";
     let recordList: any = {};
@@ -370,12 +371,17 @@ export class ALTCourseTrackingService {
       } else if (moduleStatus === "completed") {
         altCourseTrackingDto.status = "ongoing";
       }
-      altCourseTrackingDto.totalNumberOfModulesCompleted =
-        altCourseTrackingDto.totalNumberOfModulesCompleted + 1;
+
+      if (moduleStatus === "completed") {
+        altCourseTrackingDto.totalNumberOfModulesCompleted =
+          altCourseTrackingDto.totalNumberOfModulesCompleted + 1;
+      }
+
       return this.createALTCourseTracking(request, altCourseTrackingDto);
     } else if (
       numberOfRecords === 1 &&
-      recordList.data[0].status !== "completed"
+      recordList.data[0].status !== "completed" &&
+      !repeatAttempt
     ) {
       if (
         parseInt(recordList.data[0].totalNumberOfModulesCompleted) + 1 ===
@@ -390,6 +396,27 @@ export class ALTCourseTrackingService {
         altCourseTrackingDto.totalNumberOfModulesCompleted =
           parseInt(recordList.data[0].totalNumberOfModulesCompleted) + 1;
       }
+
+      altCourseTrackingDto.timeSpent =
+        parseInt(recordList.data[0].timeSpent) + altCourseTrackingDto.timeSpent;
+
+      return await this.updateALTCourseTracking(request, altCourseTrackingDto);
+    } else if (numberOfRecords === 1 && repeatAttempt) {
+      // for repeat attempts
+
+      if (
+        parseInt(recordList.data[0].totalNumberOfModules) ===
+        parseInt(recordList.data[0].totalNumberOfModulesCompleted)
+      ) {
+        altCourseTrackingDto.status = "completed";
+      }
+
+      // keep existing module count as it is
+      altCourseTrackingDto.totalNumberOfModulesCompleted =
+        recordList.data[0].totalNumberOfModulesCompleted;
+
+      altCourseTrackingDto.timeSpent =
+        parseInt(recordList.data[0].timeSpent) + altCourseTrackingDto.timeSpent;
 
       return await this.updateALTCourseTracking(request, altCourseTrackingDto);
     } else if (numberOfRecords > 1) {
@@ -421,7 +448,7 @@ export class ALTCourseTrackingService {
                     status
                     totalNumberOfModulesCompleted
                     totalNumberOfModules
-                    calculatedScore
+                    timeSpent
                     status
                     createdBy
                     updatedBy
