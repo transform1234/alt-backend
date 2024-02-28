@@ -1,5 +1,6 @@
 import { Expose } from "class-transformer";
 import {
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -61,7 +62,7 @@ export class ALTLessonTrackingDto {
 
   @Expose()
   @IsNotEmpty()
-  @IsNumber()
+  @IsInt()
   @ApiProperty({
     type: Number,
     description: "Time spent on lesson",
