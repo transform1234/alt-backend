@@ -327,7 +327,7 @@ export class ALTModuleTrackingService {
             }
 
             altModuleTrackingDto.timeSpent =
-              recordList.data[0].timeSpent + altModuleTrackingDto.timeSpent;
+            parseInt(recordList.data[0].timeSpent) + altModuleTrackingDto.timeSpent;
 
             return await this.updateALTModuleTracking(
               request,
