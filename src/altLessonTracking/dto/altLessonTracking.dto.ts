@@ -1,11 +1,18 @@
-import { Exclude, Expose } from "class-transformer";
-import { IsNotEmpty, IsNumber, IsString, IsUUID } from "class-validator";
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { Expose } from "class-transformer";
+import {
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from "class-validator";
+import { ApiProperty } from "@nestjs/swagger";
 
 export class ALTLessonTrackingDto {
   @Expose()
-  @IsNotEmpty()
   @IsUUID()
+  @IsOptional()
   userId: string;
 
   @Expose()
@@ -42,7 +49,7 @@ export class ALTLessonTrackingDto {
     type: String,
     description: "Status of lesson",
   })
-  status: string;
+  status: string; 
 
   @Expose()
   @IsNotEmpty()
@@ -55,6 +62,7 @@ export class ALTLessonTrackingDto {
 
   @Expose()
   @IsNotEmpty()
+  @IsInt()
   @ApiProperty({
     type: Number,
     description: "Time spent on lesson",
@@ -62,13 +70,13 @@ export class ALTLessonTrackingDto {
   timeSpent: number;
 
   @Expose()
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
   attempts: number;
 
   @Expose()
   @IsNotEmpty()
-  @IsString()
+  @IsNumber()
   @ApiProperty({
     type: Number,
     description: "Score of the lesson",
@@ -85,8 +93,8 @@ export class ALTLessonTrackingDto {
   scoreDetails: String;
 
   @Expose()
-  @IsNotEmpty()
-  @IsString()
+  @IsUUID()
+  @IsOptional()
   programId: String;
 
   @Expose()

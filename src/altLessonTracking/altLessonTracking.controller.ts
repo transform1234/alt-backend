@@ -13,6 +13,8 @@ import {
   Request,
   CacheInterceptor,
   Inject,
+  UsePipes,
+  ValidationPipe,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -58,6 +60,7 @@ export class ALTLessonTrackingController {
   }
 
   @Post("/altcheckandaddlessontracking")
+  @UsePipes(ValidationPipe)
   @ApiBasicAuth("access-token")
   @ApiCreatedResponse({
     description: "ALTLessonTrack has been created successfully.",
