@@ -5,11 +5,14 @@ import {
   IsEmail,
   IsString,
   IsNumber,
+  IsNumberString,
+  IsOptional,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class GroupDto {
   @Expose()
+  @IsOptional()
   groupId: string;
 
   @ApiPropertyOptional({
@@ -69,48 +72,13 @@ export class GroupDto {
   @Expose()
   board: string;
 
-  // @ApiPropertyOptional({
-  //   type: String,
-  //   description: "Teacher Id of Group",
-  // })
-  // @Expose()
-  // teacherId: string;
-
-  // @ApiPropertyOptional({
-  //   type: String,
-  //   description: "Parent Id of Group",
-  // })
-  // @Expose()
-  // parentGroupId: string;
-
-  // @ApiPropertyOptional()
-  // @Expose()
-  // deactivationReason: string;
-
-  // @ApiPropertyOptional({
-  //   type: String,
-  //   description: "The mediumOfInstruction of the group",
-  // })
-  // @Expose()
-  // mediumOfInstruction: string;
-
-  // @ApiPropertyOptional({ type: "string", format: "binary" })
-  // @Expose()
-  // image: string;
-
-  // @ApiPropertyOptional()
-  // @Expose()
-  // metaData: [string];
-
-  // @ApiPropertyOptional()
-  // @Expose()
-  // option: [string];
-
-  // @ApiPropertyOptional({
-  //   description: "Grade against group",
-  // })
-  // @Expose()
-  // gradeLevel: string;
+  @ApiPropertyOptional({
+    type: String,
+    description: "The Academic Year",
+  })
+  @Expose()
+  @IsNumberString()
+  academicYear: string;
 
   @Expose()
   createdBy: string;

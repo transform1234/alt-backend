@@ -3,6 +3,8 @@ import {
   CACHE_MANAGER,
   Inject,
   Request,
+  UsePipes,
+  ValidationPipe,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -25,8 +27,6 @@ import {
   SerializeOptions,
   Req,
 } from "@nestjs/common";
-// import { ALTBulkUploadStudentDto } from "./dto/alt-bulk-upload-student.dto";
-// import { ALTStudentService } from "src/adapters/hasura/altStudent.adapter";
 import { ALTBulkUploadStudentService } from "src/adapters/hasura/altBulkUploadStudent.adapter";
 import { StudentDto } from "src/altStudent/dto/alt-student.dto";
 
@@ -39,6 +39,7 @@ export class ALTBulkUploadStudentController {
 
   @Post()
   @ApiBasicAuth("access-token")
+  @UsePipes(ValidationPipe)
   @ApiCreatedResponse({ description: "Student has been created successfully." })
   @ApiBody({ type: [StudentDto] })
   @ApiForbiddenResponse({ description: "Forbidden" })

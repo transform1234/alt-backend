@@ -45,6 +45,7 @@ export class ALTBulkUploadSchoolService {
             updatedBy: null,
             createdAt: null,
             updatedAt: null,
+            academicYear: new Date().getFullYear().toString(),
           };
           //create groups
           const groupRes: any = await this.hasuraGroupService.createGroup(

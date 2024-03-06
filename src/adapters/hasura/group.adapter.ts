@@ -621,6 +621,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
       query: `query GetGroupList($board:String,$medium:String,$schoolUdise:String,$name:String) {
         Group(where: 
         {
+          status: {_eq: true}
           name: {_eq: $name}
           schoolUdise: {_eq: $schoolUdise}
         }) 
@@ -658,13 +659,13 @@ export class HasuraGroupService implements IServicelocatorgroup {
       });
     }
 
-    let result = response.data.data.Group;
+    let result: any[] = response.data.data.Group;
 
     if (!result.length) {
-      result = `No matching record found for the current combination of school and class.`;
+      const msg = `No matching record found for the current combination of school and class.`;
       return new SuccessResponse({
         statusCode: 404,
-        message: "Not found",
+        message: msg,
         data: result,
       });
     }
