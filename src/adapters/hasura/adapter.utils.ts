@@ -173,7 +173,8 @@ async function checkIfUsernameExistsInKeycloak(username, token) {
     method: "get",
     url:
       process.env.ALTKEYCLOAKURL +
-      `/admin/realms/hasura-app/users?username=${username}`,
+      `/admin/realms/hasura-app/users?username=${username}&exact=true`,
+      // for exact match added extra query param
     headers: {
       "Content-Type": "application/json",
       Authorization: "Bearer " + token,
