@@ -1,21 +1,35 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Exclude, Expose } from "class-transformer";
+import { Exclude, Expose, Transform } from "class-transformer";
 import {
   MaxLength,
   IsNotEmpty,
   IsEmail,
   IsString,
   IsNumber,
+  IsDate,
+  IsUUID,
+  IsOptional,
+  Matches,
+  IsEnum,
 } from "class-validator";
+
+enum Gender {
+  Male = "Male",
+  Female = "Female",
+  Others = "Others",
+}
 
 export class TeacherDto {
   @Expose()
+  @IsUUID()
+  @IsOptional()
   userId: string;
 
   @ApiProperty({
     type: String,
     description: "The full name of the user",
   })
+  @IsString()
   @Expose()
   name: string;
 
@@ -23,6 +37,7 @@ export class TeacherDto {
     type: String,
     description: "username",
   }) // Auto Generated if not provided
+  @IsString()
   @Expose()
   username: string;
 
@@ -31,6 +46,8 @@ export class TeacherDto {
     description: "The email of the user",
   })
   @Expose()
+  @Transform((params) => (params.value === "" ? null : params.value))
+  @IsOptional()
   @IsEmail()
   email: string;
 
@@ -39,21 +56,28 @@ export class TeacherDto {
     description: "The contact number of the user",
   })
   @Expose()
+  @IsString()
+  @Matches(/^[6-9]\d{9}$/, { message: "Invalid mobile number" })
   mobile: string;
 
   @ApiProperty({
-    type: String,
+    enum: Gender,
     description: "The gender of the user",
+    example: Gender.Female,
   })
   @Expose()
+  @IsEnum(Gender)
   gender: string;
 
   @ApiProperty({
-    type: String,
+    type: Date,
     description: "The birthDate of the user",
+    example: "2000-12-31",
   })
   @Expose()
-  dateOfBirth: string;
+  @Transform(({ value }) => value && new Date(value))
+  @IsDate()
+  dateOfBirth: Date;
 
   // @ApiProperty({
   //   type: String,
@@ -101,7 +125,6 @@ export class TeacherDto {
 
   @Expose()
   groups: string[];
-  default: []
 
   @ApiProperty()
   @Expose()
@@ -199,7 +222,7 @@ export class TeacherDto {
     this.updatedBy = obj?.updatedBy ? `${obj.updatedBy}` : "";
     if (all) {
       this.email = obj?.email ? `${obj.email}` : "";
-      this.dateOfBirth = obj?.dateOfBirth ? `${obj?.dateOfBirth}` : "";
+      this.dateOfBirth = obj?.dateOfBirth ? obj?.dateOfBirth : new Date();
       this.gender = obj?.gender ? `${obj?.gender}` : "";
       this.mobile = obj?.mobile ? `${obj?.mobile}` : "";
       this.name = obj?.name ? `${obj?.name}` : "";

@@ -1,4 +1,10 @@
-import { Request } from "@nestjs/common";
+import {
+  HttpStatus,
+  Request,
+  Res,
+  UsePipes,
+  ValidationPipe,
+} from "@nestjs/common";
 import {
   ApiTags,
   ApiBody,
@@ -20,9 +26,10 @@ import {
   SerializeOptions,
   Req,
 } from "@nestjs/common";
+import { Response } from "express";
 import { ALTBulkUploadTeacherDto } from "./dto/alt-bulk-upload-teacher.dto";
 import { ALTBulkUploadTeacherService } from "src/adapters/hasura/altBulkUploadTeacher.adapter";
-import { TeacherDto } from "src/altTeacher/dto/alt-teacher.dto";
+import { ErrorResponse } from "src/error-response";
 
 @ApiTags("ALT Bulk Teacher")
 @Controller("teacher/bulkupload")
@@ -33,17 +40,32 @@ export class ALTBulkUploadTeacherController {
 
   @Post()
   @ApiBasicAuth("access-token")
+  @UsePipes(ValidationPipe)
   @ApiCreatedResponse({ description: "Teacher has been created successfully." })
-  @ApiBody({ type: [TeacherDto] })
+  @ApiBody({ type: ALTBulkUploadTeacherDto })
   @ApiForbiddenResponse({ description: "Forbidden" })
   @UseInterceptors(ClassSerializerInterceptor)
   public async createTeacher(
     @Req() request: Request,
-    @Body() bulkTeacherDto: [TeacherDto]
+    @Body() bulkTeacherDto: ALTBulkUploadTeacherDto,
+    @Res() response: Response
   ) {
-    return this.altBulkUploadTeacherService.createTeachers(
-      request,
-      bulkTeacherDto
-    );
+    const teacherImportResponse =
+      await this.altBulkUploadTeacherService.createTeachers(
+        request,
+        bulkTeacherDto
+      );
+
+    if (teacherImportResponse instanceof ErrorResponse) {
+      console.error(teacherImportResponse);
+      response
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .send(
+          "Something went wrong" +
+            "INTERNAL_SERVER_ERROR" +
+            teacherImportResponse
+        );
+    }
+    response.status(HttpStatus.CREATED).send(teacherImportResponse);
   }
 }
