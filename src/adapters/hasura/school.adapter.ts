@@ -263,7 +263,7 @@ export class SchoolHasuraService implements IServicelocator {
             count
           }
         }
-            School(where:{ ${query}}, limit: $limit, offset: $offset,) {
+        School(where:{ ${query}}, limit: $limit, offset: $offset,) {
             name
             udiseCode                                             
             id
@@ -302,9 +302,8 @@ export class SchoolHasuraService implements IServicelocator {
             buildingIsResistantToEarthquakeFireFloodOtherCalamity
             buildingIsFreeFromInflammableAndToxicMaterials
             roofAndWallsAreInGoodCondition
-            }
-          }`,
-
+        }
+      }`,
       variables: {
         limit: parseInt(schoolSearchDto.limit),
         offset: offset,
@@ -316,7 +315,6 @@ export class SchoolHasuraService implements IServicelocator {
       headers: {
         Authorization: request.headers.authorization,
         "x-hasura-role": getUserRole(altUserRoles),
-
         "Content-Type": "application/json",
       },
       data: data,
@@ -332,8 +330,6 @@ export class SchoolHasuraService implements IServicelocator {
     }
 
     let result = response.data.data.School;
-
-  
 
     const schoolDto = await this.mappedResponse(result);
 

@@ -55,7 +55,6 @@ export class HasuraGroupService implements IServicelocatorgroup {
       headers: {
         Authorization: request.headers.authorization,
         "x-hasura-role": getUserRole(altUserRoles),
-
         "Content-Type": "application/json",
       },
       data: groupDetails,
@@ -116,7 +115,6 @@ export class HasuraGroupService implements IServicelocatorgroup {
       headers: {
         Authorization: request.headers.authorization,
         "x-hasura-role": getUserRole(altUserRoles),
-
         "Content-Type": "application/json",
       },
       data: data,
@@ -159,7 +157,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
           update_Group(where: {groupId: {_eq: $groupId}}, _set: {${query}}) {
           affected_rows
         }
-}`,
+      }`,
       variables: {
         groupId: groupId,
       },
@@ -240,22 +238,22 @@ export class HasuraGroupService implements IServicelocatorgroup {
             count
           }
         }
-            Group(where:{ ${query}}, limit: $limit, offset: $offset,) {
-              groupId
-              schoolUdise
-              medium
-              grade
-              name
-              type
-              section
-              status
-              createdAt
-              updatedAt
-              createdBy
-              updatedBy
-              board
-            }
-          }`,
+        Group(where:{ ${query}}, limit: $limit, offset: $offset,) {
+          groupId
+          schoolUdise
+          medium
+          grade
+          name
+          type
+          section
+          status
+          createdAt
+          updatedAt
+          createdBy
+          updatedBy
+          board
+        }
+      }`,
       variables: {
         limit: groupSearchDto.limit,
         offset: offset,
@@ -268,7 +266,6 @@ export class HasuraGroupService implements IServicelocatorgroup {
       headers: {
         Authorization: request.headers.authorization,
         "x-hasura-role": getUserRole(altUserRoles),
-
         "Content-Type": "application/json",
       },
       data: data,
@@ -613,14 +610,20 @@ export class HasuraGroupService implements IServicelocatorgroup {
     });
   }
 
-  public async getGroupBySchoolClass(request: any, schoolUdise, className) {
+  public async getGroupBySchoolClass(
+    request: any,
+    schoolUdise: string,
+    className: string,
+    year: string
+  ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     const groupDetails = {
-      query: `query GetGroupList($board:String,$medium:String,$schoolUdise:String,$name:String) {
+      query: `query GetGroupList($board:String,$medium:String,$schoolUdise:String,$name:String,$year:numeric) {
         Group(where: 
         {
+          academicYear: {_eq: $year}
           status: {_eq: true}
           name: {_eq: $name}
           schoolUdise: {_eq: $schoolUdise}
@@ -631,12 +634,15 @@ export class HasuraGroupService implements IServicelocatorgroup {
           medium
           grade
           name
+          status
+          academicYear
           board
         }
       }`,
       variables: {
         schoolUdise: schoolUdise,
         name: className,
+        year: year
       },
     };
 

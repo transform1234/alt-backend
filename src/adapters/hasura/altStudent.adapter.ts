@@ -110,11 +110,13 @@ export class ALTStudentService {
     studentDto.role = "student";
 
     if (!bulkToken) {
+      // when creating student with individual api
       studentDto.groups = [];
       const groupRes: any = await this.groupService.getGroupBySchoolClass(
         request,
         studentDto.schoolUdise,
-        studentDto.className
+        studentDto.className,
+        new Date().getFullYear().toString()
       );
       if (!groupRes?.data[0]?.groupId) {
         return new ErrorResponse({
@@ -127,7 +129,13 @@ export class ALTStudentService {
       }
     }
 
-    let createdUser;
+    if (!studentDto.groups.length) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Please select Student class",
+      });
+    }
+
     try {
       if (altUserRoles.includes("systemAdmin")) {
         const newCreatedStudent: any = await this.createStudent(
@@ -135,24 +143,60 @@ export class ALTStudentService {
           studentDto,
           bulkToken
         );
-        // console.log(newCreatedStudent, "test");
+        // console.log(newCreatedStudent, "test", newCreatedStudent?.data?.groups);
         if (
-          newCreatedStudent?.statusCode === 200 &&
-          newCreatedStudent?.data?.groups[0]?.groupId
+          newCreatedStudent.statusCode === 200 &&
+          !newCreatedStudent?.data?.groups[0]?.groupId
         ) {
-          return newCreatedStudent;
-        } else if (newCreatedStudent.statusCode === 200) {
+          // user freshly created till now no group assigned
           studentDto.userId = newCreatedStudent?.data?.userId;
-          createdUser = newCreatedStudent.data;
+          const createdUser = newCreatedStudent.data;
           createdUser.groupAddResponse = await this.addToGroups(
             studentDto,
             request
           );
+          return new SuccessResponse({
+            statusCode: 200,
+            message: "Ok.",
+            data: createdUser,
+          });
+        } else if (
+          newCreatedStudent?.statusCode === 200 &&
+          newCreatedStudent?.data?.groups[0]?.groupId === studentDto?.groups[0]
+        ) {
+          // returns when student already exists and old and new group is same
+          return newCreatedStudent;
+        } else if (
+          newCreatedStudent?.statusCode === 200 &&
+          newCreatedStudent?.data.schoolUdise === studentDto.schoolUdise &&
+          newCreatedStudent?.data?.groups[0]?.groupId !== studentDto?.groups[0]
+        ) {
+          // old group and new group no longer match
+          // deactivate old group membership and add as per new group
+
+          const groupMembershipDtoById = new GroupMembershipDtoById(studentDto);
+          groupMembershipDtoById.userId = newCreatedStudent.data.userId;
+          groupMembershipDtoById.groupId = studentDto.groups[0];
+
+          const createdUser = newCreatedStudent.data;
+          createdUser.groupModificationResponse =
+            await this.groupMembershipService.modifyGroupMembership(
+              request,
+              groupMembershipDtoById,
+              newCreatedStudent?.data?.groups[0]?.groupId
+            );
 
           return new SuccessResponse({
             statusCode: 200,
             message: "Ok.",
             data: createdUser,
+          });
+        } else if (
+          newCreatedStudent?.data.schoolUdise !== studentDto.schoolUdise
+        ) {
+          return new ErrorResponse({
+            errorCode: "400",
+            errorMessage: `Create and add to group failed Old and new school does not match,`,
           });
         } else {
           // console.log(newCreatedStudent, "new Created user");
@@ -161,13 +205,18 @@ export class ALTStudentService {
             errorMessage: `Create and add to group failed , ${newCreatedStudent?.errorMessage}`,
           });
         }
+      } else {
+        return new ErrorResponse({
+          errorCode: "400",
+          errorMessage: "Unauthorized",
+        });
       }
     } catch (error) {
       const response = {
         msg: "Create and add to group failed",
         error,
       };
-      console.log(response);
+      console.error(response);
       return new ErrorResponse({
         errorCode: "500",
         errorMessage: response.msg + error.toString(),
@@ -259,7 +308,6 @@ export class ALTStudentService {
         userId: item?.user?.userId ? `${item.user.userId}` : "",
         password: await decryptPassword(item?.user.password),
         studentId: item?.studentId ? `${item.studentId}` : "",
-        groups: item?.groups ? item.groups : [],
         board: item?.board ? `${item.board}` : "",
         religion: item?.religion ? `${item.religion}` : "",
         schoolUdise: item?.schoolUdise ? item.schoolUdise : "",
@@ -297,7 +345,7 @@ export class ALTStudentService {
 
     //const promises = result.map(studentResponse);
     const promiseRes = await Promise.all(promises);
-    // console.log("303", promiseRes);
+
     if (promiseRes) {
       return promiseRes;
     }
@@ -386,7 +434,6 @@ export class ALTStudentService {
       headers: {
         Authorization: request.headers.authorization,
         "x-hasura-role": getUserRole(altUserRoles),
-
         "Content-Type": "application/json",
       },
       data: data,
@@ -441,7 +488,7 @@ export class ALTStudentService {
         errors,
       };
     } catch (error) {
-      console.log(error);
+      console.error(error);
       return new ErrorResponse({
         errorCode: "500",
         errorMessage: "Error while adding to group",
@@ -457,7 +504,7 @@ export class ALTStudentService {
         schoolUdise: item?.schoolUdise ? `${item.schoolUdise}` : "",
         createdAt: item?.createdAt ? `${item.createdAt}` : "",
         createdBy: item?.createdBy ? `${item.createdBy}` : "",
-        groups: item?.user?.GroupMemberships ? item.user.GroupMemberships : [],
+        groups: item?.user?.GroupMemberships ? item.user.GroupMemberships : [], // groups are blank when student is new, you will see data in group membership instead
         username: item?.user?.username ? item.user.username : "",
         studentEnrollId: item.studentEnrollId ? item.studentEnrollId : "",
       };
@@ -477,7 +524,12 @@ export class ALTStudentService {
           schoolUdise
           user {
             username
-            GroupMemberships {
+            GroupMemberships(where: {status: {_eq: true}}) {
+              groupMembershipId
+              role
+              schoolUdise
+              userId
+              status
               groupId
             }
           }
@@ -534,6 +586,7 @@ export class ALTStudentService {
         (studentDto[e] || studentDto[e] === 0) &&
         studentDto[e] !== "" &&
         e != "password" &&
+        e !== "groups" && // no need to save groups in db managed from group memberships
         Object.keys(studentSchema).includes(e)
       ) {
         if (Array.isArray(studentDto[e])) {
@@ -553,9 +606,16 @@ export class ALTStudentService {
           userId
           schoolUdise
           studentEnrollId
+          createdAt
+          createdBy
           user {
             username
-            GroupMemberships {
+            GroupMemberships(where: {status: {_eq: true}}) {
+              groupMembershipId
+              role
+              schoolUdise
+              userId
+              status
               groupId
             }
           }
@@ -581,7 +641,7 @@ export class ALTStudentService {
     const response = await this.axios(config);
 
     if (response?.data?.errors) {
-      console.log(response.data.errors);
+      console.error(response.data.errors);
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
         errorMessage: response.data.errors[0].message,
