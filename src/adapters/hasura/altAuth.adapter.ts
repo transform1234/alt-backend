@@ -31,8 +31,13 @@ export class HasuraAuthService {
       const res = await this.axios(config);
       return response.status(200).send(res.data);
     } catch (error) {
-      console.error(error, "err");
-      return response.status(500).send("Something went wrong!");
+      console.error(error?.response, "err");
+      if (error?.response?.status === 400) {
+        return response.status(400).send(error?.response?.data);
+      }
+      return response.status(500).send({
+        error: "Something went wrong!",
+      });
     }
   }
 }
