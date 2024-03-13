@@ -8,7 +8,7 @@ export class SuccessResponse {
   message: string;
 
   @Expose()
-  data: object;
+  data: any;
 
   constructor(partial: Partial<SuccessResponse>) {
     Object.assign(this, partial);
