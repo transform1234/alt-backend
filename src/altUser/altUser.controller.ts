@@ -12,12 +12,12 @@ import {
   CacheInterceptor,
   Inject,
   Query,
+  Res,
+  Delete,
+  HttpStatus,
+  UsePipes,
+  ValidationPipe,
 } from "@nestjs/common";
-import {
-  SunbirdUserToken,
-  UserService,
-} from "../adapters/sunbirdrc/user.adapter";
-import { Request } from "@nestjs/common";
 import {
   ApiTags,
   ApiBody,
@@ -32,6 +32,9 @@ import { ALTHasuraUserService } from "src/adapters/hasura/altUser.adapter";
 import { UserDto } from "./dto/alt-user.dto";
 import { ALTUserUpdateDto } from "./dto/alt-user-update.dto";
 import { ALTUserSearchDto } from "./dto/alt-user-search.dto";
+import { ALTUserDeactivateDto } from "./dto/alt-user-deactivate.dto";
+import { Request, Response } from "express";
+import { ErrorResponse } from "src/error-response";
 @ApiTags("User")
 @Controller("user")
 export class ALTUserController {
@@ -117,7 +120,37 @@ export class ALTUserController {
     return this.hasuraUserService.resetUserPassword(
       request,
       reqBody.newPassword,
-      reqBody.username,
+      reqBody.username
     );
+  }
+
+  @Delete("/deactivate")
+  // @UseGuards(AuthGuard('jwt'))
+  // @UseInterceptors(ActiveUserInterceptor)
+  @UsePipes(ValidationPipe)
+  @ApiBasicAuth("access-token")
+  @ApiBody({ type: ALTUserDeactivateDto })
+  public async deactivatePerson(
+    @Req() request: Request,
+    @Res() response: Response,
+    @Body() userDeactivateDto: ALTUserDeactivateDto
+  ) {
+    const deactivateUserResponse = await this.hasuraUserService.deactivateUser(
+      userDeactivateDto.usernames,
+      request
+    );
+    if (deactivateUserResponse instanceof ErrorResponse) {
+      if (deactivateUserResponse?.errorCode === "404") {
+        return response
+          .status(404)
+          .send({ error: deactivateUserResponse.errorMessage });
+      } else {
+        return response
+          .status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .send("INTERNAL_SERVER_ERROR " + deactivateUserResponse.errorMessage);
+      }
+    } else {
+      response.status(HttpStatus.CREATED).send(deactivateUserResponse);
+    }
   }
 }

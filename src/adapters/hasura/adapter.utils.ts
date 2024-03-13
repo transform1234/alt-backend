@@ -58,6 +58,7 @@ async function decryptPassword(encrypted) {
   }
 }
 
+// token for admin
 async function getToken() {
   const axios = require("axios");
   const qs = require("qs");
@@ -167,14 +168,13 @@ async function checkIfEmailExists(email, token) {
 }
 
 async function checkIfUsernameExistsInKeycloak(username, token) {
-  // console.log(username);
   const axios = require("axios");
   const config = {
     method: "get",
     url:
       process.env.ALTKEYCLOAKURL +
-      `/admin/realms/hasura-app/users?username=${username}&exact=true`,
-      // for exact match added extra query param
+      `admin/realms/hasura-app/users?username=${username}&exact=true`,
+    // for exact match added extra query param
     headers: {
       "Content-Type": "application/json",
       Authorization: "Bearer " + token,
@@ -190,6 +190,34 @@ async function checkIfUsernameExistsInKeycloak(username, token) {
   }
 
   return userResponse;
+}
+
+async function deactivateUserInKeycloak(userId: string, token: string) {
+  const axios = require("axios");
+  const data = JSON.stringify({
+    enabled: false,
+  });
+  return new Promise(async (resolve, reject) => {
+    const config = {
+      method: "put",
+      url:
+        process.env.ALTKEYCLOAKURL +
+        process.env.ALTKEYCLOAK_UPDATE_USER +
+        userId,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      data: data,
+    };
+    try {
+      let res = await axios(config);
+      resolve(res.data);
+    } catch (error) {
+      console.error(error);
+      reject(error);
+    }
+  });
 }
 
 function getClasses(classesTaught) {
@@ -217,4 +245,5 @@ export {
   decryptPassword,
   checkIfEmailExists,
   checkIfUsernameExistsInKeycloak,
+  deactivateUserInKeycloak,
 };

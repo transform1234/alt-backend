@@ -65,7 +65,8 @@ export class ALTBulkUploadTeacherController {
             "INTERNAL_SERVER_ERROR" +
             teacherImportResponse
         );
+    } else {
+      response.status(HttpStatus.CREATED).send(teacherImportResponse);
     }
-    response.status(HttpStatus.CREATED).send(teacherImportResponse);
   }
 }

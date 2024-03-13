@@ -13,6 +13,7 @@ import {
   encryptPassword,
   getPassword,
   checkIfUsernameExistsInKeycloak,
+  deactivateUserInKeycloak,
 } from "./adapter.utils";
 import { ALTUserUpdateDto } from "src/altUser/dto/alt-user-update.dto";
 
@@ -759,6 +760,121 @@ export class ALTHasuraUserService {
       return new ErrorResponse({
         errorCode: "400",
         errorMessage: "Something went wrong in password reset",
+      });
+    }
+  }
+
+  async deactivateUser(userNames: string[], request: any) {
+    try {
+      const decoded: any = jwt_decode(request.headers.authorization);
+      const altUserRoles =
+        decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+
+      const updatedUsers = await this.deactivateInDatabase(
+        request,
+        altUserRoles,
+        userNames
+      );
+
+      let userIdList: any[] = [];
+      if (
+        updatedUsers instanceof SuccessResponse &&
+        updatedUsers?.data?.affected_rows > 0
+      ) {
+        userIdList = updatedUsers?.data?.returning.filter(
+          ({ userId, status }) => {
+            if (!status) return userId;
+          }
+        );
+      }
+
+      if (!userIdList.length) {
+        return new ErrorResponse({
+          errorCode: "404",
+          errorMessage: "Users Not found",
+        });
+      }
+
+      const response = await getToken();
+      const adminToken = response.data.access_token;
+
+      const userDeactivatePromises = userIdList.map(({ userId }) =>
+        deactivateUserInKeycloak(userId, adminToken)
+      );
+      const responses = await Promise.allSettled(userDeactivatePromises).then(
+        (results) => results
+      );
+
+      const responseValues = responses.reduce(
+        (allResponses, promise) => {
+          if (promise.status === "rejected") {
+            allResponses.errorRecords = allResponses.errorRecords + 1;
+          } else {
+            allResponses.successRecords = allResponses.successRecords + 1;
+          }
+          return allResponses;
+        },
+        { successRecords: 0, errorRecords: 0 }
+      );
+
+      return new SuccessResponse({
+        statusCode: response.status,
+        message: "Ok.",
+        data: responseValues,
+      });
+    } catch (e) {
+      console.error(e);
+      return new ErrorResponse({
+        errorCode: "500",
+        errorMessage: "Something went wrong.",
+      });
+    }
+  }
+
+  async deactivateInDatabase(
+    request: any,
+    altUserRoles: string[],
+    usernames: string[]
+  ) {
+    const data = {
+      query: `mutation UserDeactivate($usernameList:[String!]) {
+        update_Users(where: {username: {_in: $usernameList}}, _set: {status: false}) {
+          affected_rows
+          returning {
+            userId
+          }
+        }
+      }`,
+      variables: { usernameList: usernames },
+    };
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    } else {
+      const result = response.data.data.update_Users;
+      // const userData = await this.mappedResponse(result, false);
+      return new SuccessResponse({
+        statusCode: response.status,
+        message: "Ok.",
+        data: result,
       });
     }
   }
