@@ -140,9 +140,15 @@ export class ALTUserController {
       request
     );
     if (deactivateUserResponse instanceof ErrorResponse) {
-      response
-        .status(HttpStatus.NOT_FOUND)
-        .send("NOT_FOUND " + deactivateUserResponse.errorMessage);
+      if (deactivateUserResponse?.errorCode === "404") {
+        return response
+          .status(404)
+          .send({ error: deactivateUserResponse.errorMessage });
+      } else {
+        return response
+          .status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .send("INTERNAL_SERVER_ERROR " + deactivateUserResponse.errorMessage);
+      }
     } else {
       response.status(HttpStatus.CREATED).send(deactivateUserResponse);
     }
