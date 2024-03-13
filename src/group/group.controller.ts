@@ -21,13 +21,15 @@ import {
   Query,
   CacheInterceptor,
   UploadedFile,
+  ValidationPipe,
+  UsePipes,
 } from "@nestjs/common";
 import { GroupSearchDto } from "./dto/group-search.dto";
 import { Request } from "@nestjs/common";
 import { GroupDto } from "./dto/group.dto";
-import { FileInterceptor } from "@nestjs/platform-express";
-import { editFileName, imageFileFilter } from "./utils/file-upload.utils";
-import { diskStorage } from "multer";
+// import { FileInterceptor } from "@nestjs/platform-express";
+// import { editFileName, imageFileFilter } from "./utils/file-upload.utils";
+// import { diskStorage } from "multer";
 
 import { GroupAdapter } from "./groupadapter";
 import { BMtoGroupDto } from "./dto/bmtogroup.dto";
@@ -50,60 +52,46 @@ export class GroupController {
   }
 
   @Post()
-  @ApiConsumes("multipart/form-data")
+  @UsePipes(ValidationPipe)
   @ApiBasicAuth("access-token")
   @ApiCreatedResponse({ description: "Group has been created successfully." })
-  @UseInterceptors(
-    FileInterceptor("image", {
-      storage: diskStorage({
-        destination: process.env.IMAGEPATH,
-        filename: editFileName,
-      }),
-      fileFilter: imageFileFilter,
-    })
-  )
   @ApiBody({ type: GroupDto })
   @ApiForbiddenResponse({ description: "Forbidden" })
   @UseInterceptors(ClassSerializerInterceptor)
   public async createGroup(
     @Req() request: Request,
-    @Body() groupDto: GroupDto,
-    @UploadedFile() image
+    @Body() groupDto: GroupDto
   ) {
-    const response = {
-      image: image?.filename,
-    };
-    Object.assign(groupDto, response);
-
     return this.groupAdapter.buildGroupAdapter().createGroup(request, groupDto);
   }
 
   @Put("/:id")
-  @ApiConsumes("multipart/form-data")
+  @UsePipes(ValidationPipe)
+  // @ApiConsumes("multipart/form-data")
   @ApiBasicAuth("access-token")
   @ApiCreatedResponse({ description: "Group has been updated successfully." })
-  @UseInterceptors(
-    FileInterceptor("image", {
-      storage: diskStorage({
-        destination: process.env.IMAGEPATH,
-        filename: editFileName,
-      }),
-      fileFilter: imageFileFilter,
-    })
-  )
+  // @UseInterceptors(
+  //   FileInterceptor("image", {
+  //     storage: diskStorage({
+  //       destination: process.env.IMAGEPATH,
+  //       filename: editFileName,
+  //     }),
+  //     fileFilter: imageFileFilter,
+  //   })
+  // )
   @ApiBody({ type: GroupDto })
   @ApiForbiddenResponse({ description: "Forbidden" })
   @UseInterceptors(ClassSerializerInterceptor)
   public async updateGroup(
     @Param("id") groupId: string,
     @Req() request: Request,
-    @Body() groupDto: GroupDto,
-    @UploadedFile() image
+    @Body() groupDto: GroupDto
+    // @UploadedFile() image
   ) {
-    const response = {
-      image: image?.filename,
-    };
-    Object.assign(groupDto, response);
+    // const response = {
+    //   image: image?.filename,
+    // };
+    // Object.assign(groupDto, response);
 
     return this.groupAdapter
       .buildGroupAdapter()
@@ -111,6 +99,7 @@ export class GroupController {
   }
 
   @Post("/search")
+  @UsePipes(ValidationPipe)
   @ApiBasicAuth("access-token")
   @ApiCreatedResponse({ description: "Group list." })
   @ApiBody({ type: GroupSearchDto })
@@ -129,6 +118,7 @@ export class GroupController {
   }
 
   @Get(":groupId/participants")
+  @UsePipes(ValidationPipe)
   @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
   @ApiBasicAuth("access-token")
   @ApiOkResponse({ description: "Group detail." })
@@ -144,6 +134,7 @@ export class GroupController {
   }
 
   @Get("participant/:userId")
+  @UsePipes(ValidationPipe)
   @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
   @ApiBasicAuth("access-token")
   @ApiOkResponse({ description: "Group detail." })
@@ -174,6 +165,7 @@ export class GroupController {
   // }
 
   @Post("/boardmediumschool")
+  @UsePipes(ValidationPipe)
   @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
   @ApiBasicAuth("access-token")
   @ApiCreatedResponse({ description: "Group detail" })

@@ -357,4 +357,89 @@ export class GroupMembershipService {
 
     return groupMembershipResponse;
   }
+
+  public async modifyGroupMembership(
+    request: any,
+    groupMembership: GroupMembershipDtoById,
+    oldGroupId: string
+  ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    groupMembership.createdBy = userId;
+    groupMembership.updatedBy = userId;
+
+    let query = "";
+    Object.keys(groupMembership).forEach((e) => {
+      if (groupMembership[e] && groupMembership[e] != "") {
+        if (e === "role") {
+          query += `${e}: ${groupMembership[e]},`;
+        } else if (Array.isArray(groupMembership[e])) {
+          query += `${e}: ${JSON.stringify(groupMembership[e])}, `;
+        } else {
+          query += `${e}: "${groupMembership[e]}", `;
+        }
+      }
+    });
+
+    // deactivate old one add new one
+
+    let data = {
+      query: `mutation ModifyGroupMembership ($userId: uuid!,$groupId: uuid!) {
+        update_GroupMembership(where: {userId: {_eq: $userId}, groupId: {_eq: $groupId}}, _set: {status: false}) {
+          affected_rows
+          returning {
+            status
+            groupId
+            userId
+            updatedAt
+            updatedBy
+          }
+        }
+        insert_GroupMembership_one(object: {${query}}) {
+          groupMembershipId
+          status
+          groupId
+          userId
+        }
+      }
+      `,
+      variables: {
+        userId: groupMembership.userId,
+        groupId: oldGroupId,
+      },
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const result = {
+      updation: response.data.data.update_GroupMembership,
+      insertion: response.data.data.insert_GroupMembership_one,
+    };
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: result,
+    });
+  }
 }

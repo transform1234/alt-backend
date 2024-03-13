@@ -1,12 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
 import { SuccessResponse } from "src/success-response";
-import { IServicelocator } from "../userservicelocator";
 import { ResponseUserDto, UserDto } from "src/altUser/dto/alt-user.dto";
 import jwt_decode from "jwt-decode";
 import { UserSearchDto } from "src/user/dto/user-search.dto";
 import { ErrorResponse } from "src/error-response";
-import { UserUpdateDto } from "src/user/dto/user-update.dto";
 import {
   getUserRole,
   getToken,
@@ -45,7 +43,7 @@ export class ALTHasuraUserService {
           updatedAt
           createdBy
           updatedBy
-          GroupMemberships {
+          GroupMemberships(where: {status: {_eq: true}}) {
             Group {
               board
               medium
@@ -169,7 +167,7 @@ export class ALTHasuraUserService {
       }
       userDto.userId = usernameExistsInKeycloak?.data[0]?.id;
     } else {
-      console.log("not present in keycloak");
+      // console.log("not present in keycloak");
       const newlyCreatedUser = await this.createUser(
         request,
         userDto,
@@ -221,7 +219,7 @@ export class ALTHasuraUserService {
 
         // console.log(resKeycloak.response.data.errorMessage, "ok");
         if (resKeycloak?.response?.data?.errorMessage) {
-          console.log(resKeycloak?.response?.data?.errorMessage);
+          console.error(resKeycloak?.response?.data?.errorMessage);
           return new ErrorResponse({
             errorCode: "400",
             errorMessage:
@@ -524,7 +522,7 @@ export class ALTHasuraUserService {
           updatedAt
           createdBy
           updatedBy
-          GroupMemberships {
+          GroupMemberships(where: {status: {_eq: true}}) {
             Group {
               board
               medium
@@ -566,7 +564,11 @@ export class ALTHasuraUserService {
     }
   }
 
-  public async getUserByUsername(username: string, request: any, altUserRoles) {
+  public async getUserByUsername(
+    username: string,
+    request: any,
+    altUserRoles: string[]
+  ) {
     const data = {
       query: `query GetUserByUsername($username:String) {
         Users(where: {username: {_eq: $username}}){
@@ -583,9 +585,16 @@ export class ALTHasuraUserService {
           updatedAt
           createdBy
           updatedBy
+          GroupMemberships(where: {status: {_eq: true}}) {
+            groupMembershipId
+            role
+            schoolUdise
+            userId
+            status
+            groupId
+          }
         }
-      }
-      `,
+      }`,
       variables: { username: username },
     };
 
@@ -610,12 +619,12 @@ export class ALTHasuraUserService {
         errorMessage: response.data.errors[0].message,
       });
     } else {
-      const result = response.data.data.Users;
-      const userData = await this.mappedResponse(result, false);
+      const result: any[] = response.data.data.Users;
+      // const userData = await this.mappedResponse(result, false);
       return new SuccessResponse({
         statusCode: response.status,
         message: "Ok.",
-        data: userData[0],
+        data: result[0],
       });
     }
   }

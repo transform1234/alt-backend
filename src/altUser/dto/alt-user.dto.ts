@@ -1,10 +1,11 @@
-import { Exclude, Expose } from "class-transformer";
+import { Exclude, Expose, Transform } from "class-transformer";
 import {
   MaxLength,
   IsNotEmpty,
   IsEmail,
   IsString,
   IsNumber,
+  IsDate,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
@@ -49,11 +50,14 @@ export class UserDto {
   gender: string;
 
   @ApiProperty({
-    type: String,
+    type: Date,
     description: "The birthDate of the user",
+    example: "2000-12-31",
   })
   @Expose()
-  dateOfBirth: string;
+  @Transform(({ value }) => value && new Date(value))
+  @IsDate()
+  dateOfBirth: Date;
 
   @ApiProperty({
     type: String,
@@ -102,7 +106,7 @@ export class UserDto {
     this.email = obj?.email ? `${obj.email}` : "";
     this.mobile = obj?.mobile ? obj.mobile : "";
     this.gender = obj?.gender ? `${obj.gender}` : "";
-    this.dateOfBirth = obj?.dateOfBirth ? `${obj.dateOfBirth}` : "";
+    this.dateOfBirth = obj?.dateOfBirth ? obj.dateOfBirth : new Date();
     this.status = obj?.status ? obj.status : false;
     this.role = obj?.role ? `${obj.role}` : "";
     // this.createdAt = obj?.createdAt ? `${obj.createdAt}` : "";

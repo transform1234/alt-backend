@@ -127,7 +127,8 @@ export class ALTTeacherService {
         groupRes = await this.groupService.getGroupBySchoolClass(
           request,
           teacherDto.schoolUdise,
-          teacherClass
+          teacherClass,
+          new Date().getFullYear().toString()
         );
         if (groupRes?.data[0]?.groupId) {
           teacherDto.groups.push(groupRes.data[0].groupId);
@@ -504,7 +505,12 @@ export class ALTTeacherService {
           schoolUdise
           user {
             username
-            GroupMemberships(where: {userId: {_eq: $userId}}) {
+            GroupMemberships(where: {status: {_eq: true}}) {
+              groupMembershipId
+              role
+              schoolUdise
+              userId
+              status
               groupId
             }
           }
@@ -586,7 +592,12 @@ export class ALTTeacherService {
           schoolUdise
           user {
             username
-            GroupMemberships {
+            GroupMemberships(where: {status: {_eq: true}}) {
+              groupMembershipId
+              role
+              schoolUdise
+              userId
+              status
               groupId
             }
           }
