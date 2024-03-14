@@ -6,6 +6,7 @@ import {
   ArrayMinSize,
   IsArray,
   IsObject,
+  IsString,
   ValidateNested,
 } from "class-validator";
 
@@ -22,4 +23,18 @@ export class ALTBulkUploadSchoolDto {
   @Type(() => SchoolDto)
   @Expose()
   schools: SchoolDto[];
+}
+
+export class ALTNewGroupsDto {
+  @ApiProperty({
+    type: [String],
+    description: "School Udise List for new groups",
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayMinSize(1)
+  @ArrayMaxSize(10)
+  @Type(() => String)
+  @Expose()
+  schoolUdiseList: string[];
 }

@@ -85,7 +85,7 @@ export class SchoolHasuraService implements IServicelocator {
     const result = response.data.data.insert_School_one;
 
     return new SuccessResponse({
-      statusCode: 200,
+      statusCode: 201,
       message: "Ok.",
       data: result,
     });
