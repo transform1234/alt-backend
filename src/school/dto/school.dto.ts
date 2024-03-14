@@ -29,6 +29,17 @@ enum Composition {
   CoEducation = "CoEducation",
 }
 
+enum HeadmasterType {
+  FullTime = "FullTime",
+  Incharge = "Incharge",
+  PartTime = "PartTime",
+}
+
+enum SchoolLocation {
+  Urban = "Urban",
+  Rural = "Rural",
+}
+
 export class SchoolDto {
   @Expose()
   @IsUUID()
@@ -54,11 +65,11 @@ export class SchoolDto {
   name: string;
 
   @ApiProperty({
-    type: String,
+    enum: SchoolLocation,
     description: "The location of the school",
   })
   @Expose()
-  @IsString()
+  @IsEnum(SchoolLocation)
   location: string;
 
   @ApiProperty({
@@ -76,7 +87,7 @@ export class SchoolDto {
   @Expose()
   @IsEnum(Composition)
   @IsOptional()
-  @Transform((params) => (params.value === "" ? null : params.value)) 
+  @Transform((params) => (params.value === "" ? null : params.value))
   composition: string;
 
   @ApiProperty({
@@ -101,11 +112,11 @@ export class SchoolDto {
   headmaster: string;
 
   @ApiProperty({
-    type: String,
+    enum: HeadmasterType,
     description: "The Head master type of the school",
   })
   @Expose()
-  @IsOptional()
+  @IsEnum(HeadmasterType)
   @Transform((params) => (params.value === "" ? null : params.value))
   headmasterType: string;
 
