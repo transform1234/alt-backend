@@ -509,7 +509,7 @@ export class ALTHasuraUserService {
 
     const data = {
       query: `query searchUser($username:String) {
-        Users(where: {username: {_eq: $username}}) {
+        Users(where: {username: {_eq: $username}, status: {_eq: true}}) {
           userId
           name
           username
