@@ -120,7 +120,7 @@ export class ALTTeacherService {
         });
       }
       // console.log(teacherClasses, "tcs");
-      
+
       teacherDto.groups = [];
 
       for (let teacherClass of teacherClasses) {
@@ -145,7 +145,7 @@ export class ALTTeacherService {
         errorMessage: "Please select Teacher class",
       });
     }
-    let createdUser;
+
     try {
       if (altUserRoles.includes("systemAdmin")) {
         const newCreatedTeacher: any = await this.createTeacher(
@@ -153,20 +153,68 @@ export class ALTTeacherService {
           teacherDto,
           bulkToken
         );
-        // console.log(newCreatedTeacher?.data, "test");
+        // console.log(newCreatedTeacher, "test");
+        // console.log(newCreatedTeacher.data?.groups, "test");
+        // console.log(teacherDto, "tdto");
+        const teachersExistingGroups = newCreatedTeacher.data?.groups.map(
+          ({ groupId }) => groupId
+        );
         if (
           newCreatedTeacher?.statusCode === 200 &&
-          newCreatedTeacher?.data?.groups[0]?.groupId
+          !newCreatedTeacher?.data?.groups[0]?.groupId
         ) {
-          // newCreatedTeacher?.data?.user?.GroupMemberships?.groupId
-          return newCreatedTeacher;
-        } else if (newCreatedTeacher.statusCode === 200) {
+          // user freshly created till now no group assigned
           teacherDto.userId = newCreatedTeacher?.data?.userId;
-          createdUser = newCreatedTeacher.data;
+          const createdUser = newCreatedTeacher.data;
           createdUser.groupAddResponse = await this.addToGroups(
             teacherDto,
             request
           );
+          return new SuccessResponse({
+            statusCode: 200,
+            message: "Ok.",
+            data: createdUser,
+          });
+        } else if (
+          newCreatedTeacher?.data.schoolUdise !== teacherDto.schoolUdise ||
+          newCreatedTeacher?.data.classesTaught !== teacherDto.classesTaught
+        ) {
+          return new ErrorResponse({
+            errorCode: "400",
+            errorMessage: `Create and add to group failed Old and new school does not match or classes taught does not match,`,
+          });
+        } else if (
+          newCreatedTeacher?.statusCode === 200 &&
+          teachersExistingGroups.sort().join(",") ===
+            teacherDto?.groups.sort().join(",")
+        ) {
+          // returns when teacher already exists and old and new group is same
+          return newCreatedTeacher;
+        } else if (
+          newCreatedTeacher?.statusCode === 200 &&
+          newCreatedTeacher?.data.schoolUdise === teacherDto.schoolUdise &&
+          teachersExistingGroups.sort().join(",") !==
+            teacherDto?.groups.sort().join(",")
+        ) {
+          // old group and new group no longer match
+          // deactivate old group membership and add as per new group
+          const newGroupMemberships = teacherDto.groups.map((group) => {
+            const groupMembershipDtoById = new GroupMembershipDtoById(
+              teacherDto
+            );
+            // because user exists we assign its userId to groupMembershipDtoById
+            groupMembershipDtoById.userId = newCreatedTeacher.data.userId;
+            groupMembershipDtoById.groupId = group;
+            return groupMembershipDtoById;
+          });
+
+          const createdUser = newCreatedTeacher.data;
+          createdUser.groupModificationResponse =
+            await this.groupMembershipService.modifyGroupMembership(
+              request,
+              newGroupMemberships,
+              teachersExistingGroups
+            );
 
           return new SuccessResponse({
             statusCode: 200,
@@ -294,7 +342,7 @@ export class ALTTeacherService {
       }
     });
     var data = {
-      query: `query SearchStudent($limit:Int, $offset:Int) {
+      query: `query SearchTeacher($limit:Int, $offset:Int) {
         Teachers_aggregate {
           aggregate {
             count
@@ -484,6 +532,7 @@ export class ALTTeacherService {
         userId: item?.userId ? `${item.userId}` : "",
         teacherId: item?.teacherId ? `${item.teacherId}` : "",
         schoolUdise: item?.schoolUdise ? `${item.schoolUdise}` : "",
+        classesTaught: item?.classesTaught ? `${item.classesTaught}` : "",
         createdAt: item?.createdAt ? `${item.createdAt}` : "",
         createdBy: item?.createdBy ? `${item.createdBy}` : "",
         groups: item?.user?.GroupMemberships ? item.user.GroupMemberships : [],
@@ -503,6 +552,7 @@ export class ALTTeacherService {
           teacherId
           userId
           schoolUdise
+          classesTaught
           user {
             username
             GroupMemberships(where: {status: {_eq: true}}) {
@@ -512,6 +562,7 @@ export class ALTTeacherService {
               userId
               status
               groupId
+              createdAt
             }
           }
         }
@@ -590,6 +641,7 @@ export class ALTTeacherService {
           teacherId
           userId
           schoolUdise
+          classesTaught
           user {
             username
             GroupMemberships(where: {status: {_eq: true}}) {
@@ -599,6 +651,7 @@ export class ALTTeacherService {
               userId
               status
               groupId
+              createdAt
             }
           }
         }

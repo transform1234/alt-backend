@@ -19,6 +19,31 @@ enum Gender {
   Others = "Others",
 }
 
+enum ClassesTaught {
+  Secondary = "Secondary",
+  Middle = "Middle",
+  Both = "Both",
+}
+
+enum EducationalQualification {
+  Below_Secondary = "Below_Secondary",
+  Higher_Secondary = "Higher_Secondary",
+  Graduation = "Graduation",
+  Post_Graduation = "Post_Graduation",
+  PhD = "PhD",
+  BEd = "BEd",
+  MEd = "MEd",
+  MPhil = "MPhil",
+  Post_Doctoral = "Post_Doctoral",
+}
+
+enum CurrentRole {
+  Teacher = "Teacher",
+  Head_Teacher = "Head_Teacher",
+  Head_Teacher_In_Charge = "Head_Teacher_In_Charge",
+  Community_Academic_Volunteer = "Community_Academic_Volunteer",
+}
+
 export class TeacherDto {
   @Expose()
   @IsUUID()
@@ -30,6 +55,7 @@ export class TeacherDto {
     description: "The full name of the user",
   })
   @IsString()
+  @Transform(({ value }) => value.trim())
   @Expose()
   name: string;
 
@@ -38,6 +64,7 @@ export class TeacherDto {
     description: "username",
   }) // Auto Generated if not provided
   @IsString()
+  @Transform(({ value }) => value.trim())
   @Expose()
   username: string;
 
@@ -66,6 +93,7 @@ export class TeacherDto {
     example: Gender.Female,
   })
   @Expose()
+  @Transform(({ value }) => value.trim())
   @IsEnum(Gender)
   gender: string;
 
@@ -91,6 +119,7 @@ export class TeacherDto {
     description: "the user board",
   })
   @Expose()
+  @Transform(({ value }) => value.trim())
   board: string;
 
   @ApiProperty({
@@ -126,8 +155,14 @@ export class TeacherDto {
   @Expose()
   groups: string[];
 
-  @ApiProperty()
+  @ApiProperty({
+    enum: EducationalQualification,
+    description: "The educational qualification of the user",
+  })
   @Expose()
+  @Transform((params) => (params.value === "" ? null : params.value))
+  @IsOptional()
+  @IsEnum(EducationalQualification)
   educationalQualification: string;
 
   @ApiProperty({
@@ -137,16 +172,24 @@ export class TeacherDto {
   @Expose()
   schoolUdise: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    enum: CurrentRole,
+    description: "The current role of teacher",
+  })
   @Expose()
+  @Transform((params) => (params.value === "" ? null : params.value))
+  @IsOptional()
+  @IsEnum(CurrentRole)
   currentRole: string;
 
   @ApiProperty()
   @Expose()
+  @IsString()
   natureOfAppointment: string;
 
   @ApiProperty()
   @Expose()
+  @IsString()
   appointedPost: string;
 
   @ApiProperty()
@@ -157,8 +200,14 @@ export class TeacherDto {
   @Expose()
   totalHeadteacherExperience: string;
 
-  @ApiPropertyOptional()
+  @ApiProperty({
+    enum: ClassesTaught,
+    description: "The Classes Taught",
+    example: ClassesTaught.Middle,
+  })
   @Expose()
+  @Transform(({ value }) => value.trim())
+  @IsEnum(ClassesTaught)
   classesTaught: string;
 
   @ApiProperty()

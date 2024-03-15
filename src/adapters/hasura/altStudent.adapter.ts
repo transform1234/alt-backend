@@ -182,8 +182,8 @@ export class ALTStudentService {
           createdUser.groupModificationResponse =
             await this.groupMembershipService.modifyGroupMembership(
               request,
-              groupMembershipDtoById,
-              newCreatedStudent?.data?.groups[0]?.groupId
+              [groupMembershipDtoById],
+              [newCreatedStudent?.data?.groups[0]?.groupId]
             );
 
           return new SuccessResponse({
