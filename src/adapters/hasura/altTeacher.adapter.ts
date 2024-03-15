@@ -188,7 +188,7 @@ export class ALTTeacherService {
           teachersExistingGroups.sort().join(",") ===
             teacherDto?.groups.sort().join(",")
         ) {
-          // returns when student already exists and old and new group is same
+          // returns when teacher already exists and old and new group is same
           return newCreatedTeacher;
         } else if (
           newCreatedTeacher?.statusCode === 200 &&
@@ -342,7 +342,7 @@ export class ALTTeacherService {
       }
     });
     var data = {
-      query: `query SearchStudent($limit:Int, $offset:Int) {
+      query: `query SearchTeacher($limit:Int, $offset:Int) {
         Teachers_aggregate {
           aggregate {
             count
