@@ -360,34 +360,37 @@ export class GroupMembershipService {
 
   public async modifyGroupMembership(
     request: any,
-    groupMembership: GroupMembershipDtoById,
-    oldGroupId: string
+    groupMemberships: GroupMembershipDtoById[],
+    oldGroupIds: string[]
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-    groupMembership.createdBy = userId;
-    groupMembership.updatedBy = userId;
 
-    let query = "";
-    Object.keys(groupMembership).forEach((e) => {
-      if (groupMembership[e] && groupMembership[e] != "") {
-        if (e === "role") {
-          query += `${e}: ${groupMembership[e]},`;
-        } else if (Array.isArray(groupMembership[e])) {
-          query += `${e}: ${JSON.stringify(groupMembership[e])}, `;
-        } else {
-          query += `${e}: "${groupMembership[e]}", `;
+    const newGroupMembershipData = groupMemberships.map((groupMembership) => {
+      let query = "";
+      groupMembership.createdBy = userId;
+      groupMembership.updatedBy = userId;
+      Object.keys(groupMembership).forEach((e) => {
+        if (groupMembership[e] && groupMembership[e] != "") {
+          if (e === "role") {
+            query += `${e}: ${groupMembership[e]},`;
+          } else if (Array.isArray(groupMembership[e])) {
+            query += `${e}: ${JSON.stringify(groupMembership[e])}, `;
+          } else {
+            query += `${e}: "${groupMembership[e]}", `;
+          }
         }
-      }
+      });
+      return "{" + query + "}";
     });
 
     // deactivate old one add new one
 
     let data = {
-      query: `mutation ModifyGroupMembership ($userId: uuid!,$groupId: uuid!) {
-        update_GroupMembership(where: {userId: {_eq: $userId}, groupId: {_eq: $groupId}}, _set: {status: false}) {
+      query: `mutation ModifyGroupMembership ($userId: uuid!,$groupIds: [uuid!]) {
+        update_GroupMembership(where: {userId: {_eq: $userId}, groupId: {_in: $groupIds}}, _set: {status: false}) {
           affected_rows
           returning {
             status
@@ -397,17 +400,20 @@ export class GroupMembershipService {
             updatedBy
           }
         }
-        insert_GroupMembership_one(object: {${query}}) {
-          groupMembershipId
-          status
-          groupId
-          userId
+        insert_GroupMembership(objects: [${newGroupMembershipData}]) {
+          affected_rows
+          returning {
+            groupMembershipId
+            status
+            groupId
+            userId
+          }
         }
       }
       `,
       variables: {
-        userId: groupMembership.userId,
-        groupId: oldGroupId,
+        userId: groupMemberships[0].userId,
+        groupIds: oldGroupIds,
       },
     };
 
@@ -433,7 +439,7 @@ export class GroupMembershipService {
 
     const result = {
       updation: response.data.data.update_GroupMembership,
-      insertion: response.data.data.insert_GroupMembership_one,
+      insertion: response.data.data.insert_GroupMembership,
     };
 
     return new SuccessResponse({
