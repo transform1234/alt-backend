@@ -31,13 +31,20 @@ export class SchoolHasuraService implements IServicelocator {
       ) {
         if (
           e === "management" ||
-        e === "headmasterType" ||
+          e === "headmasterType" ||
+          e === "headmasterMobile" ||
           e === "composition" ||
-          e === "mediumOfInstruction" || e === "smartBoardFunctionalClass6" || e === "smartBoardFunctionalClass7"
-          || e === "smartBoardFunctionalClass8" || e ==="smartBoardFunctionalClass9" || e === "smartBoardFunctionalClass10" ||
-          e === "location" || e === "computerLabFunctional"
+          e === "mediumOfInstruction" ||
+          e === "smartBoardFunctionalClass6" ||
+          e === "smartBoardFunctionalClass7" ||
+          e === "smartBoardFunctionalClass8" ||
+          e === "smartBoardFunctionalClass9" ||
+          e === "smartBoardFunctionalClass10" ||
+          e === "location" ||
+          e === "computerLabFunctional"
         ) {
-          query += `${e}: ${schoolSchema[e]},`;
+          const value = schoolSchema[e] ? schoolSchema[e] : null;
+          query += `${e}: ${value},`;
         } else if (Array.isArray(schoolSchema[e])) {
           query += `${e}: ${JSON.stringify(schoolSchema[e])}, `;
         } else {
@@ -46,7 +53,7 @@ export class SchoolHasuraService implements IServicelocator {
       }
     });
 
-    var data = {
+    const data = {
       query: `mutation CreateSchool {
         insert_School_one(object: {${query}}) {
         udiseCode
@@ -78,7 +85,7 @@ export class SchoolHasuraService implements IServicelocator {
     const result = response.data.data.insert_School_one;
 
     return new SuccessResponse({
-      statusCode: 200,
+      statusCode: 201,
       message: "Ok.",
       data: result,
     });
@@ -246,9 +253,7 @@ export class SchoolHasuraService implements IServicelocator {
           e === "mediumOfInstruction" ||
           e === "headmaster"
         ) {
-        
           query += `${e}:{_eq: ${schoolSearchDto.filters[e]}},`;
-
         } else if (e === "name") {
           query += `${e}:{_ilike: "%${schoolSearchDto.filters[e]}%"}`;
         } else {
@@ -508,8 +513,7 @@ export class SchoolHasuraService implements IServicelocator {
         roofAndWallsAreInGoodCondition: item?.roofAndWallsAreInGoodCondition
           ? `${item.roofAndWallsAreInGoodCondition}`
           : "",
-          headmasterType: item?.headmasterType ? `${item.headmasterType}` : "",
-
+        headmasterType: item?.headmasterType ? `${item.headmasterType}` : "",
       };
       return new SchoolDto(schoolMapping);
     });

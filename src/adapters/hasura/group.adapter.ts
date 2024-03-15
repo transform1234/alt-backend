@@ -642,7 +642,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
       variables: {
         schoolUdise: schoolUdise,
         name: className,
-        year: year
+        year: year,
       },
     };
 
@@ -792,5 +792,125 @@ export class HasuraGroupService implements IServicelocatorgroup {
     });
 
     return userResponse;
+  }
+
+  public async deactivateGroups(
+    request: any,
+    altUserRoles: string[],
+    schoolUdiseList: string[]
+  ) {
+    const data = {
+      query: `mutation GroupsDeactivate($schoolUdiseList:[String!], $year:numeric!) {
+        update_Group(where: {schoolUdise: {_in: $schoolUdiseList}, academicYear: {_neq: $year}}, _set: {status: false}) {
+          affected_rows
+          returning {
+            status
+            groupId
+            schoolUdise
+            academicYear
+            board
+            medium
+          }
+        }
+      }`,
+      variables: {
+        schoolUdiseList: schoolUdiseList,
+        year: new Date().getFullYear().toString(),
+      },
+    };
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    } else {
+      const result = response.data.data.update_Group;
+      // const userData = await this.mappedResponse(result, false);
+      return new SuccessResponse({
+        statusCode: response.status,
+        message: "Ok.",
+        data: result,
+      });
+    }
+  }
+
+  public async createMultipleGroups(request: any, groupDtos: GroupDto[]) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    const newGroupData = groupDtos.map((groupDto) => {
+      let query = "";
+      groupDto.createdBy = userId;
+      groupDto.updatedBy = userId;
+      Object.keys(groupDto).forEach((e) => {
+        if (groupDto[e] && groupDto[e] != "") {
+          if (e === "role") {
+            query += `${e}: ${groupDto[e]},`;
+          } else if (Array.isArray(groupDto[e])) {
+            query += `${e}: ${JSON.stringify(groupDto[e])}, `;
+          } else {
+            query += `${e}: "${groupDto[e]}", `;
+          }
+        }
+      });
+      return "{" + query + "}";
+    });
+
+    var data = {
+      query: `mutation CreateGroups {
+        insert_Group(objects: [${newGroupData}] ) {
+          affected_rows
+        }
+      }
+      `,
+      variables: {},
+    };
+
+    var config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      console.error(response?.data?.errors);
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const result = response.data.data.insert_Group;
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: result,
+    });
   }
 }
