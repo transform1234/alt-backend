@@ -3,6 +3,8 @@ import {
   CACHE_MANAGER,
   Inject,
   Request,
+  ValidationPipe,
+  UsePipes,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -28,8 +30,6 @@ import {
 import { ALTTeacherService } from "src/adapters/hasura/altTeacher.adapter";
 import { TeacherDto } from "./dto/alt-teacher.dto";
 import { ALTTeacherSearchDto } from "./dto/alt-teacher-search.dto";
-import { StudentSearchDto } from "src/student/dto/student-search.dto";
-// import { StudentSearchDto } from "./dto/student-search.dto";
 
 @ApiTags("ALT Teacher")
 @Controller("teacher")
@@ -37,6 +37,7 @@ export class ALTTeacherController {
   constructor(private altTeacherService: ALTTeacherService) {}
 
   @Get("/:id")
+  @UsePipes(ValidationPipe)
   @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
   @ApiBasicAuth("access-token")
   @ApiOkResponse({ description: "Teacher detail." })
@@ -50,6 +51,7 @@ export class ALTTeacherController {
 
   @Post()
   @ApiBasicAuth("access-token")
+  @UsePipes(ValidationPipe)
   @ApiCreatedResponse({ description: "Teacher has been created successfully." })
   @ApiBody({ type: TeacherDto })
   @ApiForbiddenResponse({ description: "Forbidden" })
@@ -79,6 +81,7 @@ export class ALTTeacherController {
   // }
 
   @Post("/search")
+  @UsePipes(ValidationPipe)
   @ApiBasicAuth("access-token")
   @ApiCreatedResponse({ description: "Student list." })
   @ApiBody({ type: ALTTeacherSearchDto })

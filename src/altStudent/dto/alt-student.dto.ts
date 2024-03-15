@@ -31,6 +31,7 @@ export class StudentDto {
     description: "The full name of the user",
   })
   @IsString()
+  @Transform(({ value }) => value.trim())
   @Expose()
   name: string;
 
@@ -39,6 +40,7 @@ export class StudentDto {
     description: "username",
   }) // Auto Generated if not provided
   @IsString()
+  @Transform(({ value }) => value.trim())
   @Expose()
   username: string;
 
@@ -67,6 +69,7 @@ export class StudentDto {
     example: Gender.Female,
   })
   @Expose()
+  @Transform(({ value }) => value.trim())
   @IsEnum(Gender)
   gender: string;
 
@@ -92,6 +95,8 @@ export class StudentDto {
     description: "the user board",
   })
   @Expose()
+  @IsString()
+  @Transform(({ value }) => value.trim())
   board: string;
 
   @ApiProperty({
@@ -126,6 +131,7 @@ export class StudentDto {
 
   @ApiProperty()
   @Expose()
+  @Transform(({ value }) => value.trim())
   className: string;
 
   @Expose()
@@ -180,6 +186,7 @@ export class StudentDto {
   studentEnrollId: string;
 
   @Expose()
+  @IsString()
   schoolName: string;
 
   constructor(obj: any, all: boolean) {

@@ -19,6 +19,12 @@ enum Gender {
   Others = "Others",
 }
 
+enum ClassesTaught {
+  Secondary = "Secondary",
+  Middle = "Middle",
+  Both = "Both",
+}
+
 export class TeacherDto {
   @Expose()
   @IsUUID()
@@ -30,6 +36,7 @@ export class TeacherDto {
     description: "The full name of the user",
   })
   @IsString()
+  @Transform(({ value }) => value.trim())
   @Expose()
   name: string;
 
@@ -38,6 +45,7 @@ export class TeacherDto {
     description: "username",
   }) // Auto Generated if not provided
   @IsString()
+  @Transform(({ value }) => value.trim())
   @Expose()
   username: string;
 
@@ -66,6 +74,7 @@ export class TeacherDto {
     example: Gender.Female,
   })
   @Expose()
+  @Transform(({ value }) => value.trim())
   @IsEnum(Gender)
   gender: string;
 
@@ -91,6 +100,7 @@ export class TeacherDto {
     description: "the user board",
   })
   @Expose()
+  @Transform(({ value }) => value.trim())
   board: string;
 
   @ApiProperty({
@@ -157,8 +167,14 @@ export class TeacherDto {
   @Expose()
   totalHeadteacherExperience: string;
 
-  @ApiPropertyOptional()
+  @ApiProperty({
+    enum: ClassesTaught,
+    description: "The Classes Taught",
+    example: ClassesTaught.Middle,
+  })
   @Expose()
+  @Transform(({ value }) => value.trim())
+  @IsEnum(ClassesTaught)
   classesTaught: string;
 
   @ApiProperty()
