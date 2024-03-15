@@ -154,7 +154,9 @@ export class StudentDto {
 
   @ApiProperty()
   @Expose()
+  @IsOptional()
   @IsNumberString()
+  @Transform((params) => (params.value === "" ? null : params.value))
   annualIncome: string;
 
   @ApiProperty()
@@ -187,6 +189,7 @@ export class StudentDto {
 
   @Expose()
   @IsString()
+  @IsOptional()
   schoolName: string;
 
   constructor(obj: any, all: boolean) {

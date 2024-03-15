@@ -25,6 +25,25 @@ enum ClassesTaught {
   Both = "Both",
 }
 
+enum EducationalQualification {
+  Below_Secondary = "Below_Secondary",
+  Higher_Secondary = "Higher_Secondary",
+  Graduation = "Graduation",
+  Post_Graduation = "Post_Graduation",
+  PhD = "PhD",
+  BEd = "BEd",
+  MEd = "MEd",
+  MPhil = "MPhil",
+  Post_Doctoral = "Post_Doctoral",
+}
+
+enum CurrentRole {
+  Teacher = "Teacher",
+  Head_Teacher = "Head_Teacher",
+  Head_Teacher_In_Charge = "Head_Teacher_In_Charge",
+  Community_Academic_Volunteer = "Community_Academic_Volunteer",
+}
+
 export class TeacherDto {
   @Expose()
   @IsUUID()
@@ -136,8 +155,14 @@ export class TeacherDto {
   @Expose()
   groups: string[];
 
-  @ApiProperty()
+  @ApiProperty({
+    enum: EducationalQualification,
+    description: "The educational qualification of the user",
+  })
   @Expose()
+  @Transform((params) => (params.value === "" ? null : params.value))
+  @IsOptional()
+  @IsEnum(EducationalQualification)
   educationalQualification: string;
 
   @ApiProperty({
@@ -147,16 +172,24 @@ export class TeacherDto {
   @Expose()
   schoolUdise: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    enum: CurrentRole,
+    description: "The current role of teacher",
+  })
   @Expose()
+  @Transform((params) => (params.value === "" ? null : params.value))
+  @IsOptional()
+  @IsEnum(CurrentRole)
   currentRole: string;
 
   @ApiProperty()
   @Expose()
+  @IsString()
   natureOfAppointment: string;
 
   @ApiProperty()
   @Expose()
+  @IsString()
   appointedPost: string;
 
   @ApiProperty()
