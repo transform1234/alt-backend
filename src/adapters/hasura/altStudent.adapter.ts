@@ -365,10 +365,10 @@ export class ALTStudentService {
 
     Object.keys(studentSearchDto.filters).forEach((e) => {
       if (studentSearchDto.filters[e] && studentSearchDto.filters[e] != "") {
-        if (e === "") {
-          query += `${e}:{_ilike: "%${studentSearchDto.filters[e]}%"}`;
+        if (e === "board") {
+          query += `${e}:{_ilike: "%${studentSearchDto.filters[e]?.ilike}%"}`;
         } else {
-          query += `${e}:{_eq:"${studentSearchDto.filters[e].eq}"}`;
+          query += `${e}:{_eq:"${studentSearchDto.filters[e]?.eq}"}`;
         }
       }
     });

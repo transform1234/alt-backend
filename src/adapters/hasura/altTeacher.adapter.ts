@@ -334,10 +334,10 @@ export class ALTTeacherService {
 
     Object.keys(teacherSearchDto.filters).forEach((e) => {
       if (teacherSearchDto.filters[e] && teacherSearchDto.filters[e] != "") {
-        if (e === "teacherId") {
-          query += `${e}:{_eq: "%${teacherSearchDto.filters[e]}%"}`;
+        if (e === "currentRole" || e === "board") {
+          query += `${e}:{_ilike:"%${teacherSearchDto.filters[e]?.ilike}%"}`;
         } else {
-          query += `${e}:{_ilike:"${teacherSearchDto.filters[e]}"}`;
+          query += `${e}:{_eq: "${teacherSearchDto.filters[e]?.eq}"}`;
         }
       }
     });
