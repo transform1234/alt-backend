@@ -67,7 +67,7 @@ export class ALTBulkUploadStudentController {
         .send(
           "Something went wrong" +
             "INTERNAL_SERVER_ERROR" +
-            studentImportResponse
+            JSON.stringify(studentImportResponse)
         );
     } else {
       response.status(HttpStatus.CREATED).send(studentImportResponse);

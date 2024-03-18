@@ -407,6 +407,12 @@ export class GroupMembershipService {
             status
             groupId
             userId
+            Group {
+              grade
+              medium
+              name
+              board
+            }
           }
         }
       }

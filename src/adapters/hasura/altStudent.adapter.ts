@@ -105,12 +105,35 @@ export class ALTStudentService {
     const creatorUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
+    let newCreatedStudent: any;
     studentDto.createdBy = creatorUserId;
     studentDto.updatedBy = creatorUserId;
     studentDto.role = "student";
 
-    if (!bulkToken) {
-      // when creating student with individual api
+    if (studentDto.username.length && studentDto.promotion === "deactivated") {
+      const deactivatedUser: any = await this.userService.deactivateUser(
+        [studentDto.username.trim()],
+        request
+      );
+
+      if (deactivatedUser?.data?.successRecords) {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "Ok.",
+          data: { username: studentDto.username, msg: "User Deactivated" },
+        });
+      } else {
+        return new ErrorResponse({
+          errorCode: "400",
+          errorMessage: `User does not exist`,
+        });
+      }
+    }
+
+    // if (!bulkToken) {
+    // promotion blank means new user
+    if (!studentDto.promotion) {
+      // when creating student with individual api and bulk both
       studentDto.groups = [];
       const groupRes: any = await this.groupService.getGroupBySchoolClass(
         request,
@@ -126,7 +149,62 @@ export class ALTStudentService {
       } else {
         studentDto.board = groupRes.data[0].board;
         studentDto.groups.push(groupRes.data[0].groupId);
+        newCreatedStudent = await this.createStudent(
+          request,
+          studentDto,
+          bulkToken
+        );
       }
+    } else if (studentDto.promotion === "promoted") {
+      // promoted
+      newCreatedStudent = await this.createStudent(
+        request,
+        studentDto,
+        bulkToken
+      );
+
+      // console.log(newCreatedStudent?.data?.groups[0], "gp");
+
+      const currentClass = newCreatedStudent?.data?.groups[0];
+
+      if (!currentClass?.Group?.grade) {
+        return new ErrorResponse({
+          errorCode: "400",
+          errorMessage: "Error getting current grade",
+        });
+      }
+
+      const newGrade = Number(currentClass?.Group?.grade) + 1;
+
+      if (newGrade > 10) {
+        return new ErrorResponse({
+          errorCode: "400",
+          errorMessage: "Cannot promote above 10th class",
+        });
+      }
+
+      studentDto.groups = [];
+      const groupRes: any = await this.groupService.getGroupBySchoolClass(
+        request,
+        currentClass.schoolUdise,
+        "Class " + newGrade,
+        new Date().getFullYear().toString()
+      );
+
+      if (!groupRes?.data[0]?.groupId) {
+        return new ErrorResponse({
+          errorCode: "400",
+          errorMessage: "No group found for given class and school",
+        });
+      } else {
+        studentDto.board = groupRes.data[0].board;
+        studentDto.groups.push(groupRes.data[0].groupId);
+      }
+    } else {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Wrong Input for API",
+      });
     }
 
     if (!studentDto.groups.length) {
@@ -138,11 +216,6 @@ export class ALTStudentService {
 
     try {
       if (altUserRoles.includes("systemAdmin")) {
-        const newCreatedStudent: any = await this.createStudent(
-          request,
-          studentDto,
-          bulkToken
-        );
         // console.log(newCreatedStudent, "test", newCreatedStudent?.data?.groups);
         if (
           newCreatedStudent.statusCode === 200 &&
@@ -531,6 +604,11 @@ export class ALTStudentService {
               userId
               status
               groupId
+              Group {
+                medium
+                grade
+                name
+              }
             }
           }
         }
