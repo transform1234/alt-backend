@@ -47,41 +47,24 @@ export class ALTBulkUploadStudentService {
     }
     try {
       for (const student of bulkStudentDto.students) {
-        // check if new group exists
-        const groupRes: any = await this.groupService.getGroupBySchoolClass(
+        student.groups = [];
+        student.password = getPassword(8);
+        student.status = true;
+        const studentRes: any = await this.studentService.createAndAddToGroup(
           request,
-          student.schoolUdise,
-          student.className,
-          new Date().getFullYear().toString() // current year is academic year
+          student,
+          bulkToken
         );
-
-        if (!groupRes?.data[0]?.groupId || groupRes instanceof ErrorResponse) {
+        if (studentRes?.statusCode === 200) {
+          responses.push(studentRes.data);
+        } else {
           errors.push({
             name: student.name,
-            groupRes,
+            username: student.username,
+            studentRes,
           });
-        } else {
-          student.groups = [];
-          student.groups.push(groupRes.data[0].groupId);
-          student.board = groupRes.data[0].board;
-          student.password = getPassword(8);
-          student.status = true;
-          const studentRes: any = await this.studentService.createAndAddToGroup(
-            request,
-            student,
-            bulkToken
-          );
-          if (studentRes?.statusCode === 200) {
-            responses.push(studentRes.data);
-          } else {
-            errors.push({
-              name: student.name,
-              studentRes,
-            });
-          }
         }
       }
-
       const result = {
         totalCount: bulkStudentDto.students.length,
         successCount: responses.length,

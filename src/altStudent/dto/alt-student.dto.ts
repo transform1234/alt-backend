@@ -20,6 +20,11 @@ enum Gender {
   Others = "Others",
 }
 
+enum Promotion {
+  deactivated = "deactivated",
+  promoted = "promoted",
+}
+
 export class StudentDto {
   @Expose()
   @IsUUID()
@@ -186,6 +191,17 @@ export class StudentDto {
   @ApiProperty()
   @Expose()
   studentEnrollId: string;
+
+  @ApiProperty({
+    enum: Promotion,
+    description: "User is deactivated or goes to next class",
+    example: Promotion.promoted,
+  })
+  @Expose()
+  @Transform(({ value }) => (value.trim() === "" ? null : value))
+  @IsEnum(Promotion)
+  @IsOptional()
+  promotion: string; // keep blank when user is new
 
   @Expose()
   @IsString()
