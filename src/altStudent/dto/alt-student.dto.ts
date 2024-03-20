@@ -36,7 +36,7 @@ export class StudentDto {
     description: "The full name of the user",
   })
   @IsString()
-  @Transform(({ value }) => value.trim())
+  @Transform(({ value }) => (value ? value.trim() : value))
   @Expose()
   name: string;
 
@@ -45,7 +45,7 @@ export class StudentDto {
     description: "username",
   }) // Auto Generated if not provided
   @IsString()
-  @Transform(({ value }) => value.trim())
+  @Transform(({ value }) => (value ? value.trim() : value))
   @Expose()
   username: string;
 
@@ -74,7 +74,7 @@ export class StudentDto {
     example: Gender.Female,
   })
   @Expose()
-  @Transform(({ value }) => value.trim())
+  @Transform(({ value }) => (value ? value.trim() : value))
   @IsEnum(Gender)
   gender: string;
 
@@ -101,7 +101,7 @@ export class StudentDto {
   })
   @Expose()
   @IsString()
-  @Transform(({ value }) => value.trim())
+  @Transform(({ value }) => (value ? value.trim() : value))
   board: string;
 
   @ApiProperty({
@@ -136,7 +136,7 @@ export class StudentDto {
 
   @ApiProperty()
   @Expose()
-  @Transform(({ value }) => value.trim())
+  @Transform(({ value }) => (value ? value.trim() : value))
   className: string;
 
   @Expose()
@@ -198,7 +198,7 @@ export class StudentDto {
     example: Promotion.promoted,
   })
   @Expose()
-  @Transform(({ value }) => (value.trim() === "" ? null : value))
+  @Transform(({ value }) => (value ? value.trim() : value))
   @IsEnum(Promotion)
   @IsOptional()
   promotion: string; // keep blank when user is new
