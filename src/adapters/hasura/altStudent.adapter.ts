@@ -174,6 +174,23 @@ export class ALTStudentService {
         });
       }
 
+      if (
+        currentClass?.Group?.academicYear?.toString() ===
+        new Date().getFullYear().toString()
+      ) {
+        //  current year matches current academic year
+
+        return new ErrorResponse({
+          errorCode: "400",
+          errorMessage:
+            "Current Academic year and grade already added (" +
+            currentClass.Group.academicYear +
+            "-" +
+            currentClass.Group.name +
+            ")",
+        });
+      }
+
       const newGrade = Number(currentClass?.Group?.grade) + 1;
 
       if (newGrade > 10) {
@@ -608,6 +625,7 @@ export class ALTStudentService {
                 medium
                 grade
                 name
+                academicYear
               }
             }
           }
