@@ -451,13 +451,24 @@ export class ALTStudentService {
       offset = studentSearchDto.limit * (studentSearchDto.page - 1);
     }
 
+    const limit = parseInt(studentSearchDto.limit)
+      ? parseInt(studentSearchDto.limit)
+      : 10000;
+
     let query = "";
 
     Object.keys(studentSearchDto.filters).forEach((e) => {
       if (studentSearchDto.filters[e] && studentSearchDto.filters[e] != "") {
         if (e === "board") {
           query += `${e}:{_ilike: "%${studentSearchDto.filters[e]?.ilike}%"}`;
-        } else {
+        } else if (
+          e === "grade" &&
+          parseInt(studentSearchDto.filters["grade"])
+        ) {
+          query += `user: {GroupMemberships: {Group: {grade: {_eq: "${parseInt(
+            studentSearchDto.filters["grade"]
+          )}"}}}}`;
+        } else if (e !== "grade") {
           query += `${e}:{_eq:"${studentSearchDto.filters[e]?.eq}"}`;
         }
       }
@@ -465,12 +476,8 @@ export class ALTStudentService {
 
     const data = {
       query: `query SearchStudent($limit:Int, $offset:Int) {
-        Students_aggregate {
-          aggregate {
-            count
-          }
-        }
-        Students(where:{ ${query}}, limit: $limit, offset: $offset,) {
+       
+        Students(where:{${query}}, limit: $limit, offset: $offset,) {
               annualIncome
               caste
               schoolUdise
@@ -514,10 +521,11 @@ export class ALTStudentService {
             }
           }`,
       variables: {
-        limit: parseInt(studentSearchDto.limit),
+        limit: limit,
         offset: offset,
       },
     };
+
     const config = {
       method: "post",
       url: this.baseURL,
