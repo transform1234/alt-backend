@@ -198,7 +198,7 @@ export class StudentDto {
     example: Promotion.promoted,
   })
   @Expose()
-  @Transform(({ value }) => (value.trim() === "" ? null : value))
+  @Transform(({ value }) => value ? (value.trim() !== "" ? value.trim() : null) : null)
   @IsEnum(Promotion)
   @IsOptional()
   promotion: string; // keep blank when user is new
