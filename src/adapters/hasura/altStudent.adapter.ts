@@ -494,7 +494,7 @@ export class ALTStudentService {
               board
               createdBy
               updatedBy
-              user {
+              user(where: {status: {_eq: true}}) {
                 username
                 userId
                 updatedBy
