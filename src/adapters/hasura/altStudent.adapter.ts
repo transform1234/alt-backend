@@ -509,7 +509,7 @@ export class ALTStudentService {
                 dateOfBirth
                 createdBy
                 createdAt
-                GroupMemberships {
+                GroupMemberships(where: {status: {_eq: true}}){
                   School {
                     name
                   }
