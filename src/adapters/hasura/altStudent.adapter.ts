@@ -473,11 +473,12 @@ export class ALTStudentService {
         }
       }
     });
+    query += `user: {status: {_eq: true}}`;
 
     const data = {
       query: `query SearchStudent($limit:Int, $offset:Int) {
        
-        Students(where:{${query}}, limit: $limit, offset: $offset,) {
+        Students(where:{${query}} , limit: $limit, offset: $offset,) {
               annualIncome
               caste
               schoolUdise
@@ -494,7 +495,7 @@ export class ALTStudentService {
               board
               createdBy
               updatedBy
-              user(where: {status: {_eq: true}}) {
+              user {
                 username
                 userId
                 updatedBy
