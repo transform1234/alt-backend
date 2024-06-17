@@ -525,7 +525,7 @@ export class ALTStudentService {
         offset: offset,
       },
     };
-
+console.log(data);
     const config = {
       method: "post",
       url: this.baseURL,
