@@ -473,7 +473,7 @@ export class ALTStudentService {
         }
       }
     });
-    query += `user: {status: {_eq: true}}`;
+    query += `,user: {status: {_eq: true}}`;
 
     const data = {
       query: `query SearchStudent($limit:Int, $offset:Int) {
