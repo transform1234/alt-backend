@@ -11,8 +11,8 @@ export class HasuraAuthService {
   public async login(request: any, response: any, loginDto: ALTAuthDto) {
     const qs = require("qs");
     const data = qs.stringify({
-      username: loginDto.username,
-      password: loginDto.password,
+      username: loginDto.username.trim(),
+      password: loginDto.password.trim(),
       grant_type: "password",
       client_id: "hasura-app",
       client_secret: process.env.KEYCLOAK_HASURA_CLIENT_SECRET,
