@@ -22,7 +22,7 @@ export class ALTUserEligibilityService {
     private altModuleTrackingService: ALTModuleTrackingService,
     private altCourseTrackingService: ALTCourseTrackingService,
     private altUserService: ALTHasuraUserService
-  ) {}
+  ) { }
 
   public async checkEligibilityforCourse(
     request: any,
@@ -101,10 +101,24 @@ export class ALTUserEligibilityService {
         userId
       );
 
+    const skipBaseline = programRules.prog[0]?.skipBaseline ? true : false;
+
     if (
       !baselineAssessmentRecord?.data?.length &&
       courseId === baselineAssessmentId
     ) {
+      if (skipBaseline) {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "Ok.",
+          data: {
+            contentId: courseId,
+            contentType: programRules.prog[0].contentType,
+            msg: "Course " + courseId + " skipped.",
+            status: "unlocked",
+          },
+        });
+      }
       return new SuccessResponse({
         statusCode: 200,
         message: "Ok.",
@@ -117,7 +131,7 @@ export class ALTUserEligibilityService {
       });
     } else if (
       !baselineAssessmentRecord?.data?.length &&
-      courseId !== baselineAssessmentId
+      courseId !== baselineAssessmentId && !skipBaseline
     ) {
       return new SuccessResponse({
         statusCode: 200,
@@ -211,6 +225,7 @@ export class ALTUserEligibilityService {
               }
             }
             if (course.criteria["1"]?.contentId && !baselineCriteriaFulfilled) {
+              // base criteria not fullfilled means user needs to do all courses no course can be skipped just check if previos course is completed or not
               let recordList: any = {};
               recordList =
                 await this.altCourseTrackingService.getExistingCourseTrackingRecords(
@@ -317,7 +332,62 @@ export class ALTUserEligibilityService {
           });
         }
       }
-    } else {
+    } else if (skipBaseline) {
+      // Baseline Assessment skip for course
+      let courseFound;
+      for (const course of programRules?.prog) {
+        const courseDate = new Date(course.startDate);
+        const currentDate = new Date();
+        if (
+          course.contentId === courseId &&
+          courseDate.getTime() <= currentDate.getTime()
+        ) {
+          courseFound = true;
+          if (
+            JSON.stringify(course.criteria) === JSON.stringify({}) &&
+            course.contentType !== "assessment"
+          ) {
+            const currentCourseCompletion =
+              await this.getCurrentCourseCompletionStatus(
+                request,
+                course.contentId,
+                altUserId
+              );
+            return new SuccessResponse({
+              statusCode: 200,
+              message: "Ok.",
+              data: {
+                contentId: courseId,
+                contentType: course.contentType,
+                msg: "Course " + courseId + " " + currentCourseCompletion,
+                status: currentCourseCompletion,
+              },
+            });
+          } else {
+            return new ErrorResponse({
+              errorCode: "400",
+              errorMessage:
+                "Criteria for previous course completion not found in rules",
+            });
+          }
+        }
+      }
+      if (!courseFound) {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "Ok.",
+          data: {
+            contentId: courseId,
+            msg:
+              "Course " +
+              courseId +
+              " is not available at the moment. Please try again later!",
+            status: "locked",
+          },
+        });
+      }
+    }
+    else {
       return new ErrorResponse({
         errorCode: "400",
         errorMessage:
