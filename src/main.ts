@@ -23,7 +23,6 @@ async function bootstrap() {
       { type: "apiKey", name: "Authorization", in: "header" },
       "access-token"
     )
-
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("api/swagger-docs", app, document);
