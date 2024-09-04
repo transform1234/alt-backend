@@ -70,7 +70,7 @@ async function getToken() {
   });
   const config = {
     method: "post",
-    url: "https://alt.uniteframework.io/auth/realms/master/protocol/openid-connect/token",
+    url: "https://alt-dev.uniteframework.io/auth/realms/master/protocol/openid-connect/token",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
     },
