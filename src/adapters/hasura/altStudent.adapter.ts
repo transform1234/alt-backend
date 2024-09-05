@@ -761,4 +761,284 @@ console.log(data);
       });
     }
   }
+  public async getStateList(request: any, body: any, res: any) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+
+    const filterQuery =
+      body !== null && body.state
+        ? `, where: { state: {_eq: "${body.state}"} }`
+        : "";
+
+    const data = {
+      query: `query MyQuery {
+        Students (distinct_on: state ${filterQuery}) {
+          state
+        }
+      }
+      `,
+    };
+    console.log(data.query);
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const responseData = response.data.data.Students;
+
+    return res.status(200).json({
+      status: 200,
+      message: "States Found Successfully",
+      data: responseData,
+    });
+  }
+  public async getDistrictList(request: any, body: any, res: any) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+
+    let filterQuery = ", where: {";
+    if (body !== null && body.state) {
+      filterQuery += ` state: {_eq: "${body.state}"},`;
+    }
+    if (body !== null && body.district) {
+      filterQuery += `district: {_eq: "${body.district}"}`;
+    }
+
+    filterQuery += `}`;
+    const data = {
+      query: `query MyQuery {
+        Students (distinct_on: district ${filterQuery}) {
+          district
+        }
+      }
+      `,
+    };
+    console.log(data.query);
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const responseData = response.data.data.Students;
+
+    return res.status(200).json({
+      status: 200,
+      message: "District Found Successfully",
+      data: responseData,
+    });
+  }
+  public async getBlockList(request: any, body: any, res: any) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+
+    let filterQuery = ", where: {";
+    if (body !== null && body.state) {
+      filterQuery += ` state: {_eq: "${body.state}"},`;
+    }
+    if (body !== null && body.district) {
+      filterQuery += `district: {_eq: "${body.district}"}`;
+    }
+    if (body !== null && body.block) {
+      filterQuery += `block: {_eq: "${body.block}"}`;
+    }
+
+    filterQuery += `}`;
+
+    const data = {
+      query: `query MyQuery {
+        Students (distinct_on: block ${filterQuery}) {
+          block
+        }
+      }
+      `,
+    };
+    console.log(data.query);
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const responseData = response.data.data.Students;
+
+    return res.status(200).json({
+      status: 200,
+      message: "Block Found Successfully",
+      data: responseData,
+    });
+  }
+  public async getSchoolList(request: any, body: any, res: any) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+
+    let filterQuery = ", where: {";
+    if (body !== null && body.state) {
+      filterQuery += ` state: {_eq: "${body.state}"},`;
+    }
+    if (body !== null && body.district) {
+      filterQuery += `district: {_eq: "${body.district}"}`;
+    }
+    if (body !== null && body.block) {
+      filterQuery += `block: {_eq: "${body.block}"}`;
+    }
+
+    filterQuery += `}`;
+
+    const data = {
+      query: `query MyQuery {
+        Students(distinct_on: udiseCode, ${filterQuery}) {
+          name
+          state
+          block
+          district
+        }
+      }
+      
+      `,
+    };
+    console.log(data.query);
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const responseData = response.data.data.Students;
+
+    return res.status(200).json({
+      status: 200,
+      message: "School Found Successfully",
+      data: responseData,
+    });
+  }
+  public async getClass(request: any, body: any, res: any) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    if (body && !body.schoolName) {
+      return res.status(400).json({
+        status: 400,
+        message: "please provide school name",
+        data: {},
+      });
+    }
+    let filterQuery = "";
+    if (body && body.schoolName) {
+      filterQuery = `School: {name: {_eq: "${body.schoolName}"}}`;
+    }
+
+    const data = {
+      query: `query MyQuery {
+        Group(where: {${filterQuery}}, distinct_on: name) {
+          name
+        }
+      }
+      `,
+    };
+    console.log(data.query);
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const responseData = response.data.data.Group;
+
+    return res.status(200).json({
+      status: 200,
+      message: "Classes Found Successfully",
+      data: responseData,
+    });
+  }
 }
