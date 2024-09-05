@@ -119,7 +119,7 @@ export class ALTStudentController {
   @UsePipes(ValidationPipe)
   @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
   @ApiBasicAuth("access-token")
-  @ApiOkResponse({ description: "State List." })
+  @ApiOkResponse({ description: "District List." })
   @ApiForbiddenResponse({ description: "Forbidden" })
   @SerializeOptions({
     strategy: "excludeAll",
@@ -151,7 +151,7 @@ export class ALTStudentController {
   @UsePipes(ValidationPipe)
   @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
   @ApiBasicAuth("access-token")
-  @ApiOkResponse({ description: "State List." })
+  @ApiOkResponse({ description: "School List." })
   @ApiForbiddenResponse({ description: "Forbidden" })
   @SerializeOptions({
     strategy: "excludeAll",
@@ -167,7 +167,7 @@ export class ALTStudentController {
   @UsePipes(ValidationPipe)
   @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
   @ApiBasicAuth("access-token")
-  @ApiOkResponse({ description: "State List." })
+  @ApiOkResponse({ description: "Class List." })
   @ApiForbiddenResponse({ description: "Forbidden" })
   @SerializeOptions({
     strategy: "excludeAll",
