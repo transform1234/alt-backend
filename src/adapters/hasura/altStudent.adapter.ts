@@ -526,7 +526,7 @@ export class ALTStudentService {
         offset: offset,
       },
     };
-console.log(data);
+    console.log(data);
     const config = {
       method: "post",
       url: this.baseURL,
@@ -797,7 +797,7 @@ console.log(data);
     const response = await this.axios(config);
 
     if (response?.data?.errors) {
-      return new ErrorResponse({
+      return res.status(500).send({
         errorCode: response.data.errors[0].extensions,
         errorMessage: response.data.errors[0].message,
       });
@@ -851,7 +851,7 @@ console.log(data);
     const response = await this.axios(config);
 
     if (response?.data?.errors) {
-      return new ErrorResponse({
+      return res.status(500).send({
         errorCode: response.data.errors[0].extensions,
         errorMessage: response.data.errors[0].message,
       });
@@ -907,9 +907,10 @@ console.log(data);
     };
 
     const response = await this.axios(config);
+    console.log(response.data);
 
     if (response?.data?.errors) {
-      return new ErrorResponse({
+      return res.status(500).send({
         errorCode: response.data.errors[0].extensions,
         errorMessage: response.data.errors[0].message,
       });
@@ -971,7 +972,7 @@ console.log(data);
     const response = await this.axios(config);
 
     if (response?.data?.errors) {
-      return new ErrorResponse({
+      return res.status(500).send({
         errorCode: response.data.errors[0].extensions,
         errorMessage: response.data.errors[0].message,
       });
@@ -1027,7 +1028,7 @@ console.log(data);
     const response = await this.axios(config);
 
     if (response?.data?.errors) {
-      return new ErrorResponse({
+      return res.status(500).send({
         errorCode: response.data.errors[0].extensions,
         errorMessage: response.data.errors[0].message,
       });
