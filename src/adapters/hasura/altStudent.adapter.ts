@@ -944,8 +944,7 @@ export class ALTStudentService {
 
     const data = {
       query: `query MyQuery {
-        Students(distinct_on: udiseCode, ${filterQuery}) {
-          name
+        Students(distinct_on: schoolUdise, ${filterQuery}) {
           state
           block
           district
