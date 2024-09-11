@@ -179,5 +179,4 @@ export class ALTStudentController {
   ){
     return this.altStudentService.getClass(request,body,response);
   }
-
 }
