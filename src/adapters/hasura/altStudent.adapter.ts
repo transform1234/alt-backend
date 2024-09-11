@@ -1051,10 +1051,12 @@ export class ALTStudentService {
     });
   }
   public async updateStudent(userId, request, body) {
+    //Decoding JWT to extract roles and it's permissions
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
-
+  
+    //students fields that can be updated
     const studentFields = [
       "groups",
       "religion",
@@ -1071,13 +1073,14 @@ export class ALTStudentService {
       "block",
       "district",
     ];
-
+    //users fields that can be updated
     const userFields = ["name", "email", "gender", "dateOfBirth", "mobile"];
     let userUpdate = "";
     let studentUpdate = "";
     let userUpdateFields = "";
     let studentUpdateFields = "";
 
+    // Construct the studentUpdate string
     Object.keys(body).forEach((field) => {
       if (body[field] !== "" && studentFields.includes(field)) {
         studentUpdate += `${field}: ${
@@ -1102,7 +1105,7 @@ export class ALTStudentService {
     });
 
     const data = {
-      query: `mutation MyMutation($userId: uuid) {
+      query: `mutation UpdateStudent($userId: uuid) {
         ${
           studentUpdate
             ? `update_Students(where: {userId: {_eq: $userId}}, _set: {${studentUpdate}}) { 
@@ -1143,6 +1146,7 @@ export class ALTStudentService {
 
     const response = await this.axios(config);
 
+    // Fields that cannot be updated
     const restrictedFields = [
       "password",
       "createdBy",
