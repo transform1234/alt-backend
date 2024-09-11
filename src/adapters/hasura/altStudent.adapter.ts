@@ -9,8 +9,6 @@ import { ALTHasuraUserService } from "./altUser.adapter";
 import { GroupMembershipService } from "./groupMembership.adapter";
 import { GroupMembershipDtoById } from "src/groupMembership/dto/groupMembership.dto";
 import { HasuraGroupService } from "./group.adapter";
-import { log } from "winston";
-import { ALTUserUpdateDto } from "src/altUser/dto/alt-user-update.dto";
 
 @Injectable()
 export class ALTStudentService {
@@ -391,8 +389,6 @@ export class ALTStudentService {
     }
   }
 
-  // updateStudent(id: string, request: any, studentDto: StudentDto) {}
-
   public async mappedResponse(result: any) {
     const promises = [];
     for (const item of result) {
@@ -457,66 +453,30 @@ export class ALTStudentService {
       ? parseInt(studentSearchDto.limit)
       : 10000;
 
-    let filterQuery = "";
-    // Allowed fields
-    const allowedFilterFields = [
-      "state",
-      "block",
-      "district",
-      "schoolUdise",
-      "username",
-      "schoolName",
-      "class",
-      "board",
-      "grade",
-      "userId",
-    ];
-    // Validating filters
-    const invalidFields = Object.keys(studentSearchDto.filters).filter(
-      (field) => !allowedFilterFields.includes(field)
-    );
-    if (invalidFields.length > 0) {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage: `Invalid filter fields: ${invalidFields.join(", ")}`,
-      });
-    }
+    let query = "";
 
     Object.keys(studentSearchDto.filters).forEach((e) => {
       if (studentSearchDto.filters[e] && studentSearchDto.filters[e] != "") {
         if (e === "board") {
-          filterQuery += `${e}:{_ilike: "%${studentSearchDto.filters[e]?.ilike}%"}`;
+          query += `${e}:{_ilike: "%${studentSearchDto.filters[e]?.ilike}%"}`;
         } else if (
           e === "grade" &&
           parseInt(studentSearchDto.filters["grade"])
         ) {
-          filterQuery += `user: {GroupMemberships: {Group: {grade: {_eq: "${parseInt(
+          query += `user: {GroupMemberships: {Group: {grade: {_eq: "${parseInt(
             studentSearchDto.filters["grade"]
           )}"}}}}`;
-        } else if (e === "schoolName") {
-          filterQuery += `School: {name: {_eq: "${studentSearchDto.filters[e]?.eq}"}}`;
-        } else if (e === "class") {
-          filterQuery += `School: {Groups: {name: {_eq: "${studentSearchDto.filters[e]?.eq}"}}}`;
-        } else if (e === "state") {
-          filterQuery += `state: {_eq: "${studentSearchDto.filters[e]?.eq}"}`;
-        } else if (e === "district") {
-          filterQuery += `district: {_eq: "${studentSearchDto.filters[e]?.eq}"}`;
-        } else if (e === "block") {
-          filterQuery += `block: {_eq: "${studentSearchDto.filters[e]?.eq}"}`;
-        } else if (e === "username") {
-          filterQuery += `username: {_eq: "${studentSearchDto.filters[e]?.eq}"},status: {_eq: true}`;
         } else if (e !== "grade") {
-          filterQuery += `${e}:{_eq:"${studentSearchDto.filters[e]?.eq}"}`;
+          query += `${e}:{_eq:"${studentSearchDto.filters[e]?.eq}"}`;
         }
       }
     });
-
-    filterQuery += `,user: {status: {_eq: true}}`;
+    query += `,user: {status: {_eq: true}}`;
 
     const data = {
       query: `query SearchStudent($limit:Int, $offset:Int) {
        
-        Students(where:{${filterQuery}} , limit: $limit, offset: $offset,) {
+        Students(where:{${query}} , limit: $limit, offset: $offset,) {
               annualIncome
               caste
               schoolUdise
@@ -567,7 +527,7 @@ export class ALTStudentService {
         offset: offset,
       },
     };
-    console.log(data.query);
+    console.log(data);
     const config = {
       method: "post",
       url: this.baseURL,
@@ -579,7 +539,7 @@ export class ALTStudentService {
       data: data,
     };
     const response = await this.axios(config);
-    console.log(response.data);
+
     if (response?.data?.errors) {
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
@@ -588,8 +548,6 @@ export class ALTStudentService {
     }
 
     let result = response.data.data.Students;
-    console.log(result, "--------------------------");
-
     const studentResponse = await this.mappedResponse(result);
 
     return new SuccessResponse({
