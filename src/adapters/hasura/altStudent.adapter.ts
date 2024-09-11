@@ -1,5 +1,4 @@
 import { Injectable } from "@nestjs/common";
-import { HttpService } from "@nestjs/axios";
 import jwt_decode from "jwt-decode";
 import { SuccessResponse } from "src/success-response";
 import { StudentDto } from "src/altStudent/dto/alt-student.dto";
@@ -1050,12 +1049,21 @@ export class ALTStudentService {
       data: responseData,
     });
   }
-  public async updateStudent(userId, request, body) {
+  public async updateStudent(userId, request, body,res) {
     //Decoding JWT to extract roles and it's permissions
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
-  
+    const updatedBy =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]; // Extracting user ID from token
+      if(!altUserRoles.includes('systemAdmin')){
+        return res.status(403).json({
+          status: 403,
+          message: "Forbidden: Only system admins can update students",
+          data: {},
+        });
+      }
+
     //students fields that can be updated
     const studentFields = [
       "groups",
@@ -1072,17 +1080,30 @@ export class ALTStudentService {
       "state",
       "block",
       "district",
+      "updatedBy",
+      "updatedAt",
     ];
     //users fields that can be updated
-    const userFields = ["name", "email", "gender", "dateOfBirth", "mobile"];
+    const userFields = [
+      "name",
+      "email",
+      "gender",
+      "dateOfBirth",
+      "mobile",
+      "updatedBy",
+      "updatedAt",
+    ];
     let userUpdate = "";
     let studentUpdate = "";
     let userUpdateFields = "";
     let studentUpdateFields = "";
+    let isStudentFieldUpdated = false;
+    let isUserFieldUpdated = false;
 
     // Construct the studentUpdate string
     Object.keys(body).forEach((field) => {
       if (body[field] !== "" && studentFields.includes(field)) {
+        isStudentFieldUpdated = true; // Mark that a student field is being updated
         studentUpdate += `${field}: ${
           typeof body[field] === "string"
             ? `"${body[field]}"`
@@ -1095,6 +1116,7 @@ export class ALTStudentService {
     // Construct the userUpdate string
     Object.keys(body).forEach((field) => {
       if (body[field] !== "" && userFields.includes(field)) {
+        isUserFieldUpdated = true; // Mark that a user field is being updated
         userUpdate += `${field}: ${
           typeof body[field] === "string"
             ? `"${body[field]}"`
@@ -1103,6 +1125,19 @@ export class ALTStudentService {
         userUpdateFields += `${field} `;
       }
     });
+    const currentTime = new Date().toISOString(); // Current timestamp
+
+    // Add 'updatedBy' and 'updatedAt' to student update only if student fields are being updated
+    if (isStudentFieldUpdated) {
+      studentUpdate += `updatedBy: "${updatedBy}", updatedAt: "${currentTime}", `;
+      studentUpdateFields += `updatedBy updatedAt `;
+    }
+    // Add 'updatedBy' and 'updatedAt' to user update only if user fields are being updated
+    if (isUserFieldUpdated) {
+      userUpdate += `updatedBy: "${updatedBy}", updatedAt: "${currentTime}", `;
+      userUpdateFields += `updatedBy updatedAt `;
+    }
+    console.log(userUpdateFields, studentUpdateFields);
 
     const data = {
       query: `mutation UpdateStudent($userId: uuid) {
@@ -1151,8 +1186,6 @@ export class ALTStudentService {
       "password",
       "createdBy",
       "createdAt",
-      "updatedBy",
-      "updatedAt",
       "userId",
       "studentId",
     ];
@@ -1161,7 +1194,7 @@ export class ALTStudentService {
     );
 
     if (response?.data?.errors) {
-      return new ErrorResponse({
+     return res.status(500).send({
         errorCode: response.data.errors[0].extensions,
         errorMessage: response.data.errors[0].message,
       });
@@ -1181,7 +1214,7 @@ export class ALTStudentService {
           )}.`
         : "";
 
-      return new SuccessResponse({
+      return res.status(200).send({
         statusCode: 200,
         message: `Ok. ${restrictedFieldsMessage}`,
         data: result,
