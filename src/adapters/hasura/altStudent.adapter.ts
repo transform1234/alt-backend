@@ -426,6 +426,10 @@ export class ALTStudentService {
         studentEnrollId: item?.studentEnrollId?.studentEnrollId
           ? `${item.studentEnrollId.studentEnrollId}`
           : "",
+        state: item?.state ? `${item.state}` : "",
+
+        block: item?.block ? `${item.block}` : "",
+        district: item?.district ? `${item.district}` : "",
       };
       promises.push(new StudentDto(studentMapping, true));
       //  return new StudentDto(studentMapping, true);
@@ -607,9 +611,9 @@ export class ALTStudentService {
         groups: item?.user?.GroupMemberships ? item.user.GroupMemberships : [], // groups are blank when student is new, you will see data in group membership instead
         username: item?.user?.username ? item.user.username : "",
         studentEnrollId: item.studentEnrollId ? item.studentEnrollId : "",
-        state: result.state,
-        block: result.block,
-        district: result.district,
+        state: item?.state ? `${item.state}` : "",
+        block: item.block ? `${item.block}` : "",
+        district: item.district ? `${item.district}` : "",
       };
       return userMapping;
     });
