@@ -198,7 +198,9 @@ export class StudentDto {
     example: Promotion.promoted,
   })
   @Expose()
-  @Transform(({ value }) => value ? (value.trim() !== "" ? value.trim() : null) : null)
+  @Transform(({ value }) =>
+    value ? (value.trim() !== "" ? value.trim() : null) : null
+  )
   @IsEnum(Promotion)
   @IsOptional()
   promotion: string; // keep blank when user is new
@@ -207,6 +209,21 @@ export class StudentDto {
   @IsString()
   @IsOptional()
   schoolName: string;
+
+  @Expose()
+  @IsString()
+  @IsOptional()
+  state: string;
+
+  @Expose()
+  @IsString()
+  @IsOptional()
+  district: string;
+
+  @Expose()
+  @IsString()
+  @IsOptional()
+  block: string;
 
   constructor(obj: any, all: boolean) {
     this.userId = obj?.userId ? `${obj.userId}` : "";
@@ -238,6 +255,9 @@ export class StudentDto {
       this.password = obj?.password ? `${obj?.password}` : "";
       this.schoolName = obj?.schoolName ? `${obj?.schoolName}` : "";
       this.className = obj?.className ? `${obj?.className}` : "";
+      (this.state = obj?.state ? `${obj?.state}` : ""),
+        (this.district = obj?.district ? `${obj?.district}` : ""),
+        (this.block = obj?.block ? `${obj?.block}` : "");
     }
   }
 }

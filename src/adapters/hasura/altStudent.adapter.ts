@@ -389,8 +389,6 @@ export class ALTStudentService {
     }
   }
 
-  updateStudent(id: string, request: any, studentDto: StudentDto) {}
-
   public async mappedResponse(result: any) {
     const promises = [];
     for (const item of result) {
@@ -428,6 +426,10 @@ export class ALTStudentService {
         studentEnrollId: item?.studentEnrollId?.studentEnrollId
           ? `${item.studentEnrollId.studentEnrollId}`
           : "",
+        state: item?.state ? `${item.state}` : "",
+
+        block: item?.block ? `${item.block}` : "",
+        district: item?.district ? `${item.district}` : "",
       };
       promises.push(new StudentDto(studentMapping, true));
       //  return new StudentDto(studentMapping, true);
@@ -495,6 +497,9 @@ export class ALTStudentService {
               board
               createdBy
               updatedBy
+              state
+              district
+              block
               user {
                 username
                 userId
@@ -606,6 +611,9 @@ export class ALTStudentService {
         groups: item?.user?.GroupMemberships ? item.user.GroupMemberships : [], // groups are blank when student is new, you will see data in group membership instead
         username: item?.user?.username ? item.user.username : "",
         studentEnrollId: item.studentEnrollId ? item.studentEnrollId : "",
+        state: item?.state ? `${item.state}` : "",
+        block: item.block ? `${item.block}` : "",
+        district: item.district ? `${item.district}` : "",
       };
       return userMapping;
     });
@@ -985,6 +993,7 @@ export class ALTStudentService {
       data: responseData,
     });
   }
+
   public async getClass(request: any, body: any, res: any) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
@@ -1040,5 +1049,143 @@ export class ALTStudentService {
       message: "Classes Found Successfully",
       data: responseData,
     });
+  }
+  public async updateStudent(userId, request, body) {
+    //Decoding JWT to extract roles and it's permissions
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+  
+    //students fields that can be updated
+    const studentFields = [
+      "groups",
+      "religion",
+      "caste",
+      "annualIncome",
+      "motherEducation",
+      "fatherEducation",
+      "motherOccupation",
+      "fatherOccupation",
+      "noOfSiblings",
+      "schoolUdise",
+      "board",
+      "state",
+      "block",
+      "district",
+    ];
+    //users fields that can be updated
+    const userFields = ["name", "email", "gender", "dateOfBirth", "mobile"];
+    let userUpdate = "";
+    let studentUpdate = "";
+    let userUpdateFields = "";
+    let studentUpdateFields = "";
+
+    // Construct the studentUpdate string
+    Object.keys(body).forEach((field) => {
+      if (body[field] !== "" && studentFields.includes(field)) {
+        studentUpdate += `${field}: ${
+          typeof body[field] === "string"
+            ? `"${body[field]}"`
+            : JSON.stringify(body[field])
+        }, `;
+        studentUpdateFields += `${field} `;
+      }
+    });
+
+    // Construct the userUpdate string
+    Object.keys(body).forEach((field) => {
+      if (body[field] !== "" && userFields.includes(field)) {
+        userUpdate += `${field}: ${
+          typeof body[field] === "string"
+            ? `"${body[field]}"`
+            : JSON.stringify(body[field])
+        }, `;
+        userUpdateFields += `${field} `;
+      }
+    });
+
+    const data = {
+      query: `mutation UpdateStudent($userId: uuid) {
+        ${
+          studentUpdate
+            ? `update_Students(where: {userId: {_eq: $userId}}, _set: {${studentUpdate}}) { 
+                returning { 
+                  ${studentUpdateFields}
+                }
+            }`
+            : ""
+        }
+        ${
+          userUpdate
+            ? `update_Users(where: {userId: {_eq: $userId}}, _set: {${userUpdate}}) { 
+                returning{
+                  ${userUpdateFields}
+                }
+            }`
+            : ""
+        }
+      }`,
+      variables: {
+        userId: userId,
+      },
+    };
+    console.log(data.query);
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    // Fields that cannot be updated
+    const restrictedFields = [
+      "password",
+      "createdBy",
+      "createdAt",
+      "updatedBy",
+      "updatedAt",
+      "userId",
+      "studentId",
+    ];
+    const restrictedFieldNames = Object.keys(body).filter((field) =>
+      restrictedFields.includes(field)
+    );
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    } else {
+      const result: any = {};
+      const update_Students =
+        response.data.data.update_Students?.returning?.[0] || {};
+      const update_Users =
+        response.data.data.update_Users?.returning?.[0] || {};
+
+      // Merge updated fields
+      Object.assign(result, update_Students, update_Users);
+
+      const restrictedFieldsMessage = restrictedFieldNames.length
+        ? `The following fields were not updated as they are restricted: ${restrictedFieldNames.join(
+            ", "
+          )}.`
+        : "";
+
+      return new SuccessResponse({
+        statusCode: 200,
+        message: `Ok. ${restrictedFieldsMessage}`,
+        data: result,
+      });
+    }
   }
 }
