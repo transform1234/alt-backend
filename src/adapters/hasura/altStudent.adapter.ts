@@ -567,7 +567,7 @@ export class ALTStudentService {
         offset: offset,
       },
     };
-    console.log(data);
+    console.log(data.query);
     const config = {
       method: "post",
       url: this.baseURL,
@@ -1031,6 +1031,7 @@ export class ALTStudentService {
       data: responseData,
     });
   }
+
   public async getClass(request: any, body: any, res: any) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
@@ -1087,5 +1088,138 @@ export class ALTStudentService {
       data: responseData,
     });
   }
+  public async updateStudent(userId, request, body) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
 
+    const studentFields = [
+      "groups",
+      "religion",
+      "caste",
+      "annualIncome",
+      "motherEducation",
+      "fatherEducation",
+      "motherOccupation",
+      "fatherOccupation",
+      "noOfSiblings",
+      "schoolUdise",
+      "board",
+      "state",
+      "block",
+      "district",
+    ];
+
+    const userFields = ["name", "email", "gender", "dateOfBirth", "mobile"];
+    let userUpdate = "";
+    let studentUpdate = "";
+    let userUpdateFields = "";
+    let studentUpdateFields = "";
+
+    Object.keys(body).forEach((field) => {
+      if (body[field] !== "" && studentFields.includes(field)) {
+        studentUpdate += `${field}: ${
+          typeof body[field] === "string"
+            ? `"${body[field]}"`
+            : JSON.stringify(body[field])
+        }, `;
+        studentUpdateFields += `${field} `;
+      }
+    });
+
+    // Construct the userUpdate string
+    Object.keys(body).forEach((field) => {
+      if (body[field] !== "" && userFields.includes(field)) {
+        userUpdate += `${field}: ${
+          typeof body[field] === "string"
+            ? `"${body[field]}"`
+            : JSON.stringify(body[field])
+        }, `;
+        userUpdateFields += `${field} `;
+      }
+    });
+
+    const data = {
+      query: `mutation MyMutation($userId: uuid) {
+        ${
+          studentUpdate
+            ? `update_Students(where: {userId: {_eq: $userId}}, _set: {${studentUpdate}}) { 
+                returning { 
+                  ${studentUpdateFields}
+                }
+            }`
+            : ""
+        }
+        ${
+          userUpdate
+            ? `update_Users(where: {userId: {_eq: $userId}}, _set: {${userUpdate}}) { 
+                returning{
+                  ${userUpdateFields}
+                }
+            }`
+            : ""
+        }
+      }`,
+      variables: {
+        userId: userId,
+      },
+    };
+    console.log(data.query);
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    const restrictedFields = [
+      "password",
+      "createdBy",
+      "createdAt",
+      "updatedBy",
+      "updatedAt",
+      "userId",
+      "studentId",
+    ];
+    const restrictedFieldNames = Object.keys(body).filter((field) =>
+      restrictedFields.includes(field)
+    );
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    } else {
+      const result: any = {};
+      const update_Students =
+        response.data.data.update_Students?.returning?.[0] || {};
+      const update_Users =
+        response.data.data.update_Users?.returning?.[0] || {};
+
+      // Merge updated fields
+      Object.assign(result, update_Students, update_Users);
+
+      const restrictedFieldsMessage = restrictedFieldNames.length
+        ? `The following fields were not updated as they are restricted: ${restrictedFieldNames.join(
+            ", "
+          )}.`
+        : "";
+
+      return new SuccessResponse({
+        statusCode: 200,
+        message: `Ok. ${restrictedFieldsMessage}`,
+        data: result,
+      });
+    }
+  }
 }

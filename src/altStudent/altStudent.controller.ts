@@ -179,4 +179,19 @@ export class ALTStudentController {
   ){
     return this.altStudentService.getClass(request,body,response);
   }
+  @Put("/:id")
+  @UsePipes(ValidationPipe)
+  @ApiBasicAuth("access-token")
+  @ApiCreatedResponse({ description: "Student updation." })
+  @ApiBody({ type: StudentSearchDto })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @UseInterceptors(ClassSerializerInterceptor)
+  
+  public async updateStudent(
+    @Param("id") id : string,
+    @Req() request : Request,
+    @Body() body : any
+  ){
+    return this.altStudentService.updateStudent(id,request,body);
+  }
 }
