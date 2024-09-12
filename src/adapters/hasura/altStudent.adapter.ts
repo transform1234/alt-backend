@@ -453,34 +453,76 @@ export class ALTStudentService {
       offset = studentSearchDto.limit * (studentSearchDto.page - 1);
     }
 
+    // Calculate offset based on the page number and limit
     const limit = parseInt(studentSearchDto.limit)
       ? parseInt(studentSearchDto.limit)
       : 10000;
 
-    let query = "";
+    let filterQuery = "";
+    // Allowed fields
+    const allowedFilterFields = [
+      "state",
+      "block",
+      "district",
+      "schoolUdise",
+      "username",
+      "schoolName",
+      "class",
+      "board",
+      "grade",
+      "userId",
+      "studentId",
+    ];
+    // Validating filters
+    const invalidFields = Object.keys(studentSearchDto.filters).filter(
+      (field) => !allowedFilterFields.includes(field)
+    );
+    if (invalidFields.length > 0) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: `Invalid filter fields: ${invalidFields.join(", ")}`,
+      });
+    }
 
+    // Build the filter query based on the provided filters
     Object.keys(studentSearchDto.filters).forEach((e) => {
       if (studentSearchDto.filters[e] && studentSearchDto.filters[e] != "") {
         if (e === "board") {
-          query += `${e}:{_ilike: "%${studentSearchDto.filters[e]?.ilike}%"}`;
+          filterQuery += `${e}:{_ilike: "%${studentSearchDto.filters[e]?.ilike}%"}`;
         } else if (
           e === "grade" &&
           parseInt(studentSearchDto.filters["grade"])
         ) {
-          query += `user: {GroupMemberships: {Group: {grade: {_eq: "${parseInt(
+          filterQuery += `user: {GroupMemberships: {Group: {grade: {_eq: "${parseInt(
             studentSearchDto.filters["grade"]
           )}"}}}}`;
+        } else if (e === "schoolName") {
+          filterQuery += `School: {name: {_eq: "${studentSearchDto.filters[e]?.eq}"}}`;
+        } else if (e === "class") {
+          filterQuery += `School: {Groups: {name: {_eq: "${studentSearchDto.filters[e]?.eq}"}}}`;
+        } else if (e === "state") {
+          filterQuery += `state: {_eq: "${studentSearchDto.filters[e]?.eq}"}`;
+        } else if (e === "district") {
+          filterQuery += `district: {_eq: "${studentSearchDto.filters[e]?.eq}"}`;
+        } else if (e === "block") {
+          filterQuery += `block: {_eq: "${studentSearchDto.filters[e]?.eq}"}`;
+        } else if (e === "username") {
+          filterQuery += `user: { username: {_eq: "${studentSearchDto.filters[e]?.eq}"},status: {_eq: true}}`;
         } else if (e !== "grade") {
-          query += `${e}:{_eq:"${studentSearchDto.filters[e]?.eq}"}`;
+          filterQuery += `${e}:{_eq:"${studentSearchDto.filters[e]?.eq}"}`;
         }
       }
     });
-    query += `,user: {status: {_eq: true}}`;
+    // Ensure status is active if username filter is not applied
+    if (!studentSearchDto.filters.username) {
+      filterQuery += `,user: {status: {_eq: true}}`;
+    }
 
+    // Construct the GraphQL query to search for students with filters
     const data = {
       query: `query SearchStudent($limit:Int, $offset:Int) {
        
-        Students(where:{${query}} , limit: $limit, offset: $offset,) {
+        Students(where:{${filterQuery}} , limit: $limit, offset: $offset,) {
               annualIncome
               caste
               schoolUdise
@@ -531,7 +573,9 @@ export class ALTStudentService {
         offset: offset,
       },
     };
-    console.log(data);
+    console.log(data.query);
+
+    // Axios configuration for sending the GraphQL request
     const config = {
       method: "post",
       url: this.baseURL,
@@ -542,8 +586,9 @@ export class ALTStudentService {
       },
       data: data,
     };
-    const response = await this.axios(config);
 
+    // Send the request and handle errors if any
+    const response = await this.axios(config);
     if (response?.data?.errors) {
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
@@ -551,7 +596,9 @@ export class ALTStudentService {
       });
     }
 
+    // Process the result and map it into a desired format
     let result = response.data.data.Students;
+
     const studentResponse = await this.mappedResponse(result);
 
     return new SuccessResponse({
@@ -1055,7 +1102,7 @@ export class ALTStudentService {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
-  
+
     //students fields that can be updated
     const studentFields = [
       "groups",
