@@ -186,7 +186,6 @@ export class ALTStudentController {
   @ApiBody({ type: StudentSearchDto })
   @ApiForbiddenResponse({ description: "Forbidden" })
   @UseInterceptors(ClassSerializerInterceptor)
-  
   public async updateStudent(
     @Param("id") id : string,
     @Req() request : Request,

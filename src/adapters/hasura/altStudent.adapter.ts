@@ -1,5 +1,4 @@
 import { Injectable } from "@nestjs/common";
-import { HttpService } from "@nestjs/axios";
 import jwt_decode from "jwt-decode";
 import { SuccessResponse } from "src/success-response";
 import { StudentDto } from "src/altStudent/dto/alt-student.dto";
@@ -1052,7 +1051,15 @@ export class ALTStudentService {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
-  
+    const updatedBy =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]; // Extracting user ID from token
+      if(!altUserRoles.includes('systemAdmin')){
+        return new ErrorResponse({
+          errorCode : "401",
+          errorMessage : "Unauthorized Access",
+        })
+      }
+
     //students fields that can be updated
     const studentFields = [
       "groups",
@@ -1068,18 +1075,27 @@ export class ALTStudentService {
       "board",
       "state",
       "block",
-      "district",
+      "district"
     ];
     //users fields that can be updated
-    const userFields = ["name", "email", "gender", "dateOfBirth", "mobile"];
+    const userFields = [
+      "name",
+      "email",
+      "gender",
+      "dateOfBirth",
+      "mobile"
+    ];
     let userUpdate = "";
     let studentUpdate = "";
     let userUpdateFields = "";
     let studentUpdateFields = "";
+    let isStudentFieldUpdated = false;
+    let isUserFieldUpdated = false;
 
     // Construct the studentUpdate string
     Object.keys(body).forEach((field) => {
       if (body[field] !== "" && studentFields.includes(field)) {
+        isStudentFieldUpdated = true; // Mark that a student field is being updated
         studentUpdate += `${field}: ${
           typeof body[field] === "string"
             ? `"${body[field]}"`
@@ -1092,6 +1108,7 @@ export class ALTStudentService {
     // Construct the userUpdate string
     Object.keys(body).forEach((field) => {
       if (body[field] !== "" && userFields.includes(field)) {
+        isUserFieldUpdated = true; // Mark that a user field is being updated
         userUpdate += `${field}: ${
           typeof body[field] === "string"
             ? `"${body[field]}"`
@@ -1100,6 +1117,19 @@ export class ALTStudentService {
         userUpdateFields += `${field} `;
       }
     });
+    const currentTime = new Date().toISOString(); // Current timestamp
+
+    // Add 'updatedBy' and 'updatedAt' to student update only if student fields are being updated
+    if (isStudentFieldUpdated) {
+      studentUpdate += `updatedBy: "${updatedBy}", updatedAt: "${currentTime}", `;
+      studentUpdateFields += `updatedBy updatedAt `;
+    }
+    // Add 'updatedBy' and 'updatedAt' to user update only if user fields are being updated
+    if (isUserFieldUpdated) {
+      userUpdate += `updatedBy: "${updatedBy}", updatedAt: "${currentTime}", `;
+      userUpdateFields += `updatedBy updatedAt `;
+    }
+    console.log(userUpdateFields, studentUpdateFields);
 
     const data = {
       query: `mutation UpdateStudent($userId: uuid) {
@@ -1148,10 +1178,10 @@ export class ALTStudentService {
       "password",
       "createdBy",
       "createdAt",
-      "updatedBy",
-      "updatedAt",
       "userId",
       "studentId",
+      "updatedAt",
+      "updatedBy"
     ];
     const restrictedFieldNames = Object.keys(body).filter((field) =>
       restrictedFields.includes(field)
@@ -1178,11 +1208,11 @@ export class ALTStudentService {
           )}.`
         : "";
 
-      return new SuccessResponse({
-        statusCode: 200,
-        message: `Ok. ${restrictedFieldsMessage}`,
-        data: result,
-      });
+        return new SuccessResponse({
+          statusCode: 200,
+          message: `Ok. ${restrictedFieldsMessage}`,
+          data: result,
+        });
     }
   }
 }
