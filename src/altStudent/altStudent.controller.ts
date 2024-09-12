@@ -147,7 +147,7 @@ export class ALTStudentController {
   ){
     return this.altStudentService.getBlockList(request,body,response);
   }
-  @Post("/getSchooList")
+  @Post("/getSchoolList")
   @UsePipes(ValidationPipe)
   @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
   @ApiBasicAuth("access-token")
