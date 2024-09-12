@@ -1049,7 +1049,7 @@ export class ALTStudentService {
       data: responseData,
     });
   }
-  public async updateStudent(userId, request, body,res) {
+  public async updateStudent(userId, request, body) {
     //Decoding JWT to extract roles and it's permissions
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
@@ -1057,11 +1057,10 @@ export class ALTStudentService {
     const updatedBy =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]; // Extracting user ID from token
       if(!altUserRoles.includes('systemAdmin')){
-        return res.status(403).json({
-          status: 403,
-          message: "Forbidden: Only system admins can update students",
-          data: {},
-        });
+        return new ErrorResponse({
+          errorCode : "401",
+          errorMessage : "Unauthorized Access",
+        })
       }
 
     //students fields that can be updated
@@ -1194,7 +1193,7 @@ export class ALTStudentService {
     );
 
     if (response?.data?.errors) {
-     return res.status(500).send({
+      return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
         errorMessage: response.data.errors[0].message,
       });
@@ -1214,11 +1213,11 @@ export class ALTStudentService {
           )}.`
         : "";
 
-      return res.status(200).send({
-        statusCode: 200,
-        message: `Ok. ${restrictedFieldsMessage}`,
-        data: result,
-      });
+        return new SuccessResponse({
+          statusCode: 200,
+          message: `Ok. ${restrictedFieldsMessage}`,
+          data: result,
+        });
     }
   }
 }

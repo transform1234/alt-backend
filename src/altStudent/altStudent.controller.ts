@@ -186,15 +186,11 @@ export class ALTStudentController {
   @ApiBody({ type: StudentSearchDto })
   @ApiForbiddenResponse({ description: "Forbidden" })
   @UseInterceptors(ClassSerializerInterceptor)
-  @SerializeOptions({
-    strategy: "excludeAll",
-  })
   public async updateStudent(
     @Param("id") id : string,
     @Req() request : Request,
-    @Body() body : any,
-    @Res() response : Response
+    @Body() body : any
   ){
-    return this.altStudentService.updateStudent(id,request,body,response);
+    return this.altStudentService.updateStudent(id,request,body);
   }
 }
