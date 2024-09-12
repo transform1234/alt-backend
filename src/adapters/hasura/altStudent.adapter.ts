@@ -1078,9 +1078,7 @@ export class ALTStudentService {
       "board",
       "state",
       "block",
-      "district",
-      "updatedBy",
-      "updatedAt",
+      "district"
     ];
     //users fields that can be updated
     const userFields = [
@@ -1088,9 +1086,7 @@ export class ALTStudentService {
       "email",
       "gender",
       "dateOfBirth",
-      "mobile",
-      "updatedBy",
-      "updatedAt",
+      "mobile"
     ];
     let userUpdate = "";
     let studentUpdate = "";
@@ -1187,6 +1183,8 @@ export class ALTStudentService {
       "createdAt",
       "userId",
       "studentId",
+      "updatedAt",
+      "updatedBy"
     ];
     const restrictedFieldNames = Object.keys(body).filter((field) =>
       restrictedFields.includes(field)
