@@ -780,7 +780,7 @@ export class ALTStudentService {
         : "";
 
     const data = {
-      query: `query MyQuery {
+      query: `query GetStateList {
         Students (distinct_on: state ${filterQuery}) {
           state
         }
@@ -834,7 +834,7 @@ export class ALTStudentService {
 
     filterQuery += `}`;
     const data = {
-      query: `query MyQuery {
+      query: `query GetDistrictList {
         Students (distinct_on: district ${filterQuery}) {
           district
         }
@@ -892,7 +892,7 @@ export class ALTStudentService {
     filterQuery += `}`;
 
     const data = {
-      query: `query MyQuery {
+      query: `query GetBlockList {
         Students (distinct_on: block ${filterQuery}) {
           block
         }
@@ -915,7 +915,6 @@ export class ALTStudentService {
     };
 
     const response = await this.axios(config);
-    console.log(response.data);
 
     if (response?.data?.errors) {
       return res.status(500).send({
@@ -951,7 +950,7 @@ export class ALTStudentService {
     filterQuery += `}`;
 
     const data = {
-      query: `query MyQuery {
+      query: `query GetSchoolList {
         School (distinct_on: udiseCode, ${filterQuery}) {
           name
         }
@@ -1009,7 +1008,7 @@ export class ALTStudentService {
     }
 
     const data = {
-      query: `query MyQuery {
+      query: `query GetClassList {
         Group(where: {${filterQuery}}, distinct_on: name) {
           name
         }
