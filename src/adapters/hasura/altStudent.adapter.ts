@@ -952,10 +952,8 @@ export class ALTStudentService {
 
     const data = {
       query: `query MyQuery {
-        Students(distinct_on: schoolUdise, ${filterQuery}) {
-          state
-          block
-          district
+        School (distinct_on: udiseCode, ${filterQuery}) {
+          name
         }
       }
       
@@ -985,7 +983,7 @@ export class ALTStudentService {
       });
     }
 
-    const responseData = response.data.data.Students;
+    const responseData = response.data.data.School;
 
     return res.status(200).json({
       status: 200,
