@@ -1100,16 +1100,15 @@ export class ALTStudentService {
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     const updatedBy =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]; // Extracting user ID from token
-      if(!altUserRoles.includes('systemAdmin')){
-        return new ErrorResponse({
-          errorCode : "401",
-          errorMessage : "Unauthorized Access",
-        })
-      }
+    if (!altUserRoles.includes("systemAdmin")) {
+      return new ErrorResponse({
+        errorCode: "401",
+        errorMessage: "Unauthorized Access",
+      });
+    }
 
     //students fields that can be updated
     const studentFields = [
-      "groups",
       "religion",
       "caste",
       "annualIncome",
@@ -1122,16 +1121,10 @@ export class ALTStudentService {
       "board",
       "state",
       "block",
-      "district"
+      "district",
     ];
     //users fields that can be updated
-    const userFields = [
-      "name",
-      "email",
-      "gender",
-      "dateOfBirth",
-      "mobile"
-    ];
+    const userFields = ["name", "email", "gender", "dateOfBirth", "mobile"];
     let userUpdate = "";
     let studentUpdate = "";
     let userUpdateFields = "";
@@ -1228,7 +1221,7 @@ export class ALTStudentService {
       "userId",
       "studentId",
       "updatedAt",
-      "updatedBy"
+      "updatedBy",
     ];
     const restrictedFieldNames = Object.keys(body).filter((field) =>
       restrictedFields.includes(field)
@@ -1255,11 +1248,11 @@ export class ALTStudentService {
           )}.`
         : "";
 
-        return new SuccessResponse({
-          statusCode: 200,
-          message: `Ok. ${restrictedFieldsMessage}`,
-          data: result,
-        });
+      return new SuccessResponse({
+        statusCode: 200,
+        message: `Ok. ${restrictedFieldsMessage}`,
+        data: result,
+      });
     }
   }
 }
