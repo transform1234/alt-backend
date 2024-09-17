@@ -523,6 +523,9 @@ export class ALTStudentService {
                       Group: { name: { _eq: "${studentSearchDto.filters[e]?.eq}" } }
                     },
                     {
+                      status: { _eq: true },
+                    }
+                    {
                       role: { _eq: "student" }
                     }
                   ]
