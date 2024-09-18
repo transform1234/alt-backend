@@ -482,7 +482,18 @@ export class ALTStudentService {
         errorMessage: `Invalid filter fields: ${invalidFields.join(", ")}`,
       });
     }
-
+    // Check if 'class' is provided without 'schoolName'
+    if (
+      studentSearchDto.filters.class &&
+      !studentSearchDto.filters.schoolName
+    ) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Please provide 'schoolName' when 'class' is specified.",
+      });
+    }
+    let classFilter = "";
+    let schoolFilter = "";
     // Build the filter query based on the provided filters
     Object.keys(studentSearchDto.filters).forEach((e) => {
       if (studentSearchDto.filters[e] && studentSearchDto.filters[e] != "") {
@@ -492,13 +503,41 @@ export class ALTStudentService {
           e === "grade" &&
           parseInt(studentSearchDto.filters["grade"])
         ) {
-          filterQuery += `user: {GroupMemberships: {Group: {grade: {_eq: "${parseInt(
+          filterQuery += `user: {GroupMemberships: {Groupx: {grade: {_eq: "${parseInt(
             studentSearchDto.filters["grade"]
           )}"}}}}`;
         } else if (e === "schoolName") {
-          filterQuery += `School: {name: {_eq: "${studentSearchDto.filters[e]?.eq}"}}`;
+          schoolFilter += `School: {name: {_eq: "${studentSearchDto.filters[e]?.eq}"}}`;
+          //if class is not passed and only school is passed then it should get appended to the main query
+          filterQuery += schoolFilter;
         } else if (e === "class") {
-          filterQuery += `School: {Groups: {name: {_eq: "${studentSearchDto.filters[e]?.eq}"}}}`;
+          classFilter += `_and: [
+            {
+              user: {
+                GroupMemberships: {
+                  _and: [
+                    { 
+                      ${schoolFilter}
+                    },
+                    {
+                      Group: { name: { _eq: "${studentSearchDto.filters[e]?.eq}" } }
+                    },
+                    {
+                      status: { _eq: true },
+                    }
+                    {
+                      role: { _eq: "student" }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              user: {
+                status: { _eq: true }
+              }
+            },
+          ]`;
         } else if (e === "state") {
           filterQuery += `state: {_eq: "${studentSearchDto.filters[e]?.eq}"}`;
         } else if (e === "district") {
@@ -518,55 +557,62 @@ export class ALTStudentService {
     }
 
     // Construct the GraphQL query to search for students with filters
+
     const data = {
-      query: `query SearchStudent($limit:Int, $offset:Int) {
-       
-        Students(where:{${filterQuery}} , limit: $limit, offset: $offset,) {
-              annualIncome
-              caste
-              schoolUdise
-              createdAt
-              fatherEducation
-              fatherOccupation
-              updatedAt
-              studentId
-              religion
-              noOfSiblings
-              motherOccupation
-              motherEducation
-              groups
-              board
-              createdBy
-              updatedBy
-              state
-              district
-              block
-              user {
-                username
-                userId
-                updatedBy
-                updatedAt
-                status
-                role
-                password
+      query: `query SearchStudent($limit: Int, $offset: Int) {
+        Students(
+          where: {
+            ${filterQuery} 
+            ${classFilter}
+          },
+          limit: $limit,
+          offset: $offset
+        ) {
+          annualIncome
+          caste
+          schoolUdise
+          createdAt
+          fatherEducation
+          fatherOccupation
+          updatedAt
+          studentId
+          religion
+          noOfSiblings
+          motherOccupation
+          motherEducation
+          groups
+          board
+          createdBy
+          updatedBy
+          state
+          district
+          block
+          user {
+            username
+            userId
+            updatedBy
+            updatedAt
+            status
+            role
+            password
+            name
+            mobile
+            gender
+            email
+            dateOfBirth
+            createdBy
+            createdAt
+            GroupMemberships(where: {status: {_eq: true}}) {
+              School {
                 name
-                mobile
-                gender
-                email
-                dateOfBirth
-                createdBy
-                createdAt
-                GroupMemberships(where: {status: {_eq: true}}){
-                  School {
-                    name
-                  }
-                  Group {
-                    name
-                  }
-                }  
               }
-            }
-          }`,
+              Group {
+                name
+              }
+            }  
+          }
+        }
+      }`,
       variables: {
         limit: limit,
         offset: offset,
