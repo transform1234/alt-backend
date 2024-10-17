@@ -1,5 +1,4 @@
 import { Injectable } from "@nestjs/common";
-import { HttpService } from "@nestjs/axios";
 import jwt_decode from "jwt-decode";
 import { SuccessResponse } from "src/success-response";
 import { StudentDto } from "src/altStudent/dto/alt-student.dto";
@@ -389,8 +388,6 @@ export class ALTStudentService {
     }
   }
 
-  updateStudent(id: string, request: any, studentDto: StudentDto) {}
-
   public async mappedResponse(result: any) {
     const promises = [];
     for (const item of result) {
@@ -428,6 +425,10 @@ export class ALTStudentService {
         studentEnrollId: item?.studentEnrollId?.studentEnrollId
           ? `${item.studentEnrollId.studentEnrollId}`
           : "",
+        state: item?.state ? `${item.state}` : "",
+
+        block: item?.block ? `${item.block}` : "",
+        district: item?.district ? `${item.district}` : "",
       };
       promises.push(new StudentDto(studentMapping, true));
       //  return new StudentDto(studentMapping, true);
@@ -451,82 +452,175 @@ export class ALTStudentService {
       offset = studentSearchDto.limit * (studentSearchDto.page - 1);
     }
 
+    // Calculate offset based on the page number and limit
     const limit = parseInt(studentSearchDto.limit)
       ? parseInt(studentSearchDto.limit)
       : 10000;
 
-    let query = "";
-
+    let filterQuery = "";
+    // Allowed fields
+    const allowedFilterFields = [
+      "state",
+      "block",
+      "district",
+      "schoolUdise",
+      "username",
+      "schoolName",
+      "class",
+      "board",
+      "grade",
+      "userId",
+      "studentId",
+    ];
+    // Validating filters
+    const invalidFields = Object.keys(studentSearchDto.filters).filter(
+      (field) => !allowedFilterFields.includes(field)
+    );
+    if (invalidFields.length > 0) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: `Invalid filter fields: ${invalidFields.join(", ")}`,
+      });
+    }
+    // Check if 'class' is provided without 'schoolName'
+    if (
+      studentSearchDto.filters.class &&
+      !studentSearchDto.filters.schoolName
+    ) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Please provide 'schoolName' when 'class' is specified.",
+      });
+    }
+    let classFilter = "";
+    let schoolFilter = "";
+    // Build the filter query based on the provided filters
     Object.keys(studentSearchDto.filters).forEach((e) => {
       if (studentSearchDto.filters[e] && studentSearchDto.filters[e] != "") {
         if (e === "board") {
-          query += `${e}:{_ilike: "%${studentSearchDto.filters[e]?.ilike}%"}`;
+          filterQuery += `${e}:{_ilike: "%${studentSearchDto.filters[e]?.ilike}%"}`;
         } else if (
           e === "grade" &&
           parseInt(studentSearchDto.filters["grade"])
         ) {
-          query += `user: {GroupMemberships: {Group: {grade: {_eq: "${parseInt(
+          filterQuery += `user: {GroupMemberships: {Groupx: {grade: {_eq: "${parseInt(
             studentSearchDto.filters["grade"]
           )}"}}}}`;
+        } else if (e === "schoolName") {
+          schoolFilter += `School: {name: {_eq: "${studentSearchDto.filters[e]?.eq}"}}`;
+          //if class is not passed and only school is passed then it should get appended to the main query
+          filterQuery += schoolFilter;
+        } else if (e === "class") {
+          classFilter += `_and: [
+            {
+              user: {
+                GroupMemberships: {
+                  _and: [
+                    { 
+                      ${schoolFilter}
+                    },
+                    {
+                      Group: { name: { _eq: "${studentSearchDto.filters[e]?.eq}" } }
+                    },
+                    {
+                      status: { _eq: true },
+                    }
+                    {
+                      role: { _eq: "student" }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              user: {
+                status: { _eq: true }
+              }
+            },
+          ]`;
+        } else if (e === "state") {
+          filterQuery += `state: {_eq: "${studentSearchDto.filters[e]?.eq}"}`;
+        } else if (e === "district") {
+          filterQuery += `district: {_eq: "${studentSearchDto.filters[e]?.eq}"}`;
+        } else if (e === "block") {
+          filterQuery += `block: {_eq: "${studentSearchDto.filters[e]?.eq}"}`;
+        } else if (e === "username") {
+          filterQuery += `user: { username: {_eq: "${studentSearchDto.filters[e]?.eq}"},status: {_eq: true}}`;
         } else if (e !== "grade") {
-          query += `${e}:{_eq:"${studentSearchDto.filters[e]?.eq}"}`;
+          filterQuery += `${e}:{_eq:"${studentSearchDto.filters[e]?.eq}"}`;
         }
       }
     });
-    query += `,user: {status: {_eq: true}}`;
+    // Ensure status is active if username filter is not applied
+    if (!studentSearchDto.filters.username) {
+      filterQuery += `,user: {status: {_eq: true}}`;
+    }
+
+    // Construct the GraphQL query to search for students with filters
 
     const data = {
-      query: `query SearchStudent($limit:Int, $offset:Int) {
-       
-        Students(where:{${query}} , limit: $limit, offset: $offset,) {
-              annualIncome
-              caste
-              schoolUdise
-              createdAt
-              fatherEducation
-              fatherOccupation
-              updatedAt
-              studentId
-              religion
-              noOfSiblings
-              motherOccupation
-              motherEducation
-              groups
-              board
-              createdBy
-              updatedBy
-              user {
-                username
-                userId
-                updatedBy
-                updatedAt
-                status
-                role
-                password
+      query: `query SearchStudent($limit: Int, $offset: Int) {
+        Students(
+          where: {
+            ${filterQuery} 
+            ${classFilter}
+          },
+          limit: $limit,
+          offset: $offset
+        ) {
+          annualIncome
+          caste
+          schoolUdise
+          createdAt
+          fatherEducation
+          fatherOccupation
+          updatedAt
+          studentId
+          religion
+          noOfSiblings
+          motherOccupation
+          motherEducation
+          groups
+          board
+          createdBy
+          updatedBy
+          state
+          district
+          block
+          user {
+            username
+            userId
+            updatedBy
+            updatedAt
+            status
+            role
+            password
+            name
+            mobile
+            gender
+            email
+            dateOfBirth
+            createdBy
+            createdAt
+            GroupMemberships(where: {status: {_eq: true}}) {
+              School {
                 name
-                mobile
-                gender
-                email
-                dateOfBirth
-                createdBy
-                createdAt
-                GroupMemberships(where: {status: {_eq: true}}){
-                  School {
-                    name
-                  }
-                  Group {
-                    name
-                  }
-                }  
               }
-            }
-          }`,
+              Group {
+                name
+              }
+            }  
+          }
+        }
+      }`,
       variables: {
         limit: limit,
         offset: offset,
       },
     };
-console.log(data);
+    console.log(data.query);
+
+    // Axios configuration for sending the GraphQL request
     const config = {
       method: "post",
       url: this.baseURL,
@@ -537,8 +631,9 @@ console.log(data);
       },
       data: data,
     };
-    const response = await this.axios(config);
 
+    // Send the request and handle errors if any
+    const response = await this.axios(config);
     if (response?.data?.errors) {
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
@@ -546,7 +641,9 @@ console.log(data);
       });
     }
 
+    // Process the result and map it into a desired format
     let result = response.data.data.Students;
+
     const studentResponse = await this.mappedResponse(result);
 
     return new SuccessResponse({
@@ -606,6 +703,9 @@ console.log(data);
         groups: item?.user?.GroupMemberships ? item.user.GroupMemberships : [], // groups are blank when student is new, you will see data in group membership instead
         username: item?.user?.username ? item.user.username : "",
         studentEnrollId: item.studentEnrollId ? item.studentEnrollId : "",
+        state: item?.state ? `${item.state}` : "",
+        block: item.block ? `${item.block}` : "",
+        district: item.district ? `${item.district}` : "",
       };
       return userMapping;
     });
@@ -758,6 +858,446 @@ console.log(data);
         statusCode: 200,
         message: "Ok.",
         data: userData[0],
+      });
+    }
+  }
+  public async getStateList(request: any, body: any, res: any) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+
+    const filterQuery =
+      body !== null && body.state
+        ? `, where: { state: {_eq: "${body.state}"} }`
+        : "";
+
+    const data = {
+      query: `query GetStateList {
+        Students (distinct_on: state ${filterQuery}) {
+          state
+        }
+      }
+      `,
+    };
+    console.log(data.query);
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return res.status(500).send({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const responseData = response.data.data.Students;
+
+    return res.status(200).json({
+      status: 200,
+      message: "States Found Successfully",
+      data: responseData,
+    });
+  }
+  public async getDistrictList(request: any, body: any, res: any) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+
+    let filterQuery = ", where: {";
+    if (body !== null && body.state) {
+      filterQuery += ` state: {_eq: "${body.state}"},`;
+    }
+    if (body !== null && body.district) {
+      filterQuery += `district: {_eq: "${body.district}"}`;
+    }
+
+    filterQuery += `}`;
+    const data = {
+      query: `query GetDistrictList {
+        Students (distinct_on: district ${filterQuery}) {
+          district
+        }
+      }
+      `,
+    };
+    console.log(data.query);
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return res.status(500).send({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const responseData = response.data.data.Students;
+
+    return res.status(200).json({
+      status: 200,
+      message: "District Found Successfully",
+      data: responseData,
+    });
+  }
+  public async getBlockList(request: any, body: any, res: any) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+
+    let filterQuery = ", where: {";
+    if (body !== null && body.state) {
+      filterQuery += ` state: {_eq: "${body.state}"},`;
+    }
+    if (body !== null && body.district) {
+      filterQuery += `district: {_eq: "${body.district}"}`;
+    }
+    if (body !== null && body.block) {
+      filterQuery += `block: {_eq: "${body.block}"}`;
+    }
+
+    filterQuery += `}`;
+
+    const data = {
+      query: `query GetBlockList {
+        Students (distinct_on: block ${filterQuery}) {
+          block
+        }
+      }
+      `,
+    };
+    console.log(data.query);
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return res.status(500).send({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const responseData = response.data.data.Students;
+
+    return res.status(200).json({
+      status: 200,
+      message: "Block Found Successfully",
+      data: responseData,
+    });
+  }
+  public async getSchoolList(request: any, body: any, res: any) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+
+    let filterQuery = ", where: {";
+    if (body !== null && body.state) {
+      filterQuery += ` state: {_eq: "${body.state}"},`;
+    }
+    if (body !== null && body.district) {
+      filterQuery += `district: {_eq: "${body.district}"}`;
+    }
+    if (body !== null && body.block) {
+      filterQuery += `block: {_eq: "${body.block}"}`;
+    }
+
+    filterQuery += `}`;
+
+    const data = {
+      query: `query GetSchoolList {
+        School (distinct_on: udiseCode, ${filterQuery}) {
+          name
+        }
+      }
+      
+      `,
+    };
+    console.log(data.query);
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return res.status(500).send({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const responseData = response.data.data.School;
+
+    return res.status(200).json({
+      status: 200,
+      message: "School Found Successfully",
+      data: responseData,
+    });
+  }
+
+  public async getClass(request: any, body: any, res: any) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    if (body && !body.schoolName) {
+      return res.status(400).json({
+        status: 400,
+        message: "please provide school name",
+        data: {},
+      });
+    }
+    let filterQuery = "";
+    if (body && body.schoolName) {
+      filterQuery = `School: {name: {_eq: "${body.schoolName}"}}`;
+    }
+
+    const data = {
+      query: `query GetClassList {
+        Group(where: {${filterQuery}}, distinct_on: name) {
+          name
+        }
+      }
+      `,
+    };
+    console.log(data.query);
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return res.status(500).send({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const responseData = response.data.data.Group;
+
+    return res.status(200).json({
+      status: 200,
+      message: "Classes Found Successfully",
+      data: responseData,
+    });
+  }
+  public async updateStudent(userId, request, body) {
+    //Decoding JWT to extract roles and it's permissions
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const updatedBy =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]; // Extracting user ID from token
+    if (!altUserRoles.includes("systemAdmin")) {
+      return new ErrorResponse({
+        errorCode: "401",
+        errorMessage: "Unauthorized Access",
+      });
+    }
+
+    //students fields that can be updated
+    const studentFields = [
+      "religion",
+      "caste",
+      "annualIncome",
+      "motherEducation",
+      "fatherEducation",
+      "motherOccupation",
+      "fatherOccupation",
+      "noOfSiblings",
+      "schoolUdise",
+      "board",
+      "state",
+      "block",
+      "district",
+    ];
+    //users fields that can be updated
+    const userFields = ["name", "email", "gender", "dateOfBirth", "mobile"];
+    let userUpdate = "";
+    let studentUpdate = "";
+    let userUpdateFields = "";
+    let studentUpdateFields = "";
+    let isStudentFieldUpdated = false;
+    let isUserFieldUpdated = false;
+
+    // Construct the studentUpdate string
+    Object.keys(body).forEach((field) => {
+      if (body[field] !== "" && studentFields.includes(field)) {
+        isStudentFieldUpdated = true; // Mark that a student field is being updated
+        studentUpdate += `${field}: ${
+          typeof body[field] === "string"
+            ? `"${body[field]}"`
+            : JSON.stringify(body[field])
+        }, `;
+        studentUpdateFields += `${field} `;
+      }
+    });
+
+    // Construct the userUpdate string
+    Object.keys(body).forEach((field) => {
+      if (body[field] !== "" && userFields.includes(field)) {
+        isUserFieldUpdated = true; // Mark that a user field is being updated
+        userUpdate += `${field}: ${
+          typeof body[field] === "string"
+            ? `"${body[field]}"`
+            : JSON.stringify(body[field])
+        }, `;
+        userUpdateFields += `${field} `;
+      }
+    });
+    const currentTime = new Date().toISOString(); // Current timestamp
+
+    // Add 'updatedBy' and 'updatedAt' to student update only if student fields are being updated
+    if (isStudentFieldUpdated) {
+      studentUpdate += `updatedBy: "${updatedBy}", updatedAt: "${currentTime}", `;
+      studentUpdateFields += `updatedBy updatedAt `;
+    }
+    // Add 'updatedBy' and 'updatedAt' to user update only if user fields are being updated
+    if (isUserFieldUpdated) {
+      userUpdate += `updatedBy: "${updatedBy}", updatedAt: "${currentTime}", `;
+      userUpdateFields += `updatedBy updatedAt `;
+    }
+    console.log(userUpdateFields, studentUpdateFields);
+
+    const data = {
+      query: `mutation UpdateStudent($userId: uuid) {
+        ${
+          studentUpdate
+            ? `update_Students(where: {userId: {_eq: $userId}}, _set: {${studentUpdate}}) { 
+                returning { 
+                  ${studentUpdateFields}
+                }
+            }`
+            : ""
+        }
+        ${
+          userUpdate
+            ? `update_Users(where: {userId: {_eq: $userId}}, _set: {${userUpdate}}) { 
+                returning{
+                  ${userUpdateFields}
+                }
+            }`
+            : ""
+        }
+      }`,
+      variables: {
+        userId: userId,
+      },
+    };
+    console.log(data.query);
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    // Fields that cannot be updated
+    const restrictedFields = [
+      "password",
+      "createdBy",
+      "createdAt",
+      "userId",
+      "studentId",
+      "updatedAt",
+      "updatedBy",
+    ];
+    const restrictedFieldNames = Object.keys(body).filter((field) =>
+      restrictedFields.includes(field)
+    );
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    } else {
+      const result: any = {};
+      const update_Students =
+        response.data.data.update_Students?.returning?.[0] || {};
+      const update_Users =
+        response.data.data.update_Users?.returning?.[0] || {};
+
+      // Merge updated fields
+      Object.assign(result, update_Students, update_Users);
+
+      const restrictedFieldsMessage = restrictedFieldNames.length
+        ? `The following fields were not updated as they are restricted: ${restrictedFieldNames.join(
+            ", "
+          )}.`
+        : "";
+
+      return new SuccessResponse({
+        statusCode: 200,
+        message: `Ok. ${restrictedFieldsMessage}`,
+        data: result,
       });
     }
   }

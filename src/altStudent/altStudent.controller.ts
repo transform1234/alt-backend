@@ -26,6 +26,7 @@ import {
   ClassSerializerInterceptor,
   SerializeOptions,
   Req,
+  Res
 } from "@nestjs/common";
 import { StudentDto } from "./dto/alt-student.dto";
 // import { StudentSearchDto } from "./dto/student-search.dto";
@@ -97,5 +98,99 @@ export class ALTStudentController {
     @Body() studentSearchDto: ALTStudentSearchDto
   ) {
     return this.altStudentService.searchStudent(request, studentSearchDto);
+  }
+  @Post("/getStatesList")
+  @UsePipes(ValidationPipe)
+  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "State List." })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @SerializeOptions({
+    strategy: "excludeAll",
+  })
+  public async getStateList(
+    @Req() request :Request,
+    @Res() response :Response,
+    @Body() body?:any ,
+  ){
+    return this.altStudentService.getStateList(request,body,response);
+  }
+  @Post("/getDistrictList")
+  @UsePipes(ValidationPipe)
+  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "District List." })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @SerializeOptions({
+    strategy: "excludeAll",
+  })
+  public async getDistrictList(
+    @Req() request :Request,
+    @Res() response :Response,
+    @Body() body :any ,
+  ){
+    return this.altStudentService.getDistrictList(request,body,response);
+  }
+  @Post("/getBlockList")
+  @UsePipes(ValidationPipe)
+  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "State List." })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @SerializeOptions({
+    strategy: "excludeAll",
+  })
+  public async getBlockList(
+    @Req() request :Request,
+    @Res() response :Response,
+    @Body() body:any ,
+  ){
+    return this.altStudentService.getBlockList(request,body,response);
+  }
+  @Post("/getSchoolList")
+  @UsePipes(ValidationPipe)
+  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "School List." })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @SerializeOptions({
+    strategy: "excludeAll",
+  })
+  public async getSchoolList(
+    @Req() request :Request,
+    @Res() response :Response,
+    @Body() body:any ,
+  ){
+    return this.altStudentService.getSchoolList(request,body,response);
+  }
+  @Post("/getClass")
+  @UsePipes(ValidationPipe)
+  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "Class List." })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @SerializeOptions({
+    strategy: "excludeAll",
+  })
+  public async getClass(
+    @Req() request :Request,
+    @Res() response :Response,
+    @Body() body:any ,
+  ){
+    return this.altStudentService.getClass(request,body,response);
+  }
+  @Put("/:id")
+  @UsePipes(ValidationPipe)
+  @ApiBasicAuth("access-token")
+  @ApiCreatedResponse({ description: "Student updation." })
+  @ApiBody({ type: StudentSearchDto })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @UseInterceptors(ClassSerializerInterceptor)
+  public async updateStudent(
+    @Param("id") id : string,
+    @Req() request : Request,
+    @Body() body : any
+  ){
+    return this.altStudentService.updateStudent(id,request,body);
   }
 }
