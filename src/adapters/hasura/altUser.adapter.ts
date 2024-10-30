@@ -105,6 +105,7 @@ export class ALTHasuraUserService {
       const response = await getToken(); // generating if required
       bulkToken = response.data.access_token;
     }
+    userDto.username = userDto.username.replace(/^\s*$|\n/g, "");
 
     if (!userDto.username) {
       userDto.username = await this.getUsername(userDto, request, altUserRoles);
@@ -891,7 +892,10 @@ export class ALTHasuraUserService {
     const initials = `${firstName[0].toLowerCase()}${
       lastName ? lastName[0].toLowerCase() : ""
     }`;
-    const dob = obj.dateOfBirth.replace(/^(\d{4})-(\d{2})-(\d{2})$/, "$3$2$1"); // Convert to ddmmyyyy
+
+    const dob = obj.dateOfBirth
+      .trim()
+      .replace(/^(\d{4})-(\d{2})-(\d{2})$/, "$3$2$1"); // Convert to ddmmyyyy
 
     // Step 3: Create the base username
     let initialUsername = `${initials}${dob}`;
@@ -901,6 +905,7 @@ export class ALTHasuraUserService {
       request,
       altUserRoles
     );
+
     return uniqueUsername;
   }
   async ensureUniqueUsername(baseUsername, request, altUserRoles) {
