@@ -107,20 +107,23 @@ export class ALTHasuraUserService {
     }
 
     if (!userDto.username) {
-      userDto.username = getUsername(userDto);
+      userDto.username = await this.getUsername(userDto, request, altUserRoles);
     }
+
     if (!userDto.email) {
       userDto.email = userDto.username + "@yopmail.com";
     }
     if (!userDto.password) {
-      userDto.password = getPassword(8);
+      userDto.password = userDto.username;
     }
 
     const userSchema = new UserDto(userDto, true);
+
     const usernameExistsInKeycloak = await checkIfUsernameExistsInKeycloak(
       userDto.username,
       bulkToken
     );
+
     if (usernameExistsInKeycloak?.data[0]?.username) {
       // console.log("check in db", usernameExistsInKeycloak?.data[0]?.id);
       const usernameExistsInDB: any = await this.getUserByUsername(
@@ -128,6 +131,7 @@ export class ALTHasuraUserService {
         request,
         altUserRoles
       );
+
       if (usernameExistsInDB?.statusCode === 200) {
         if (usernameExistsInDB?.data) {
           // console.log(usernameExistsInDB, "usernameExistsInDB");
@@ -145,6 +149,7 @@ export class ALTHasuraUserService {
             null,
             usernameExistsInKeycloak?.data[0]?.id
           );
+
           // console.log(resetPasswordRes ,"pres");
           if (resetPasswordRes.statusCode !== 204) {
             return new ErrorResponse({
@@ -176,6 +181,7 @@ export class ALTHasuraUserService {
         userSchema,
         altUserRoles
       );
+
       return {
         user: newlyCreatedUser,
         isNewlyCreated: true,
@@ -229,7 +235,7 @@ export class ALTHasuraUserService {
           });
         }
         // db??
-        const databaseResponse = this.createUserInDatabase(
+        const databaseResponse = await this.createUserInDatabase(
           request,
           userDto,
           userSchema,
@@ -256,7 +262,7 @@ export class ALTHasuraUserService {
     keycloakUserId,
     altUserRoles
   ) {
-    const encryptedPassword = await encryptPassword(userDto["password"]);
+    const encryptedPassword = userDto["password"];
     const encPass = encryptedPassword.toString();
 
     let query = "";
@@ -877,5 +883,66 @@ export class ALTHasuraUserService {
         data: result,
       });
     }
+  }
+  public async getUsername(obj, request, altUserRoles) {
+    const [firstName, lastName] = obj.name.split(" ");
+
+    // Step 1: Extract initials
+    const initials = `${firstName[0].toLowerCase()}${
+      lastName ? lastName[0].toLowerCase() : ""
+    }`;
+    const dob = obj.dateOfBirth.replace(/^(\d{4})-(\d{2})-(\d{2})$/, "$3$2$1"); // Convert to ddmmyyyy
+
+    // Step 3: Create the base username
+    let initialUsername = `${initials}${dob}`;
+
+    const uniqueUsername = await this.ensureUniqueUsername(
+      initialUsername,
+      request,
+      altUserRoles
+    );
+    return uniqueUsername;
+  }
+  async ensureUniqueUsername(baseUsername, request, altUserRoles) {
+    let username = baseUsername;
+    let count = 0; // Start count from 0, to get "01" suffix for the first increment
+
+    // Check if the exact base username is taken
+    while (await this.isUsernameTaken(username, request, altUserRoles)) {
+      // Increment count and format it as "01", "02", etc.
+      count++;
+      const suffix = String(count).padStart(2, "0"); // Formats as "01", "02", etc.
+      username = `${baseUsername}${suffix}`;
+    }
+
+    return username;
+  }
+
+  // Function to check if a username is taken in the database
+  async isUsernameTaken(username, request, altUserRoles) {
+    const data = {
+      query: `query GetUserByUsername($username:String) {
+        Users(where: {username: {_eq: $username}}) {
+          userId
+        }
+      }`,
+      variables: { username: username },
+    };
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+    return response.data.data.Users.length > 0; // Returns true if username is taken
   }
 }
