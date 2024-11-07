@@ -347,7 +347,7 @@ export class ALTProgramAssociationService {
 
     // get altcoursetrackingdetails
     const promises = programtoRulesData.map((item) =>
-      this.altCourseTrackingDetails(item.courseId, altUserId, request)
+      this.altCourseTrackingDetails(item.contentId, altUserId, request)
     );
 
     const results = await Promise.allSettled(promises);
@@ -367,10 +367,10 @@ export class ALTProgramAssociationService {
     console.log("programtoRulesData", programtoRulesData)
     console.log("trackingDetails", trackingDetails)
 
-    const seenCourseIds = new Set(trackingDetails.map(item => item.courseId));
+    const seenContentIds = new Set(trackingDetails.map(item => item.contentId));
 
     // Filter out seen courses from programtoRulesData
-    const unseenProgramRules = programtoRulesData.filter(item => !seenCourseIds.has(item.courseId));
+    const unseenProgramRules = programtoRulesData.filter(item => !seenContentIds.has(item.contentId));
 
     console.log("unseenProgramRules", unseenProgramRules);
 
@@ -381,7 +381,7 @@ export class ALTProgramAssociationService {
 
     if (paginatedData.length < limit) {
       const additionalData = programtoRulesData.filter(
-        (item) => !seenCourseIds.has(item.courseId) && !unseenProgramRules.includes(item)
+        (item) => !seenContentIds.has(item.courseId) && !unseenProgramRules.includes(item)
       );
       const additionalPaginatedData = this.paginateData(additionalData, 1, limit - paginatedData.length);
       paginatedData = [...paginatedData, ...additionalPaginatedData];
@@ -443,26 +443,26 @@ export class ALTProgramAssociationService {
     return JSON.parse(result[0].rules).prog
   }
 
-  async altCourseTrackingDetails(courseId, altUserId, request) {
+  async altCourseTrackingDetails(contentId, altUserId, request) {
 
-    console.log("courseId", courseId)
+    console.log("contentId", contentId)
     console.log("altUserId", altUserId)
 
 
     const ProgressTrackingDetails = {
-      query: `query GetProgressDetails($courseId: String, $userId: uuid!) {
+      query: `query GetProgressDetails($contentId: String, $userId: uuid!) {
               ContentBrowseTracking(where: {
-                  courseId: { _eq: $courseId },
+                contentId: { _eq: $contentId },
                   userId: { _eq: $userId }
                 }) {
-                  courseId
+                  contentId
                   userId
                   status
                   programId
                 }
               }`,
       variables: {
-        courseId: courseId,
+        contentId: contentId,
         userId: altUserId,
       },
     };
