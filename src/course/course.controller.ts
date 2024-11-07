@@ -109,6 +109,7 @@ export class CourseController {
     @Req() request: Request
   ) {
     if (adapter === "diksha") {
+      console.log("adapter", adapter)
       return this.dikshaProvider.getCourseHierarchy(courseId, type, request);
     } else if (adapter === "khanacademy") {
       return this.khanAcademyProvider.getCourseHierarchy(

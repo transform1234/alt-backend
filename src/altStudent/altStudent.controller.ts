@@ -33,6 +33,7 @@ import { StudentDto } from "./dto/alt-student.dto";
 import { ALTStudentService } from "src/adapters/hasura/altStudent.adapter";
 import { StudentSearchDto } from "src/student/dto/student-search.dto";
 import { ALTStudentSearchDto } from "./dto/alt-student-search.dto";
+import { Response } from 'express';
 
 @ApiTags("ALT Student")
 @Controller("student")
