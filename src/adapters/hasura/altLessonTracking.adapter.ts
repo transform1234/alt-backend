@@ -49,7 +49,7 @@ export class ALTLessonTrackingService {
   public async getExistingLessonTrackingRecords(
     request: any,
     lessonId: string,
-    moduleId: string
+    moduleId?: string
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserId =
@@ -57,7 +57,9 @@ export class ALTLessonTrackingService {
 
     const altLessonTrackingRecord = {
       query: `query GetLessonTrackingData ($userId:uuid!, $lessonId:String, $moduleId:String) {
-          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}, moduleId: {_eq: $moduleId}}) {
+          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId},${
+            moduleId ? `, moduleId: {_eq: $moduleId}` : ""
+          }}) {
             userId
             moduleId
             lessonId
@@ -72,7 +74,7 @@ export class ALTLessonTrackingService {
       variables: {
         userId: altUserId,
         lessonId: lessonId,
-        moduleId: moduleId,
+        ...(moduleId && { moduleId }),
       },
     };
 
@@ -821,18 +823,7 @@ export class ALTLessonTrackingService {
     programId: string,
     subject: string
   ) {
-    // Step 1: Check if the lesson and module exist for the given course
-    const checkLessonExist = await this.checkLessonAndModuleExistInCourse(
-      request,
-      altLessonTrackingDto,
-      programId,
-      subject
-    );
-    if (checkLessonExist instanceof ErrorResponse) {
-      return checkLessonExist; // Return the error directly
-    }
-
-    // Step 2: Validate the `scoreDetails` field
+    //  Validate the `scoreDetails` field
     const scoreDetails = altLessonTrackingDto?.scoreDetails;
 
     if (Array.isArray(scoreDetails) && !scoreDetails.length) {
@@ -849,7 +840,7 @@ export class ALTLessonTrackingService {
       });
     }
     let lessonProgressId;
-    // Step 3: Decode the JWT token for user identification
+    //  Decode the JWT token for user identification
 
     const decoded: any = jwt_decode(request.headers.authorization);
     altLessonTrackingDto.userId =
@@ -860,13 +851,12 @@ export class ALTLessonTrackingService {
       altLessonTrackingDto.timeSpent > 0 ? altLessonTrackingDto.timeSpent : 0;
     altLessonTrackingDto.programId = programId;
 
-    // Step 4: Fetch existing lesson tracking records
+    //  Fetch existing lesson tracking records
     let recordList: any;
     try {
       recordList = await this.getExistingLessonTrackingRecords(
         request,
-        altLessonTrackingDto.lessonId,
-        altLessonTrackingDto.moduleId
+        altLessonTrackingDto.lessonId
       );
     } catch (error) {
       return new ErrorResponse({
@@ -888,7 +878,7 @@ export class ALTLessonTrackingService {
       ? recordList?.data[0]?.lessonProgressId
       : 0;
 
-    // Step 5: Fetch program details
+    //  Fetch program details
     let currentProgramDetails: any = {};
     try {
       currentProgramDetails = await this.programService.getProgramDetailsById(
@@ -905,7 +895,7 @@ export class ALTLessonTrackingService {
     // Map program details to DTO for fetching rules
 
     const paramData = new TermsProgramtoRulesDto(currentProgramDetails.data);
-    // Step 6: Fetch program rules for the given subject
+    //  Fetch program rules for the given subject
 
     let progTermData: any = {};
     try {
@@ -931,7 +921,37 @@ export class ALTLessonTrackingService {
         errorMessage: "Program Rules not found for given subject!",
       });
     }
-    // Step 7: Loop through program rules to process the lesson tracking
+    //  Loop through program rules to process the lesson tracking
+
+    //  Check lessonId and courseId in programRules
+    const currentLessonId = altLessonTrackingDto.lessonId;
+    let courseId;
+
+    for (const program of programRules.prog) {
+      if (program.contentId === currentLessonId) {
+        courseId = program.courseId; // Fetch courseId for the matched lessonId
+        break;
+      }
+    }
+
+    if (!courseId) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: `Lesson ID ${currentLessonId} not found in program rules.`,
+      });
+    }
+
+    // Call checkLessonAndModuleExistInCourse with the found courseId
+    const checkLessonExist = await this.checkLessonAndModuleExistInCourse({
+      ...altLessonTrackingDto,
+      courseId,
+    });
+    if (checkLessonExist instanceof ErrorResponse) {
+      return checkLessonExist; // Return the error directly
+    }
+    const moduleId = checkLessonExist.data;
+    altLessonTrackingDto.courseId = courseId;
+    altLessonTrackingDto.moduleId = moduleId;
 
     let flag = false;
     let tracklessonModule;
@@ -940,8 +960,8 @@ export class ALTLessonTrackingService {
       for (const course of programRules?.prog) {
         const numberOfRecords = parseInt(recordList?.data.length);
         // Check if the course matches
-
-        if (course.contentId == altLessonTrackingDto.courseId) {
+        if (course.contentId == courseId) {
+          flag = true;
           if (course.contentType === "assessment") {
             if (numberOfRecords === 0) {
               // No record exists for this lessonId and moduleId
@@ -964,7 +984,7 @@ export class ALTLessonTrackingService {
                   altLessonTrackingDto,
                   0,
                   {
-                    courseId: altLessonTrackingDto.courseId,
+                    courseId: courseId,
                     moduleId: altLessonTrackingDto.moduleId,
                   }
                 );
@@ -1151,10 +1171,7 @@ export class ALTLessonTrackingService {
     });
   }
   public async checkLessonAndModuleExistInCourse(
-    request: any,
-    altLessonTrackingDto: ALTLessonTrackingDto,
-    programId: string,
-    subject: string
+    altLessonTrackingDto: ALTLessonTrackingDto
   ) {
     const currentUrl = process.env.SUNBIRDURL;
     const config = {
@@ -1165,28 +1182,35 @@ export class ALTLessonTrackingService {
     const courseHierarchy = await this.axios(config);
     const data = courseHierarchy?.data.result.content;
 
-    // Find the specified module
-    const currentModule = data.children.find(
-      (item) => item.identifier === altLessonTrackingDto.moduleId
-    );
+    let moduleId = null;
 
-    if (!currentModule) {
-      return new ErrorResponse({
-        errorCode: "404",
-        errorMessage: "Module not found in the course",
-      });
+    for (const module of data.children) {
+      if (module.children) {
+        // Search for the lesson in the nested `children` array
+        const foundLesson = module.children.find(
+          (lesson) => lesson.identifier === altLessonTrackingDto.lessonId
+        );
+
+        if (foundLesson) {
+          // Assign the `parent` of the lesson as `moduleId`
+          moduleId = foundLesson.parent;
+          break; // Exit the loop once the lesson is found
+        }
+      }
     }
 
-    // Check if the lesson exists within the module
-    const lessonExists = currentModule.children.some(
-      (item) => item.identifier === altLessonTrackingDto.lessonId
-    );
-
-    if (!lessonExists) {
+    // Check if the lesson was found
+    if (!moduleId) {
       return new ErrorResponse({
         errorCode: "404",
-        errorMessage: "Lesson not found in the module",
+        errorMessage: "ModuleId Not Found",
       });
     }
+    // If lesson is found, return success response
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Lesson found in the course hierarchy",
+      data: moduleId,
+    });
   }
 }
