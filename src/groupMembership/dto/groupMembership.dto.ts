@@ -6,13 +6,13 @@ export class GroupMembershipDto {
   @Expose()
   groupMembershipId: string;
 
-  // @ApiProperty()
+  @ApiProperty()
   @Expose()
   groupId: string;
 
-  // @ApiProperty()
+  @ApiProperty()
   @Expose()
-  schoolId: string;
+  schoolUdise: string;
  
   @ApiProperty()
   @Expose()
@@ -20,7 +20,7 @@ export class GroupMembershipDto {
   @IsUUID()
   userId: string;
 
-  // @ApiProperty()
+  @ApiProperty()
   @Expose()
   role: string;
 
