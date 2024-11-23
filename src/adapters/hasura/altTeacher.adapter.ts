@@ -428,7 +428,7 @@ export class ALTTeacherService {
     for (const item of result) {
       const teacherMapping = {
         userId: item?.user?.userId ? `${item.user.userId}` : "",
-        password: await decryptPassword(item?.user.password),
+        password: item?.user.password ? ` ${item.user.password}` : "",
         teacherId: item?.teacherId ? `${item.teacherId}` : "",
         groups: item?.groups ? item.groups : [],
         board: item?.board ? `${item.board}` : "",

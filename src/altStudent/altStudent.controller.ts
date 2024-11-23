@@ -26,14 +26,14 @@ import {
   ClassSerializerInterceptor,
   SerializeOptions,
   Req,
-  Res
+  Res,
 } from "@nestjs/common";
 import { StudentDto } from "./dto/alt-student.dto";
 // import { StudentSearchDto } from "./dto/student-search.dto";
 import { ALTStudentService } from "src/adapters/hasura/altStudent.adapter";
 import { StudentSearchDto } from "src/student/dto/student-search.dto";
 import { ALTStudentSearchDto } from "./dto/alt-student-search.dto";
-import { Response } from 'express';
+import { Response } from "express";
 
 @ApiTags("ALT Student")
 @Controller("student")
@@ -110,11 +110,11 @@ export class ALTStudentController {
     strategy: "excludeAll",
   })
   public async getStateList(
-    @Req() request :Request,
-    @Res() response :Response,
-    @Body() body?:any ,
-  ){
-    return this.altStudentService.getStateList(request,body,response);
+    @Req() request: Request,
+    @Res() response: Response,
+    @Body() body?: any
+  ) {
+    return this.altStudentService.getStateList(request, body, response);
   }
   @Post("/getDistrictList")
   @UsePipes(ValidationPipe)
@@ -126,11 +126,11 @@ export class ALTStudentController {
     strategy: "excludeAll",
   })
   public async getDistrictList(
-    @Req() request :Request,
-    @Res() response :Response,
-    @Body() body :any ,
-  ){
-    return this.altStudentService.getDistrictList(request,body,response);
+    @Req() request: Request,
+    @Res() response: Response,
+    @Body() body: any
+  ) {
+    return this.altStudentService.getDistrictList(request, body, response);
   }
   @Post("/getBlockList")
   @UsePipes(ValidationPipe)
@@ -142,11 +142,11 @@ export class ALTStudentController {
     strategy: "excludeAll",
   })
   public async getBlockList(
-    @Req() request :Request,
-    @Res() response :Response,
-    @Body() body:any ,
-  ){
-    return this.altStudentService.getBlockList(request,body,response);
+    @Req() request: Request,
+    @Res() response: Response,
+    @Body() body: any
+  ) {
+    return this.altStudentService.getBlockList(request, body, response);
   }
   @Post("/getSchoolList")
   @UsePipes(ValidationPipe)
@@ -158,11 +158,11 @@ export class ALTStudentController {
     strategy: "excludeAll",
   })
   public async getSchoolList(
-    @Req() request :Request,
-    @Res() response :Response,
-    @Body() body:any ,
-  ){
-    return this.altStudentService.getSchoolList(request,body,response);
+    @Req() request: Request,
+    @Res() response: Response,
+    @Body() body: any
+  ) {
+    return this.altStudentService.getSchoolList(request, body, response);
   }
   @Post("/getClass")
   @UsePipes(ValidationPipe)
@@ -174,11 +174,11 @@ export class ALTStudentController {
     strategy: "excludeAll",
   })
   public async getClass(
-    @Req() request :Request,
-    @Res() response :Response,
-    @Body() body:any ,
-  ){
-    return this.altStudentService.getClass(request,body,response);
+    @Req() request: Request,
+    @Res() response: Response,
+    @Body() body: any
+  ) {
+    return this.altStudentService.getClass(request, body, response);
   }
   @Put("/:id")
   @UsePipes(ValidationPipe)
@@ -188,10 +188,10 @@ export class ALTStudentController {
   @ApiForbiddenResponse({ description: "Forbidden" })
   @UseInterceptors(ClassSerializerInterceptor)
   public async updateStudent(
-    @Param("id") id : string,
-    @Req() request : Request,
-    @Body() body : any
-  ){
-    return this.altStudentService.updateStudent(id,request,body);
+    @Param("id") id: string,
+    @Req() request: Request,
+    @Body() body: any
+  ) {
+    return this.altStudentService.updateStudent(id, request, body);
   }
 }
