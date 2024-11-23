@@ -1045,6 +1045,7 @@ export class ALTStudentService {
       query: `query GetSchoolList {
         School (distinct_on: udiseCode, ${filterQuery}) {
           name
+          udiseCode
         }
       }
       
