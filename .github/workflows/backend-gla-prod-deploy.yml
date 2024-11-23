@@ -1,0 +1,45 @@
+#It is deploying on server 15.206.144.84 For Dev Environment only please note. 
+name: Deploy to DEV
+on: 
+  push:  
+    branches:
+      - prod
+jobs: 
+  build:
+    name: Generate Build and Deploy to DEV
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code 
+        uses: actions/checkout@v3
+
+      - name: Setup Node Env
+        uses: actions/setup-node@v3
+        with:
+          node-version: 21.1.0
+          
+      - name: Deploy to Server 1
+        uses: easingthemes/ssh-deploy@main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY_ALT_GLA_PROD }}
+          REMOTE_HOST: ${{ secrets.HOST_DNS_ALT_GLA_PROD }}
+          REMOTE_USER: ${{ secrets.USERNAME_ALT_GLA_PROD }}
+       
+
+      - name: Set up SSH key
+        run: |
+         mkdir -p ~/.ssh
+         echo "${{ secrets.EC2_SSH_KEY_ALT_GLA_PROD }}" > ~/.ssh/id_rsa
+         chmod 600 ~/.ssh/id_rsa
+         # Add the SSH key to the known_hosts file (replace hostname with your actual hostname)
+         ssh-keyscan -H ${{ secrets.HOST_DNS_ALT_GLA_PROD }} >> ~/.ssh/known_hosts
+         sudo apt-get install sshpass
+
+      - name: Deploy to server
+        run: |
+          sshpass -p '${{ secrets.EC2_SSH_KEY_ALT_GLA_PROD }}' ssh -v -o StrictHostKeyChecking=no ${{ secrets.USERNAME_ALT_GLA_PROD }}@${{ secrets.HOST_DNS_ALT_GLA_PROD }} <<'ENDSSH'
+          cd /home/prasad/alt-gla-prod #It is deploying on server 13.203.108.107  For Dev Environment only please note. 
+          ./deploy.sh
+          ENDSSH
+       
+                    
+
