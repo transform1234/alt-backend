@@ -280,7 +280,7 @@ export class ALTStudentService {
             message: "Ok.",
             data: createdUser,
           });
-        } else if (          
+        } else if (
           newCreatedStudent?.data.schoolUdise !== studentDto.schoolUdise
         ) {
           return new ErrorResponse({
@@ -288,7 +288,7 @@ export class ALTStudentService {
             errorMessage: `Create and add to group failed Old and new school does not match,`,
           });
         } else {
-           //console.log(newCreatedStudent, "new Created user");
+          //console.log(newCreatedStudent, "new Created user");
           return new ErrorResponse({
             errorCode: "400",
             errorMessage: `Create and add to group failed , ${newCreatedStudent?.errorMessage}`,
@@ -336,7 +336,7 @@ export class ALTStudentService {
         bulkToken
       );
       // entry in student
-      
+
       try {
         userId = createdUser?.user.data.userId;
       } catch (e) {
@@ -393,7 +393,7 @@ export class ALTStudentService {
     for (const item of result) {
       const studentMapping = {
         userId: item?.user?.userId ? `${item.user.userId}` : "",
-        password: await decryptPassword(item?.user.password),
+        password: item?.user.password ? `${item.user.password}` : "",
         studentId: item?.studentId ? `${item.studentId}` : "",
         board: item?.board ? `${item.board}` : "",
         religion: item?.religion ? `${item.religion}` : "",
