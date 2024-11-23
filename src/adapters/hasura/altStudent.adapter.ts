@@ -465,7 +465,7 @@ export class ALTStudentService {
       "district",
       "schoolUdise",
       "username",
-      "schoolName",
+      "udiseCode",
       "class",
       "board",
       "grade",
@@ -506,8 +506,8 @@ export class ALTStudentService {
           filterQuery += `user: {GroupMemberships: {Groupx: {grade: {_eq: "${parseInt(
             studentSearchDto.filters["grade"]
           )}"}}}}`;
-        } else if (e === "schoolName") {
-          schoolFilter += `School: {name: {_eq: "${studentSearchDto.filters[e]?.eq}"}}`;
+        } else if (e === "udiseCode") {
+          schoolFilter += `School: {udiseCode: {_eq: "${studentSearchDto.filters[e]?.eq}"}}`;
           //if class is not passed and only school is passed then it should get appended to the main query
           filterQuery += schoolFilter;
         } else if (e === "class") {
