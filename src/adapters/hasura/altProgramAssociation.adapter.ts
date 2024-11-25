@@ -62,7 +62,7 @@ export class ALTProgramAssociationService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: subjectListData,
@@ -115,7 +115,7 @@ export class ALTProgramAssociationService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: TermsProgramtoRulesData,
@@ -171,7 +171,7 @@ export class ALTProgramAssociationService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: programData,
@@ -302,7 +302,7 @@ export class ALTProgramAssociationService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: searchData,
@@ -327,23 +327,25 @@ export class ALTProgramAssociationService {
     });
   }
 
-
   public async getGlaUserContent(
     request: any,
     altTermsProgramDto: TermsProgramtoRulesDto,
     page: any,
     limit: any
   ) {
-
     const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
-    console.log("altUserId", altUserId)
-    console.log("altTermsProgramDto", altTermsProgramDto)
+    console.log("altUserId", altUserId);
+    console.log("altTermsProgramDto", altTermsProgramDto);
 
     // get programtoRulesData
 
-    const programtoRulesData  = await this.termsProgramtoRulesData(altTermsProgramDto, request)
+    const programtoRulesData = await this.termsProgramtoRulesData(
+      altTermsProgramDto,
+      request
+    );
 
     // get altcoursetrackingdetails
     const promises = programtoRulesData.map((item) =>
@@ -351,45 +353,54 @@ export class ALTProgramAssociationService {
     );
 
     const results = await Promise.allSettled(promises);
-    console.log("results", results)
+    console.log("results", results);
 
-
-    function isFulfilled<T>(result: PromiseSettledResult<T>): result is PromiseFulfilledResult<T> {
-      return result.status === 'fulfilled';
+    function isFulfilled<T>(
+      result: PromiseSettledResult<T>
+    ): result is PromiseFulfilledResult<T> {
+      return result.status === "fulfilled";
     }
 
     // Filter for fulfilled results, then map to access the data
     const trackingDetails = results
       .filter(isFulfilled) // Use the type guard to filter only fulfilled results
-      .map(result => result.value.data.ContentBrowseTracking) // Now TypeScript knows `value` exists
+      .map((result) => result.value.data.ContentBrowseTracking) // Now TypeScript knows `value` exists
       .flat();
 
-    console.log("programtoRulesData", programtoRulesData)
-    console.log("trackingDetails", trackingDetails)
+    console.log("programtoRulesData", programtoRulesData);
+    console.log("trackingDetails", trackingDetails);
 
-    const seenContentIds = new Set(trackingDetails.map(item => item.contentId));
+    const seenContentIds = new Set(
+      trackingDetails.map((item) => item.contentId)
+    );
 
     // Filter out seen courses from programtoRulesData
-    const unseenProgramRules = programtoRulesData.filter(item => !seenContentIds.has(item.contentId));
+    const unseenProgramRules = programtoRulesData.filter(
+      (item) => !seenContentIds.has(item.contentId)
+    );
 
     console.log("unseenProgramRules", unseenProgramRules);
 
     // pagination
-    
+
     let paginatedData = this.paginateData(unseenProgramRules, page, limit);
     console.log(paginatedData);
 
     if (paginatedData.length < limit) {
       const additionalData = programtoRulesData.filter(
-        (item) => !seenContentIds.has(item.courseId) && !unseenProgramRules.includes(item)
+        (item) =>
+          !seenContentIds.has(item.courseId) &&
+          !unseenProgramRules.includes(item)
       );
-      const additionalPaginatedData = this.paginateData(additionalData, 1, limit - paginatedData.length);
+      const additionalPaginatedData = this.paginateData(
+        additionalData,
+        1,
+        limit - paginatedData.length
+      );
       paginatedData = [...paginatedData, ...additionalPaginatedData];
     }
-  
-    console.log("paginatedData with fallback", paginatedData);
-    
 
+    console.log("paginatedData with fallback", paginatedData);
 
     return new SuccessResponse({
       statusCode: 200,
@@ -421,7 +432,7 @@ export class ALTProgramAssociationService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: TermsProgramtoRulesData,
@@ -438,16 +449,14 @@ export class ALTProgramAssociationService {
 
     const result = response.data.data.ProgramTermAssoc;
 
-    console.log("result", JSON.parse(result[0].rules).prog)
+    console.log("result", JSON.parse(result[0].rules).prog);
 
-    return JSON.parse(result[0].rules).prog
+    return JSON.parse(result[0].rules).prog;
   }
 
   async altCourseTrackingDetails(contentId, altUserId, request) {
-
-    console.log("contentId", contentId)
-    console.log("altUserId", altUserId)
-
+    console.log("contentId", contentId);
+    console.log("altUserId", altUserId);
 
     const ProgressTrackingDetails = {
       query: `query GetProgressDetails($contentId: String, $userId: uuid!) {
@@ -471,7 +480,7 @@ export class ALTProgramAssociationService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: ProgressTrackingDetails,
@@ -479,24 +488,129 @@ export class ALTProgramAssociationService {
 
     try {
       const response = await this.axios(configData);
-      const altcoursetrackingdetails = response.data
-      console.log("altcoursetrackingdetails", altcoursetrackingdetails)
-      return altcoursetrackingdetails
-
+      const altcoursetrackingdetails = response.data;
+      console.log("altcoursetrackingdetails", altcoursetrackingdetails);
+      return altcoursetrackingdetails;
     } catch (error) {
-      throw new HttpException(
-        'data not found',
-        error.response?.status || 500,
-      );
+      throw new HttpException("data not found", error.response?.status || 500);
     }
-
-
   }
 
   paginateData(data, page = 1, limit = 5) {
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
-    
+
     return data.slice(startIndex, endIndex);
+  }
+  public async contentSearch(request, body) {
+    //search the content
+    //always search for that class only where user is enrolled for format should be same as that of the content return API
+    const programId = body.programId;
+    console.log(programId);
+
+    const requestBody = {
+      request: {
+        filters: {
+          primaryCategory: ["Learning Resource", "Practice Question Set"],
+        },
+        query: body.searchQuery,
+        fields: [
+          "name",
+          "mimeType",
+          "identifier",
+          "medium",
+          "board",
+          "subject",
+          "resourceType",
+          "primaryCategory",
+          "contentType",
+          "organisation",
+        ],
+      },
+    };
+    const sunbirdUrl = process.env.SUNBIRDURL;
+    let config = {
+      method: "post",
+      url:
+        sunbirdUrl +
+        `/api/content/v1/search?orgdetails=orgName,email&licenseDetails=name,description,url`,
+      data: requestBody,
+    };
+
+    const sunbirdSearch = await this.axios(config);
+
+    //get the programData from programTermAssoc
+    const data = {
+      query: `query MyQuery {
+                ProgramTermAssoc(where: {programId: {_eq: "${programId}"}}) {
+                  programId
+                  rules
+                  subject
+                  medium
+                  grade
+                  board
+                }
+              }
+            `,
+    };
+
+    const config_data = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+    const response = await this.axios(config_data);
+    const rulesData = response.data.data.ProgramTermAssoc;
+
+    //Parse the rules field in rulesData
+    rulesData.forEach((rule) => {
+      rule.rules = JSON.parse(rule.rules);
+    });
+    //Extract identifiers from sunbirdSearch
+    const contentIdentifiers = sunbirdSearch.data.result.content.map(
+      (item) => item.identifier
+    );
+    const questionSetIdentifiers = sunbirdSearch.data.result.QuestionSet.map(
+      (item) => ({
+        id: item.identifier,
+        subject: item.subject[0],
+      })
+    );
+    //  Process each rule and match contentId
+    const responseData = [];
+    rulesData.forEach((rule) => {
+      rule.rules.prog.forEach((item) => {
+        if (contentIdentifiers.includes(item.contentId)) {
+          const matchingQuestionSet = questionSetIdentifiers.find(
+            (qSet) => qSet.subject === rule.subject
+          );
+          console.log(rule);
+
+          responseData.push({
+            contentId: item.contentId,
+            subject: rule.subject,
+            courseId: item.courseId || null,
+            contentType: item.contentType,
+            order: item.order,
+            allowedAttempts: item.allowedAttempts,
+            criteria: item.criteria,
+            lesson_questionset: matchingQuestionSet
+              ? matchingQuestionSet.id
+              : "",
+          });
+        }
+      });
+    });
+
+    // Create the final response
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: responseData,
+    });
   }
 }

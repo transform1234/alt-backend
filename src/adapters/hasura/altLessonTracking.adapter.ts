@@ -13,6 +13,7 @@ import { TermsProgramtoRulesDto } from "src/altProgramAssociation/dto/altTermsPr
 import { ALTModuleTrackingDto } from "src/altModuleTracking/dto/altModuleTracking.dto";
 // import { HasuraUserService } from "./user.adapter";
 import { ALTHasuraUserService } from "src/adapters/hasura/altUser.adapter";
+import { ALTProgramAssociationSearch } from "src/altProgramAssociation/dto/searchAltProgramAssociation.dto";
 
 @Injectable()
 export class ALTLessonTrackingService {
@@ -1189,4 +1190,5 @@ export class ALTLessonTrackingService {
       });
     }
   }
+
 }
