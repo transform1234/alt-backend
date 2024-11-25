@@ -13,6 +13,7 @@ import {
   Request,
   CacheInterceptor,
   Inject,
+  Query,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -120,4 +121,25 @@ export class ALTProgramAssociationController {
       altProgramSearch
     );
   }
+
+  @Post("/glaUserContent")
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "ALT Rules" })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @ApiBody({ type: TermsProgramtoRulesDto })
+  public async getGlaUserContent(
+    @Req() request: Request,
+    @Body() altTermstoRulesDto: TermsProgramtoRulesDto,
+    @Query('page') page: any,
+    @Query('limit') limit: any
+  ) {
+    
+    return this.altProgramAssociationService.getGlaUserContent(
+      request,
+      altTermstoRulesDto,
+      page,
+      limit
+    );
+  }
+
 }

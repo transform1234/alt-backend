@@ -8,13 +8,15 @@ import { ALTStudentService } from "./altStudent.adapter";
 import { getPassword, getToken } from "./adapter.utils";
 import { ErrorResponse } from "src/error-response";
 import { SuccessResponse } from "src/success-response";
+import { ALTHasuraUserService } from "./altUser.adapter";
 @Injectable()
 export class ALTBulkUploadStudentService {
   constructor(
     private httpService: HttpService,
     private studentService: ALTStudentService,
     private groupMembershipService: GroupMembershipService,
-    private groupService: HasuraGroupService
+    private groupService: HasuraGroupService,
+    private altUserService: ALTHasuraUserService
   ) {}
 
   public async createStudents(
@@ -48,7 +50,6 @@ export class ALTBulkUploadStudentService {
     try {
       for (const student of bulkStudentDto.students) {
         student.groups = [];
-        student.password = getPassword(8);
         student.status = true;
         const studentRes: any = await this.studentService.createAndAddToGroup(
           request,

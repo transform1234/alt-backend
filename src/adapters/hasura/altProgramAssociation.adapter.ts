@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { HttpException, Injectable } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
 import { SuccessResponse } from "src/success-response";
 import { ALTSubjectListDto } from "src/altProgramAssociation/dto/altSubjectList.dto";
@@ -7,6 +7,7 @@ import { ProgramAssociationDto } from "src/altProgramAssociation/dto/altProgramA
 import { UpdateALTProgramAssociationDto } from "src/altProgramAssociation/dto/updateAltProgramAssociation.dto";
 import { ErrorResponse } from "src/error-response";
 import { ALTProgramAssociationSearch } from "src/altProgramAssociation/dto/searchAltProgramAssociation.dto";
+import jwt_decode from "jwt-decode";
 
 Injectable();
 export class ALTProgramAssociationService {
@@ -324,5 +325,178 @@ export class ALTProgramAssociationService {
       message: "Ok.",
       data: altProgramList,
     });
+  }
+
+
+  public async getGlaUserContent(
+    request: any,
+    altTermsProgramDto: TermsProgramtoRulesDto,
+    page: any,
+    limit: any
+  ) {
+
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    console.log("altUserId", altUserId)
+    console.log("altTermsProgramDto", altTermsProgramDto)
+
+    // get programtoRulesData
+
+    const programtoRulesData  = await this.termsProgramtoRulesData(altTermsProgramDto, request)
+
+    // get altcoursetrackingdetails
+    const promises = programtoRulesData.map((item) =>
+      this.altCourseTrackingDetails(item.contentId, altUserId, request)
+    );
+
+    const results = await Promise.allSettled(promises);
+    console.log("results", results)
+
+
+    function isFulfilled<T>(result: PromiseSettledResult<T>): result is PromiseFulfilledResult<T> {
+      return result.status === 'fulfilled';
+    }
+
+    // Filter for fulfilled results, then map to access the data
+    const trackingDetails = results
+      .filter(isFulfilled) // Use the type guard to filter only fulfilled results
+      .map(result => result.value.data.ContentBrowseTracking) // Now TypeScript knows `value` exists
+      .flat();
+
+    console.log("programtoRulesData", programtoRulesData)
+    console.log("trackingDetails", trackingDetails)
+
+    const seenContentIds = new Set(trackingDetails.map(item => item.contentId));
+
+    // Filter out seen courses from programtoRulesData
+    const unseenProgramRules = programtoRulesData.filter(item => !seenContentIds.has(item.contentId));
+
+    console.log("unseenProgramRules", unseenProgramRules);
+
+    // pagination
+    
+    let paginatedData = this.paginateData(unseenProgramRules, page, limit);
+    console.log(paginatedData);
+
+    if (paginatedData.length < limit) {
+      const additionalData = programtoRulesData.filter(
+        (item) => !seenContentIds.has(item.courseId) && !unseenProgramRules.includes(item)
+      );
+      const additionalPaginatedData = this.paginateData(additionalData, 1, limit - paginatedData.length);
+      paginatedData = [...paginatedData, ...additionalPaginatedData];
+    }
+  
+    console.log("paginatedData with fallback", paginatedData);
+    
+
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: paginatedData,
+    });
+  }
+
+  async termsProgramtoRulesData(altTermsProgramDto, request) {
+    const TermsProgramtoRulesData = {
+      query: `query GetRules ($subject:String,$programId:uuid!){
+                ProgramTermAssoc(where: 
+                {
+                    subject: {_eq: $subject}
+                    programId: {_eq: $programId},    
+                }) 
+                { rules }
+            }`,
+      variables: {
+        // board: altTermsProgramDto.board,
+        // medium: altTermsProgramDto.medium,
+        // grade: altTermsProgramDto.grade,
+        subject: altTermsProgramDto.subject,
+        programId: altTermsProgramDto.programId,
+      },
+    };
+
+    const configData = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        "Authorization": request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: TermsProgramtoRulesData,
+    };
+
+    const response = await this.axios(configData);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const result = response.data.data.ProgramTermAssoc;
+
+    console.log("result", JSON.parse(result[0].rules).prog)
+
+    return JSON.parse(result[0].rules).prog
+  }
+
+  async altCourseTrackingDetails(contentId, altUserId, request) {
+
+    console.log("contentId", contentId)
+    console.log("altUserId", altUserId)
+
+
+    const ProgressTrackingDetails = {
+      query: `query GetProgressDetails($contentId: String, $userId: uuid!) {
+              ContentBrowseTracking(where: {
+                contentId: { _eq: $contentId },
+                  userId: { _eq: $userId }
+                }) {
+                  contentId
+                  userId
+                  status
+                  programId
+                }
+              }`,
+      variables: {
+        contentId: contentId,
+        userId: altUserId,
+      },
+    };
+
+    const configData = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        "Authorization": request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: ProgressTrackingDetails,
+    };
+
+    try {
+      const response = await this.axios(configData);
+      const altcoursetrackingdetails = response.data
+      console.log("altcoursetrackingdetails", altcoursetrackingdetails)
+      return altcoursetrackingdetails
+
+    } catch (error) {
+      throw new HttpException(
+        'data not found',
+        error.response?.status || 500,
+      );
+    }
+
+
+  }
+
+  paginateData(data, page = 1, limit = 5) {
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    
+    return data.slice(startIndex, endIndex);
   }
 }

@@ -118,6 +118,8 @@ export class DikshaCourseService implements IServicelocator {
         `/api/content/v1/read/${value}?fields=transcripts,ageGroup,appIcon,artifactUrl,attributions,attributions,audience,author,badgeAssertions,board,body,channel,code,concepts,contentCredits,contentType,contributors,copyright,copyrightYear,createdBy,createdOn,creator,creators,description,displayScore,domain,editorState,flagReasons,flaggedBy,flags,framework,gradeLevel,identifier,itemSetPreviewUrl,keywords,language,languageCode,lastUpdatedOn,license,mediaType,medium,mimeType,name,originData,osId,owner,pkgVersion,publisher,questions,resourceType,scoreDisplayConfig,status,streamingUrl,subject,template,templateId,totalQuestions,totalScore,versionKey,visibility,year,primaryCategory,additionalCategories,interceptionPoints,interceptionType&licenseDetails=name,description,url`,
     };
 
+    console.log("config", config)
+
     const response = await axios(config);
     const data = response?.data;
 
@@ -150,6 +152,7 @@ export class DikshaCourseService implements IServicelocator {
   }
 
   public async getCourseHierarchy(value: any, type: any) {
+    console.log("value", value)
     var axios = require("axios");
     if (type == "assessment") {
       let config = {
