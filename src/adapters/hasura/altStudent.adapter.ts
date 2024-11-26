@@ -288,7 +288,7 @@ export class ALTStudentService {
             errorMessage: `Create and add to group failed Old and new school does not match,`,
           });
         } else {
-          // console.log(newCreatedStudent, "new Created user");
+          //console.log(newCreatedStudent, "new Created user");
           return new ErrorResponse({
             errorCode: "400",
             errorMessage: `Create and add to group failed , ${newCreatedStudent?.errorMessage}`,
@@ -393,7 +393,7 @@ export class ALTStudentService {
     for (const item of result) {
       const studentMapping = {
         userId: item?.user?.userId ? `${item.user.userId}` : "",
-        password: await decryptPassword(item?.user.password),
+        password: item?.user.password ? `${item.user.password}` : "",
         studentId: item?.studentId ? `${item.studentId}` : "",
         board: item?.board ? `${item.board}` : "",
         religion: item?.religion ? `${item.religion}` : "",
@@ -465,7 +465,7 @@ export class ALTStudentService {
       "district",
       "schoolUdise",
       "username",
-      "schoolName",
+      "udiseCode",
       "class",
       "board",
       "grade",
@@ -506,8 +506,8 @@ export class ALTStudentService {
           filterQuery += `user: {GroupMemberships: {Groupx: {grade: {_eq: "${parseInt(
             studentSearchDto.filters["grade"]
           )}"}}}}`;
-        } else if (e === "schoolName") {
-          schoolFilter += `School: {name: {_eq: "${studentSearchDto.filters[e]?.eq}"}}`;
+        } else if (e === "udiseCode") {
+          schoolFilter += `School: {udiseCode: {_eq: "${studentSearchDto.filters[e]?.eq}"}}`;
           //if class is not passed and only school is passed then it should get appended to the main query
           filterQuery += schoolFilter;
         } else if (e === "class") {
@@ -1045,6 +1045,7 @@ export class ALTStudentService {
       query: `query GetSchoolList {
         School (distinct_on: udiseCode, ${filterQuery}) {
           name
+          udiseCode
         }
       }
       

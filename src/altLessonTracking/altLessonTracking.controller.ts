@@ -123,4 +123,14 @@ export class ALTLessonTrackingController {
       altLessonTrackingSearch
     );
   }
+  @Post("/altAddLessonTracking")
+  @ApiBasicAuth("access-token")
+  public async addLessonTracking(
+    @Req() request: Request,
+    @Body() altLessonTrackingDto: ALTLessonTrackingDto,
+    @Query("program") programId: string,
+    @Query("subject") subject: string,
+  ){
+    return this.altLessonTrackingService.addLessonTracking(request,altLessonTrackingDto,programId,subject);
+  }
 }
