@@ -7,11 +7,11 @@ import { questionsetSearchDto } from "src/course/dto/questionset.response.dto";
 import { questionSearchDto } from "src/course/dto/question.response.dto";
 import { lastValueFrom } from "rxjs";
 
-export const DikshaCourseToken = "DikshaCourse";
+export const SunbirdCourseToken = "SunbirdCourse";
 @Injectable()
-export class DikshaCourseService implements IServicelocator {
+export class SunbirdCourseService implements IServicelocator {
   constructor(private httpService: HttpService) {}
-  currentUrl = process.env.DIKSHAURL;
+  currentUrl = process.env.SUNBIRDURL;
   public async getAllCourse(
     channel: [string],
     subject: [string],
