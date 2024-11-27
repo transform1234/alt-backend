@@ -503,9 +503,10 @@ export class ALTProgramAssociationService {
     return data.slice(startIndex, endIndex);
   }
   public async contentSearch(request, body) {
-    //search the content
-    //always search for that class only where user is enrolled for format should be same as that of the content return API
     const programId = body.programId;
+    const subjectCondition = body.subject
+      ? `subject: {_eq: "${body.subject}"}, `
+      : "";
     console.log(programId);
 
     const requestBody = {
@@ -542,7 +543,7 @@ export class ALTProgramAssociationService {
     //get the programData from programTermAssoc
     const data = {
       query: `query MyQuery {
-                ProgramTermAssoc(where: {programId: {_eq: "${programId}"}}) {
+                ProgramTermAssoc(where: {programId: {_eq: "${programId}"}, ${subjectCondition}}) {
                   programId
                   rules
                   subject
@@ -553,6 +554,7 @@ export class ALTProgramAssociationService {
               }
             `,
     };
+    console.log(data.query);
 
     const config_data = {
       method: "post",
@@ -564,6 +566,13 @@ export class ALTProgramAssociationService {
       data: data,
     };
     const response = await this.axios(config_data);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
     const rulesData = response.data.data.ProgramTermAssoc;
 
     //Parse the rules field in rulesData
@@ -580,6 +589,7 @@ export class ALTProgramAssociationService {
         subject: item.subject[0],
       })
     );
+
     //  Process each rule and match contentId
     const responseData = [];
     rulesData.forEach((rule) => {
@@ -588,7 +598,6 @@ export class ALTProgramAssociationService {
           const matchingQuestionSet = questionSetIdentifiers.find(
             (qSet) => qSet.subject === rule.subject
           );
-          console.log(rule);
 
           responseData.push({
             contentId: item.contentId,
