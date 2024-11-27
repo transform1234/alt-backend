@@ -141,5 +141,12 @@ export class ALTProgramAssociationController {
       limit
     );
   }
-
+  @Post("/contentSearch")
+  @ApiBasicAuth("access-token")
+  public async contentSearch(
+    @Req() request: Request,
+    @Body() body: any
+  ){
+    return this.altProgramAssociationService.contentSearch(request,body);
+  }
 }
