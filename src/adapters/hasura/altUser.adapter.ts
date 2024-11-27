@@ -950,4 +950,71 @@ export class ALTHasuraUserService {
     const response = await this.axios(config);
     return response.data.data.Users.length > 0; // Returns true if username is taken
   }
+  public async getUserByToken(request: any, res: any) {
+    const authToken = request.headers.authorization;
+    const decoded: any = jwt_decode(authToken);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const username = decoded.preferred_username;
+
+    const data = {
+      query: `query searchUser($username:String) {
+        Users(where: {username: {_eq: $username}, status: {_eq: true}}) {
+          userId
+          name
+          username
+          email
+          mobile
+          gender
+          dateOfBirth
+          role
+          status
+          createdAt
+          updatedAt
+          createdBy
+          updatedBy
+          GroupMemberships(where: {status: {_eq: true}}) {
+            Group {
+              board
+              medium
+              grade
+              groupId
+            }
+          }
+        }
+      }`,
+      variables: { username: username },
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+    console.log(altUserRoles);
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return res.status(401).send({
+        success: false,
+        status: "Unauthorized",
+        message: "INVALID",
+        data: null,
+      });
+    } else {
+      const result = response.data.data.Users;
+      return res.status(200).send({
+        success: true,
+        status: "Authenticated",
+        message: "SUCCESS",
+        data: res.data,
+      });
+    }
+  }
 }

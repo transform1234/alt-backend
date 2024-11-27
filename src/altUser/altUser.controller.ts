@@ -153,4 +153,9 @@ export class ALTUserController {
       response.status(HttpStatus.CREATED).send(deactivateUserResponse);
     }
   }
+  @Post("/getUserByToken")
+  @ApiBasicAuth("access-token")
+  public async getUserByToken(@Req() req: Request, @Res() response: Response) {
+    return await this.hasuraUserService.getUserByToken(req, response);
+  }
 }
