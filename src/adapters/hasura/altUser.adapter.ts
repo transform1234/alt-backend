@@ -94,6 +94,7 @@ export class ALTHasuraUserService {
     bulkToken: string
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
+    console.log("decoded", decoded)
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
 
@@ -119,6 +120,8 @@ export class ALTHasuraUserService {
     }
 
     const userSchema = new UserDto(userDto, true);
+
+    console.log("userSchema", userSchema)
 
     const usernameExistsInKeycloak = await checkIfUsernameExistsInKeycloak(
       userDto.username,

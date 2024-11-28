@@ -70,12 +70,13 @@ async function getToken() {
   });
   const config = {
     method: "post",
-    url: "https://alt-palooza.uniteframework.io/auth/realms/master/protocol/openid-connect/token",
+    url: `${process.env.URL}/auth/realms/master/protocol/openid-connect/token`,
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
     },
     data: data,
   };
+
 
   let res;
   try {
@@ -168,6 +169,7 @@ async function checkIfEmailExists(email, token) {
 }
 
 async function checkIfUsernameExistsInKeycloak(username, token) {
+  console.log("checkIfUsernameExistsInKeycloak")
   const axios = require("axios");
   const config = {
     method: "get",
@@ -181,11 +183,13 @@ async function checkIfUsernameExistsInKeycloak(username, token) {
     },
   };
 
+  console.log("config", config)
+
   let userResponse;
   try {
     userResponse = await axios(config);
   } catch (e) {
-    console.log(e, "Keycloak error - username");
+    //console.log(e, "Keycloak error - username");
     return e;
   }
 

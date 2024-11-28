@@ -71,6 +71,7 @@ export class ALTUserController {
   @ApiForbiddenResponse({ description: "Forbidden" })
   @UseInterceptors(ClassSerializerInterceptor)
   public async createUser(@Req() request: Request, @Body() userDto: UserDto) {
+    console.log("createUser")
     return this.hasuraUserService.checkAndAddUser(request, userDto, null);
   }
 
