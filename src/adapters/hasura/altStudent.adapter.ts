@@ -10,7 +10,7 @@ import { GroupMembershipDtoById } from "src/groupMembership/dto/groupMembership.
 import { HasuraGroupService } from "./group.adapter";
 
 @Injectable()
-export class ALTStudentService {
+export class ALTStudentService {      
   constructor(
     private groupService: HasuraGroupService,
     private userService: ALTHasuraUserService,
@@ -489,7 +489,7 @@ export class ALTStudentService {
     ) {
       return new ErrorResponse({
         errorCode: "400",
-        errorMessage: "Please provide 'schoolName' when 'class' is specified.",
+        errorMessage: "Please provide 'udiseCode' when 'class' is specified.",
       });
     }
     let classFilter = "";
