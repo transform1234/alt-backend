@@ -70,7 +70,7 @@ async function getToken() {
   });
   const config = {
     method: "post",
-    url: "https://alt-palooza.uniteframework.io/auth/realms/master/protocol/openid-connect/token",
+    url: `${process.env.URL}/auth/realms/master/protocol/openid-connect/token`,
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
     },
