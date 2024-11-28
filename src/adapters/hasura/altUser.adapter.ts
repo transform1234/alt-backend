@@ -950,15 +950,53 @@ export class ALTHasuraUserService {
     const response = await this.axios(config);
     return response.data.data.Users.length > 0; // Returns true if username is taken
   }
-  public async getUserByToken(request: any, res: any) {
+  public async validateToken(request: any, res: any) {
+    // Check if Authorization header exists
     const authToken = request.headers.authorization;
-    const decoded: any = jwt_decode(authToken);
-    const altUserRoles =
-      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
-    const username = decoded.preferred_username;
+    if (!authToken) {
+      return res.status(400).send({
+        success: false,
+        status: "Unauthorized",
+        message: "Authorization header is missing",
+        data: null,
+      });
+    }
 
-    const data = {
-      query: `query searchUser($username:String) {
+    // Check if token starts with 'Bearer' and has a token
+    if (!authToken.startsWith("Bearer ")) {
+      return res.status(400).send({
+        success: false,
+        status: "Unauthorized",
+        message:
+          "Authorization token must be in the form of 'Bearer <token>' in the headers",
+        data: null,
+      });
+    }
+
+    const token = authToken.split(" ")[1]; // Extract the token part
+
+    try {
+      // Decode the token
+      const decoded: any = jwt_decode(token);
+      //Check if token has expired
+      const currentTimestamp = Math.floor(Date.now() / 1000); // Get current timestamp in seconds
+      if (decoded.exp && decoded.exp < currentTimestamp) {
+        return res.status(401).send({
+          success: false,
+          status: "Unauthorized",
+          message: "Token has expired",
+          data: null,
+        });
+      }
+
+      // Extract roles and username
+      const altUserRoles =
+        decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+      const username = decoded.preferred_username;
+
+      //  Prepare GraphQL request data
+      const data = {
+        query: `query searchUser($username:String) {
         Users(where: {username: {_eq: $username}, status: {_eq: true}}) {
           userId
           name
@@ -983,37 +1021,50 @@ export class ALTHasuraUserService {
           }
         }
       }`,
-      variables: { username: username },
-    };
+        variables: { username: username },
+      };
 
-    const config = {
-      method: "post",
-      url: process.env.ALTHASURA,
-      headers: {
-        Authorization: request.headers.authorization,
-        "x-hasura-role": getUserRole(altUserRoles),
-        "Content-Type": "application/json",
-      },
-      data: data,
-    };
-    console.log(altUserRoles);
+      const config = {
+        method: "post",
+        url: process.env.ALTHASURA,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "x-hasura-role": getUserRole(altUserRoles),
+          "Content-Type": "application/json",
+        },
+        data: data,
+      };
 
-    const response = await this.axios(config);
+      console.log(altUserRoles);
 
-    if (response?.data?.errors) {
-      return res.status(401).send({
+      //  Send GraphQL request
+      const response = await this.axios(config);
+
+      // Handle errors in the response
+      if (response?.data?.errors) {
+        return res.status(401).send({
+          success: false,
+          status: "Unauthorized",
+          message: "INVALID",
+          data: response.data.errors.data[0].message,
+        });
+      } else {
+        // Return successful response
+        const result = response.data.data.Users;
+        return res.status(200).send({
+          success: true,
+          status: "Authenticated",
+          message: "SUCCESS",
+          data: result,
+        });
+      }
+    } catch (error) {
+      // Handle any errors, including invalid token
+      return res.status(400).send({
         success: false,
         status: "Unauthorized",
-        message: "INVALID",
+        message: "Invalid token",
         data: null,
-      });
-    } else {
-      const result = response.data.data.Users;
-      return res.status(200).send({
-        success: true,
-        status: "Authenticated",
-        message: "SUCCESS",
-        data: res.data,
       });
     }
   }
