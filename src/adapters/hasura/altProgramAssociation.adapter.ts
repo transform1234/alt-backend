@@ -579,17 +579,19 @@ export class ALTProgramAssociationService {
     rulesData.forEach((rule) => {
       rule.rules = JSON.parse(rule.rules);
     });
+
     //Extract identifiers from sunbirdSearch
     const contentIdentifiers = sunbirdSearch.data.result.content.map(
       (item) => item.identifier
     );
-    const questionSetIdentifiers = sunbirdSearch.data.result.QuestionSet.map(
-      (item) => ({
-        id: item.identifier,
-        subject: item.subject[0],
-      })
-    );
 
+    // Safely extract question set identifiers
+    const questionSetIdentifiers = sunbirdSearch?.data?.result?.QuestionSet || [];
+    if (!Array.isArray(questionSetIdentifiers)) {
+      console.warn("QuestionSet data is not an array or is missing");
+    }
+
+    
     //  Process each rule and match contentId
     const responseData = [];
     rulesData.forEach((rule) => {
@@ -598,7 +600,7 @@ export class ALTProgramAssociationService {
           const matchingQuestionSet = questionSetIdentifiers.find(
             (qSet) => qSet.subject === rule.subject
           );
-
+          
           responseData.push({
             contentId: item.contentId,
             subject: rule.subject,
