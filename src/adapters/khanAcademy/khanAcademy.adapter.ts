@@ -7,6 +7,7 @@ export const KhanAcademyQuestionToken = "KhanAcademyQuestion";
 @Injectable()
 export class KhanAcademyQuestionService implements IServicelocator {
   constructor(private httpService: HttpService) {}
+  getQuestionList(request: any, body: any,limit:string) {}
 
   public async getAllQuestions(
     questionType: string,
