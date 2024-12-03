@@ -31,11 +31,13 @@ import { IServicelocator } from "src/adapters/questionservicelocator";
 import { KhanAcademyQuestionToken } from "src/adapters/khanAcademy/khanAcademy.adapter";
 import { QuestionDto } from "./dto/question.dto";
 import { HasuraQuestionToken } from "src/adapters/hasura/question.adapter";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 import {
   SunbirdQuestionToken,
   QumlQuestionService as SunbirdQumlQuestionService,
 } from "src/adapters/sunbird/quml.adapter";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Question")
 @Controller("question")
 export class QuestionController {

@@ -35,6 +35,8 @@ import { EsamwadUserToken } from "src/adapters/esamwad/user.adapter";
 import { UserAdapter } from "./useradapter";
 import { HasuraUserService } from "src/adapters/hasura/user.adapter";
 import { UserUpdateDto } from "./dto/user-update.dto";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
+@UseInterceptors(SentryInterceptor)
 @ApiTags("User")
 @Controller("user")
 export class UserController {

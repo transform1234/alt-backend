@@ -25,6 +25,8 @@ import { HolidayDto } from "./dto/holiday.dto";
 import { HolidaySearchDto } from "./dto/holiday-search.dto";
 import { Request } from "@nestjs/common";
 import { HolidayAdapter } from "./holidayadapter";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Holiday")
 @Controller("holiday")
 export class HolidayController {
