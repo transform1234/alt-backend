@@ -24,7 +24,9 @@ import {
   ApiQuery,
 } from "@nestjs/swagger";
 import { ALTUserEligibilityService } from "src/adapters/hasura/altUserEligibility.adapter";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("ALT User Eligibility")
 @Controller("altusereligibility")
 export class ALTUserEligibilityController {

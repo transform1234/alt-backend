@@ -25,6 +25,8 @@ import {
 } from "@nestjs/swagger";
 import { SchoolSearchDto } from "./dto/school-search.dto";
 import { SchoolAdapter } from "./schooladapter";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
+@UseInterceptors(SentryInterceptor)
 @ApiTags("School")
 @Controller("school")
 export class SchoolController {

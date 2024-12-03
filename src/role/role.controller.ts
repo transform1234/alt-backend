@@ -24,7 +24,9 @@ import {
 import { Request } from "@nestjs/common";
 import { RoleDto } from "./dto/role.dto";
 import { RoleService } from "src/adapters/hasura/role.adapter";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Role")
 @Controller("role")
 export class RoleController {
