@@ -4,11 +4,12 @@ import { SuccessResponse } from "src/success-response";
 import { QuestionDto } from "src/Question/dto/question.dto";
 import { IServicelocator } from "../questionservicelocator";
 import e from "express";
-export const DikshaQuestionToken = "EsamwadQuestion";
+import { ErrorResponse } from "src/error-response";
+export const SunbirdQuestionToken = "SunbirdQuestion";
 @Injectable()
 export class QumlQuestionService implements IServicelocator {
   constructor(private httpService: HttpService) {}
-  url = process.env.DIKSHADEVBASEAPIURL;
+  url = process.env.SUNBIRDURL;
   public async getAllQuestions(
     questionType: string,
     subject: [string],
@@ -508,4 +509,31 @@ export class QumlQuestionService implements IServicelocator {
     request: any
   ) {}
   bulkImport(request: any, questionDto: [Object]) {}
+  async getQuestionList(request: any, body: any,limit:string) {
+    try {
+      var axios = require("axios");
+      var config = {
+        method: "post",
+        url: this.url + "/api/question/v1/list",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        data: body,
+        limit
+      };
+
+      const responseData = await axios(config);
+      const data = responseData.data;
+      return new SuccessResponse({
+        statusCode: 200,
+        message: "Ok",
+        data: data.result.questions,
+      });
+    } catch (error) {
+      return new ErrorResponse({
+        errorCode: "500",
+        errorMessage: "Error in fetching question list",
+      });
+    }
+  }
 }

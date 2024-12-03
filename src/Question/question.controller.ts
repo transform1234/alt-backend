@@ -32,6 +32,10 @@ import { KhanAcademyQuestionToken } from "src/adapters/khanAcademy/khanAcademy.a
 import { QuestionDto } from "./dto/question.dto";
 import { HasuraQuestionToken } from "src/adapters/hasura/question.adapter";
 import { SentryInterceptor } from "src/common/sentry.interceptor";
+import {
+  SunbirdQuestionToken,
+  QumlQuestionService as SunbirdQumlQuestionService,
+} from "src/adapters/sunbird/quml.adapter";
 
 @UseInterceptors(SentryInterceptor)
 @ApiTags("Question")
@@ -41,7 +45,7 @@ export class QuestionController {
     @Inject(DikshaQuestionToken) private dikshaProvider: IServicelocator,
     @Inject(KhanAcademyQuestionToken)
     private khanacademyProvider: IServicelocator,
-
+    @Inject(SunbirdQuestionToken) private sunbirdProvider: IServicelocator,
     @Inject(HasuraQuestionToken)
     private hasuraProvider: IServicelocator
   ) {}
@@ -363,6 +367,24 @@ export class QuestionController {
       return this.khanacademyProvider.bulkImport(request, questionDto);
     } else if (adapter === "shiksha") {
       return this.hasuraProvider.bulkImport(request, questionDto);
+    }
+  }
+  @Post("/:adapter/questionList")
+  @ApiBasicAuth("access-token")
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @UseInterceptors(ClassSerializerInterceptor)
+  public async getQuestionList(
+    @Param("adapter") adapter: string,
+    @Req() request: Request,
+    @Body() body: any,
+    @Query("limit") limit: string
+  ) {
+    console.log(adapter);
+
+    if (adapter === "diksha") {
+      return this.dikshaProvider.getQuestionList(request, body, limit);
+    } else if (adapter === "sunbird") {
+      return this.sunbirdProvider.getQuestionList(request, body, limit);
     }
   }
 }

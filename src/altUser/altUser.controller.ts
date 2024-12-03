@@ -73,6 +73,7 @@ export class ALTUserController {
   @ApiForbiddenResponse({ description: "Forbidden" })
   @UseInterceptors(ClassSerializerInterceptor)
   public async createUser(@Req() request: Request, @Body() userDto: UserDto) {
+    console.log("createUser")
     return this.hasuraUserService.checkAndAddUser(request, userDto, null);
   }
 
@@ -154,5 +155,10 @@ export class ALTUserController {
     } else {
       response.status(HttpStatus.CREATED).send(deactivateUserResponse);
     }
+  }
+  @Post("/validateToken")
+  @ApiBasicAuth("access-token")
+  public async getUserByToken(@Req() req: Request, @Res() response: Response) {
+    return await this.hasuraUserService.validateToken(req, response);
   }
 }
