@@ -509,40 +509,9 @@ export class ALTProgramAssociationService {
       : "";
     console.log(programId);
 
-    const requestBody = {
-      request: {
-        filters: {
-          primaryCategory: ["Learning Resource", "Practice Question Set"],
-        },
-        query: body.searchQuery,
-        fields: [
-          "name",
-          "mimeType",
-          "identifier",
-          "medium",
-          "board",
-          "subject",
-          "resourceType",
-          "primaryCategory",
-          "contentType",
-          "organisation",
-        ],
-      },
-    };
-    const sunbirdUrl = process.env.SUNBIRDURL;
-    let config = {
-      method: "post",
-      url:
-        sunbirdUrl +
-        `/api/content/v1/search?orgdetails=orgName,email&licenseDetails=name,description,url`,
-      data: requestBody,
-    };
-
-    const sunbirdSearch = await this.axios(config);
-
     //get the programData from programTermAssoc
     const data = {
-      query: `query MyQuery {
+      query: `query MyQuery{
                 ProgramTermAssoc(where: {programId: {_eq: "${programId}"}, ${subjectCondition}}) {
                   programId
                   rules
@@ -574,54 +543,80 @@ export class ALTProgramAssociationService {
       });
     }
     const rulesData = response.data.data.ProgramTermAssoc;
-
-    //Parse the rules field in rulesData
-    rulesData.forEach((rule) => {
-      rule.rules = JSON.parse(rule.rules);
-    });
-
-    //Extract identifiers from sunbirdSearch
-    const contentIdentifiers = sunbirdSearch.data.result.content.map(
-      (item) => item.identifier
-    );
-
-    // Safely extract question set identifiers
-    const questionSetIdentifiers = sunbirdSearch?.data?.result?.QuestionSet || [];
-    if (!Array.isArray(questionSetIdentifiers)) {
-      console.warn("QuestionSet data is not an array or is missing");
+    // Validate rulesData and log errors for missing or malformed data
+    if (!rulesData || rulesData.length === 0) {
+      return new ErrorResponse({
+        errorCode: "404",
+        errorMessage: "No data found.",
+      });
     }
 
-    
     //  Process each rule and match contentId
     const responseData = [];
+
     rulesData.forEach((rule) => {
-      rule.rules.prog.forEach((item) => {
-        if (contentIdentifiers.includes(item.contentId)) {
-          const matchingQuestionSet = questionSetIdentifiers.find(
-            (qSet) => qSet.subject === rule.subject
-          );
-          
-          responseData.push({
-            contentId: item.contentId,
-            subject: rule.subject,
-            courseId: item.courseId || null,
-            contentType: item.contentType,
-            order: item.order,
-            allowedAttempts: item.allowedAttempts,
-            criteria: item.criteria,
-            lesson_questionset: matchingQuestionSet
-              ? matchingQuestionSet.id
-              : "",
+      if (rule.rules) {
+        try {
+          rule.rules = JSON.parse(rule.rules); // Parse the rules
+        } catch (error) {
+          return new ErrorResponse({
+            errorCode: "500",
+            errorMessage: `Failed to parse rules for programId: ${rule.programId}`,
           });
         }
-      });
+
+        // Ensure `prog` exists and is an array
+        if (Array.isArray(rule.rules.prog)) {
+          const filteredProg = rule.rules.prog.filter((item) =>
+            item.name?.toLowerCase().includes(body.searchQuery.toLowerCase())
+          );
+
+          filteredProg.forEach((item) => {
+            responseData.push({
+              contentId: item.contentId,
+              name: item.name,
+              subject: rule.subject || null,
+              courseId: item.courseId || null,
+              contentType: item.contentType,
+              order: item.order,
+              allowedAttempts: item.allowedAttempts,
+              criteria: item.criteria,
+            });
+          });
+        } else {
+          return new ErrorResponse({
+            errorCode: "500",
+            errorMessage: `Invalid 'prog' format for programId: ${rule.programId}`,
+          })
+        }
+      } else {
+        return new ErrorResponse({
+          errorCode: "500",
+          errorMessage: `Missing 'rules' for programId: ${rule.programId}`,
+        })
+      }
     });
+    const pageNumber = parseInt(body.pageNumber, 10) || 1;
+    const limit = parseInt(body.limit, 10) || 10;
+    const offset = (pageNumber - 1) * limit;
+
+    // Paginate the responseData
+    const paginatedData = responseData.slice(offset, offset + limit);
+
+    // Add metadata for pagination
+    const meta = {
+      total: responseData.length,
+      limit,
+      offset,
+      currentPage: pageNumber,
+      totalPages: Math.ceil(responseData.length / limit),
+    };
 
     // Create the final response
     return new SuccessResponse({
       statusCode: 200,
       message: "Ok.",
-      data: responseData,
+      data: { paginatedData, meta },
     });
   }
 }
