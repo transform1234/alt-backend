@@ -575,12 +575,13 @@ export class ALTProgramAssociationService {
             responseData.push({
               contentId: item.contentId,
               name: item.name,
-              subject: rule.subject || null,
-              courseId: item.courseId || null,
+              subject: rule.subject ,
+              courseId: item.courseId ,
               contentType: item.contentType,
               order: item.order,
               allowedAttempts: item.allowedAttempts,
               criteria: item.criteria,
+              contentSource: item.contentSource,
             });
           });
         } else {
