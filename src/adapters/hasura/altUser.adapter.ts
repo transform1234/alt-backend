@@ -1019,6 +1019,12 @@ export class ALTHasuraUserService {
               groupId
             }
           }
+            Student {
+              School {
+                name
+                udiseCode
+              }
+    }
         }
       }`,
         variables: { username: username },
