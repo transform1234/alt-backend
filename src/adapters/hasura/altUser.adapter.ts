@@ -94,7 +94,7 @@ export class ALTHasuraUserService {
     bulkToken: string
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    console.log("decoded", decoded)
+    console.log("decoded", decoded);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
 
@@ -121,7 +121,7 @@ export class ALTHasuraUserService {
 
     const userSchema = new UserDto(userDto, true);
 
-    console.log("userSchema", userSchema)
+    console.log("userSchema", userSchema);
 
     const usernameExistsInKeycloak = await checkIfUsernameExistsInKeycloak(
       userDto.username,
@@ -999,31 +999,38 @@ export class ALTHasuraUserService {
 
       //  Prepare GraphQL request data
       const data = {
-        query: `query searchUser($username:String) {
-        Users(where: {username: {_eq: $username}, status: {_eq: true}}) {
-          userId
-          name
-          username
-          email
-          mobile
-          gender
-          dateOfBirth
-          role
-          status
-          createdAt
-          updatedAt
-          createdBy
-          updatedBy
-          GroupMemberships(where: {status: {_eq: true}}) {
-            Group {
-              board
-              medium
-              grade
-              groupId
-            }
-          }
-        }
-      }`,
+        query: `query searchUser($username: String) {
+                    Users(where: {username: {_eq: $username}, status: {_eq: true}}) {
+                      userId
+                      name
+                      username
+                      email
+                      mobile
+                      gender
+                      dateOfBirth
+                      role
+                      status
+                      createdAt
+                      updatedAt
+                      createdBy
+                      updatedBy
+                      GroupMemberships(where: {status: {_eq: true}}) {
+                        Group {
+                          board
+                          medium
+                          grade
+                          groupId
+                        }
+                      }
+                      Student {
+                        School {
+                          name
+                          udiseCode
+                        }
+                      }
+                    }
+                  }
+  `,
         variables: { username: username },
       };
 
