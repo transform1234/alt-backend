@@ -24,7 +24,9 @@ import {
 
 import { NotificationService } from "src/adapters/sunbirdrc/notification.adapter";
 import { NotificationSearchDto } from "./dto/notification-search.dto";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Schedule Notification")
 @Controller("scheduleNotification")
 export class scheduleNotificationController {

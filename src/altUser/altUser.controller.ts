@@ -35,6 +35,8 @@ import { ALTUserSearchDto } from "./dto/alt-user-search.dto";
 import { ALTUserDeactivateDto } from "./dto/alt-user-deactivate.dto";
 import { Request, Response } from "express";
 import { ErrorResponse } from "src/error-response";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
+@UseInterceptors(SentryInterceptor)
 @ApiTags("User")
 @Controller("user")
 export class ALTUserController {
@@ -71,6 +73,7 @@ export class ALTUserController {
   @ApiForbiddenResponse({ description: "Forbidden" })
   @UseInterceptors(ClassSerializerInterceptor)
   public async createUser(@Req() request: Request, @Body() userDto: UserDto) {
+    console.log("createUser")
     return this.hasuraUserService.checkAndAddUser(request, userDto, null);
   }
 

@@ -3,7 +3,8 @@ import { HttpModule } from "@nestjs/axios";
 import { QuestionController } from "./question.controller";
 import {
   DikshaQuestionToken,
-  QumlQuestionService,
+  QumlQuestionService as DikshaQumlQuestionService 
+  ,
 } from "src/adapters/diksha/quml.adapter";
 import {
   KhanAcademyQuestionService,
@@ -13,6 +14,7 @@ import {
   HasuraQuestionToken,
   QuestionService,
 } from "src/adapters/hasura/question.adapter";
+import { SunbirdQuestionToken,QumlQuestionService as SunbirdQumlQuestionService  } from "src/adapters/sunbird/quml.adapter";
 const ttl = process.env.TTL as never;
 @Module({
   imports: [
@@ -23,11 +25,13 @@ const ttl = process.env.TTL as never;
   ],
   controllers: [QuestionController],
   providers: [
-    QumlQuestionService,
+    SunbirdQumlQuestionService,
     KhanAcademyQuestionService,
-    { provide: DikshaQuestionToken, useClass: QumlQuestionService },
+    SunbirdQumlQuestionService,
+    { provide: DikshaQuestionToken, useClass: DikshaQumlQuestionService },
     { provide: KhanAcademyQuestionToken, useClass: KhanAcademyQuestionService },
     { provide: HasuraQuestionToken, useClass: QuestionService },
+    { provide: SunbirdQuestionToken, useClass: SunbirdQumlQuestionService}
   ],
 })
 export class QuestionModule {}

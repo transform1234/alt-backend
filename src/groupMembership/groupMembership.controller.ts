@@ -23,7 +23,9 @@ import {
 import { GroupMembershipDto, GroupMembershipDtoById } from "./dto/groupMembership.dto";
 import { GroupMembershipSearchDto } from "./dto/groupMembership-search.dto";
 import { GroupMembershipService } from "src/adapters/hasura/groupMembership.adapter";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Group Membership")
 @Controller("groupmembership")
 export class GroupMembershipController {

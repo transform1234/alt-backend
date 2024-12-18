@@ -24,6 +24,8 @@ import { CommentDto } from "./dto/comment.dto";
 import { CommentSearchDto } from "./dto/comment-search.dto";
 import { IServicelocator } from "src/adapters/commentservicelocator";
 import { CommentAdapter } from "./commentadapter";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Comment")
 @Controller("comment")
 export class CommentController implements IServicelocator {

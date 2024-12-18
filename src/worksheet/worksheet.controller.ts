@@ -26,7 +26,9 @@ import {
 import { WorksheetService } from "src/adapters/hasura/worksheet.adapter";
 import { WorksheetDto } from "./dto/worksheet.dto";
 import { WorksheetSearchDto } from "./dto/worksheet-search.dto";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Worksheet")
 @Controller("worksheet")
 export class WorksheetController {

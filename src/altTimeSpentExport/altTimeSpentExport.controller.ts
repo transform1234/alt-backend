@@ -24,7 +24,8 @@ import {
   ApiQuery,
 } from "@nestjs/swagger";
 import { ALTTimeSpentExportService } from "src/adapters/hasura/altTimeSpentExport.adapter";
-
+import { SentryInterceptor } from "src/common/sentry.interceptor";
+@UseInterceptors(SentryInterceptor)
 @ApiTags("ALT Time Spent Course Export")
 @Controller("alttimespentexport")
 export class ALTTimeSpentExportController {

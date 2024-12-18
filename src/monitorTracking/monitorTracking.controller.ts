@@ -26,7 +26,9 @@ import {
 import { Request } from "@nestjs/common";
 import { MonitorTrackingDto } from "./dto/monitorTracking.dto";
 import { MonitorTrackingService } from "src/adapters/hasura/monitorTracking.adapter";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Monitor Tracking")
 @Controller("monitortracking")
 export class MonitorTrackingController {

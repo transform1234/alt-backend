@@ -29,7 +29,9 @@ import { KhanAcademyCourseToken } from "src/adapters/khanAcademy/khanAcademyCour
 import { GroupSearchDto } from "src/group/dto/group-search.dto";
 import { CourseSearchDto } from "./dto/course.search.dto";
 import { SunbirdCourseToken } from "src/adapters/sunbird/sunbirdCourse.adapter";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Course")
 @Controller("course")
 export class CourseController {

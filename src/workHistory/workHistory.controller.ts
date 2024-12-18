@@ -25,7 +25,9 @@ import {
 
 import { WorkHistoryService } from "../adapters/hasura/workhistory.adapter";
 import { WorkHistoryDto } from "./dto/work-history.dto";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Work History")
 @Controller("workhistory")
 export class WorkHistoryController {

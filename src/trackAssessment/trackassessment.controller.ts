@@ -26,7 +26,9 @@ import {
 import { TrackAssessmentService } from "src/adapters/hasura/trackassessment.adapter";
 import { TrackAssessmentDto } from "./dto/trackassessment.dto";
 import { isUUID } from "class-validator";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Track Assessment")
 @Controller("trackassessment")
 export class AssessmentController {

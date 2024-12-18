@@ -74,11 +74,13 @@ export class HasuraUserService implements IServicelocator {
   }
 
   public async createUser(request: any, userDto: UserDto) {
+    console.log("createUser", request.headers.authorization)
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
 
     const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    console.log("userId", userId)
     userDto.createdBy = userId;
     userDto.updatedBy = userId;
 

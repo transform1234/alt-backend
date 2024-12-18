@@ -30,7 +30,9 @@ import {
 import { ALTTeacherService } from "src/adapters/hasura/altTeacher.adapter";
 import { TeacherDto } from "./dto/alt-teacher.dto";
 import { ALTTeacherSearchDto } from "./dto/alt-teacher-search.dto";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("ALT Teacher")
 @Controller("teacher")
 export class ALTTeacherController {

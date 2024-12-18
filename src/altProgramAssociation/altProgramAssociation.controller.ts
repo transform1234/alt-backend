@@ -29,7 +29,9 @@ import { ALTProgramAssociationService } from "src/adapters/hasura/altProgramAsso
 import { ProgramAssociationDto } from "./dto/altProgramAssociation.dto";
 import { UpdateALTProgramAssociationDto } from "./dto/updateAltProgramAssociation.dto";
 import { ALTProgramAssociationSearch } from "./dto/searchAltProgramAssociation.dto";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("ALT Program Association")
 @Controller("altprogramassociation")
 export class ALTProgramAssociationController {

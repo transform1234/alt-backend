@@ -24,7 +24,9 @@ import {
 } from "@nestjs/common";
 import { CourseTrackingService } from "src/adapters/hasura/courseTracking.adapter";
 import { CourseTrackingDto } from "./dto/courseTracking.dto";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Course Tracking")
 @Controller("coursetracking")
 export class CourseTrackingController {

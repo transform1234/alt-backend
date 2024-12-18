@@ -18,7 +18,9 @@ import {
 import { Request } from "@nestjs/common";
 import { ConfigDto } from "./dto/config.dto";
 import { ConfigsAdapter } from "./configsadapter";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Config")
 @Controller("config")
 export class ConfigController {
