@@ -538,6 +538,7 @@ export class ALTLessonTrackingService {
         }`,
       variables: {},
     };
+    console.log(altLessonTrackingData.query);
 
     const configDataforCreate = {
       method: "post",
@@ -818,7 +819,7 @@ export class ALTLessonTrackingService {
       }
     }
   }
-  public async addLessonTracking(
+  public async glaAddLessonTracking(
     request: any,
     altLessonTrackingDto: ALTLessonTrackingDto,
     programId: string,
@@ -849,7 +850,9 @@ export class ALTLessonTrackingService {
     altLessonTrackingDto.createdBy = altLessonTrackingDto.userId;
     altLessonTrackingDto.updatedBy = altLessonTrackingDto.userId;
     altLessonTrackingDto.timeSpent =
-      altLessonTrackingDto.timeSpent > 0 ? altLessonTrackingDto.timeSpent : 0;
+      altLessonTrackingDto.timeSpent > 0
+        ? Math.round(altLessonTrackingDto.timeSpent)
+        : 0;
     altLessonTrackingDto.programId = programId;
 
     //  Fetch existing lesson tracking records
@@ -929,7 +932,10 @@ export class ALTLessonTrackingService {
     let courseId;
 
     for (const program of programRules.prog) {
-      if (program.contentId === currentLessonId) {
+      if (
+        program.contentId === currentLessonId ||
+        program.lesson_questionset === currentLessonId
+      ) {
         courseId = program.courseId; // Fetch courseId for the matched lessonId
         break;
       }
@@ -961,58 +967,86 @@ export class ALTLessonTrackingService {
       for (const course of programRules?.prog) {
         const numberOfRecords = parseInt(recordList?.data.length);
         // Check if the course matches
-        if (course.contentId == courseId) {
+        if (
+          course.contentId == altLessonTrackingDto.lessonId ||
+          course.lesson_questionset == altLessonTrackingDto.lessonId
+        ) {
           flag = true;
-          if (course.contentType === "assessment") {
-            if (numberOfRecords === 0) {
-              // No record exists for this lessonId and moduleId
-              altLessonTrackingDto.attempts = 1; // First attempt
-              // Create a new LessonProgressTracking record
-              const lessonTrack: any = await this.createALTLessonTracking(
-                request,
-                altLessonTrackingDto
-              );
-              lessonProgressId = lessonTrack?.data?.lessonProgressId;
-            } else if (numberOfRecords === 1) {
-              // Update or reject if the assessment is completed
-              const existingRecord = recordList.data[0];
 
-              if (existingRecord.status !== "completed") {
-                // If the status is "inprogress", update it to "completed"
-                await this.updateALTLessonTracking(
-                  request,
-                  altLessonTrackingDto.lessonId,
-                  altLessonTrackingDto,
-                  0,
-                  {
-                    courseId: courseId,
-                    moduleId: altLessonTrackingDto.moduleId,
-                  }
-                );
-              } else if (existingRecord.status === "completed") {
-                // If the status is "completed", do not update or create a new record
-                return new ErrorResponse({
-                  errorCode: "400",
-                  errorMessage: "Record for Assessment already exists!",
-                });
-              }
+          // if course content handling creation and updation of lesson with module
+
+          if (numberOfRecords === 0) {
+            altLessonTrackingDto.attempts = 1; // keeping it one
+            const lessonTrack: any = await this.createALTLessonTracking(
+              request,
+              altLessonTrackingDto
+            );
+
+            lessonProgressId = lessonTrack?.data?.lessonProgressId;
+
+            if (
+              altLessonTrackingDto.status === "completed" &&
+              lessonTrack?.statusCode === 200
+            ) {
+              tracklessonModule = await this.glalessonToModuleTracking(
+                request,
+                altLessonTrackingDto,
+                programId,
+                subject,
+                false
+              );
             }
-          } else if (course.contentType == "course") {
-            // if course content handling creation and updation of lesson with module
-            if (numberOfRecords === 0) {
-              altLessonTrackingDto.attempts = 1;
-              const lessonTrack: any = await this.createALTLessonTracking(
+            // Log progress tracking after insertion
+            const loggedAttempt = await this.logLessonAttemptProgressTracking(
+              request,
+              altLessonTrackingDto,
+              lessonProgressId
+            );
+
+            return {
+              lessonTrack: lessonTrack,
+              tracking: tracklessonModule,
+              loggedAttempt: loggedAttempt,
+            };
+          } else if (numberOfRecords >= 1) {
+            //fetching the last records from database and checking its status
+            const lastRecord = await this.getLastLessonTrackingRecord(
+              request,
+              altLessonTrackingDto.lessonId,
+              altLessonTrackingDto.moduleId,
+              numberOfRecords
+            ).catch(function (error) {
+              return new ErrorResponse({
+                errorCode: "400",
+                errorMessage: error,
+              });
+            });
+
+            if (!lastRecord[0]?.status) {
+              return new ErrorResponse({
+                errorCode: "400",
+                errorMessage: lastRecord + "Error getting last record",
+              });
+            }
+
+            if (lastRecord[0]?.status !== "completed") {
+              const lessonTrack: any = await this.updateALTLessonTracking(
                 request,
-                altLessonTrackingDto
+                altLessonTrackingDto.lessonId,
+                altLessonTrackingDto,
+                lastRecord[0]?.attempts,
+                {
+                  courseId: altLessonTrackingDto.courseId,
+                  moduleId: altLessonTrackingDto.moduleId,
+                }
               );
 
-              lessonProgressId = lessonTrack?.data?.lessonProgressId;
-
+              // Adding to module only when its first attempt and increasing count in module for lesson
               if (
                 altLessonTrackingDto.status === "completed" &&
                 lessonTrack?.statusCode === 200
               ) {
-                tracklessonModule = await this.lessonToModuleTracking(
+                tracklessonModule = await this.glalessonToModuleTracking(
                   request,
                   altLessonTrackingDto,
                   programId,
@@ -1020,102 +1054,45 @@ export class ALTLessonTrackingService {
                   false
                 );
               }
-              //adding an entry into LessonProgressAttemptTracking Table
-              await this.logLessonAttemptProgressTracking(
+              // Log progress tracking after insertion
+              const loggedAttempt = await this.logLessonAttemptProgressTracking(
                 request,
                 altLessonTrackingDto,
                 lessonProgressId
               );
-
               return {
                 lessonTrack: lessonTrack,
                 tracking: tracklessonModule,
+                loggedAttempt: loggedAttempt,
               };
-            } else if (numberOfRecords >= 1) {
-              const lastRecord = await this.getLastLessonTrackingRecord(
+            } else if (lastRecord[0]?.status === "completed") {
+              const loggedAttempt = await this.logLessonAttemptProgressTracking(
                 request,
-                altLessonTrackingDto.lessonId,
-                altLessonTrackingDto.moduleId,
-                numberOfRecords
-              ).catch(function (error) {
-                return new ErrorResponse({
-                  errorCode: "400",
-                  errorMessage: error,
-                });
+                altLessonTrackingDto,
+                lessonProgressId
+              );
+              // Do not update any  records if the lesson is already completed
+              return new ErrorResponse({
+                errorCode: "409",
+                errorMessage: "Lesson is already completed",
               });
-
-              if (!lastRecord[0]?.status) {
-                return new ErrorResponse({
-                  errorCode: "400",
-                  errorMessage: lastRecord + "Error getting last record",
-                });
-              }
-
-              if (lastRecord[0]?.status !== "completed") {
-                const lessonTrack: any = await this.updateALTLessonTracking(
-                  request,
-                  altLessonTrackingDto.lessonId,
-                  altLessonTrackingDto,
-                  lastRecord[0]?.attempts,
-                  {
-                    courseId: altLessonTrackingDto.courseId,
-                    moduleId: altLessonTrackingDto.moduleId,
-                  }
-                );
-
-                // Adding to module only when its first attempt and increasing count in module for lesson
-                if (
-                  altLessonTrackingDto.status === "completed" &&
-                  lastRecord[0].attempts === 1 &&
-                  lessonTrack?.statusCode === 200
-                ) {
-                  tracklessonModule = await this.lessonToModuleTracking(
-                    request,
-                    altLessonTrackingDto,
-                    programId,
-                    subject,
-                    false
-                  );
-                }
-
-                await this.logLessonAttemptProgressTracking(
-                  request,
-                  altLessonTrackingDto,
-                  lessonProgressId
-                );
-
-                return {
-                  lessonTrack: lessonTrack,
-                  tracking: tracklessonModule,
-                };
-              } else if (lastRecord[0]?.status === "completed") {
-                await this.logLessonAttemptProgressTracking(
-                  request,
-                  altLessonTrackingDto,
-                  lessonProgressId
-                );
-                // Do not update any  records if the lesson is already completed
-                return new ErrorResponse({
-                  errorCode: "409",
-                  errorMessage: "Lesson is already completed",
-                });
-              } else {
-                return new ErrorResponse({
-                  errorCode: "400",
-                  errorMessage: lastRecord,
-                });
-              }
+            } else {
+              return new ErrorResponse({
+                errorCode: "400",
+                errorMessage: lastRecord,
+              });
             }
           }
         }
       }
-      // If no valid course is found in the program
-      if (!flag) {
-        return new ErrorResponse({
-          errorCode: "400",
-          errorMessage: `Course provided does not exist in the current program.`,
-        });
-      }
+    }
+
+    //If no valid course is found in the program
+    if (!flag) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: `Course provided does not exist in the current program.`,
+      });
     }
   }
   public async logLessonAttemptProgressTracking(
@@ -1214,5 +1191,81 @@ export class ALTLessonTrackingService {
       data: moduleId,
     });
   }
+  public async glalessonToModuleTracking(
+    request: any,
+    altLessonTrackingDto: ALTLessonTrackingDto,
+    programId: string,
+    subject: string,
+    repeatAttempt: boolean
+  ) {
+    //add or update the recond in the moduleTRacking table
+    const currentUrl = process.env.SUNBIRDURL;
 
+    let config = {
+      method: "get",
+      url:
+        currentUrl +
+        `/api/course/v1/hierarchy/${altLessonTrackingDto.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`,
+    };
+
+    const courseHierarchy = await this.axios(config);
+    const data = courseHierarchy?.data.result.content;
+    let noOfModules = data.children.length;
+
+    let currentModule = data.children.find((item) => {
+      return item.identifier === altLessonTrackingDto.moduleId;
+    });
+
+    let altModuleTracking = {
+      userId: altLessonTrackingDto.userId,
+      courseId: altLessonTrackingDto.courseId,
+      moduleId: altLessonTrackingDto.moduleId,
+      status: "ongoing",
+      totalNumberOfLessonsCompleted: 1,
+      totalNumberOfLessons: currentModule.children.length,
+      timeSpent: altLessonTrackingDto.timeSpent,
+      createdBy: altLessonTrackingDto.userId,
+      updatedBy: altLessonTrackingDto.userId,
+    };
+
+    const altModuleTrackingDto = new ALTModuleTrackingDto(altModuleTracking);
+    let moduleTracking: any;
+    moduleTracking =
+      await this.altModuleTrackingService.glaCheckAndAddALTModuleTracking(
+        request,
+        programId,
+        subject,
+        noOfModules,
+        repeatAttempt,
+        altModuleTrackingDto
+      );
+
+    if (moduleTracking?.statusCode != 200) {
+      return new ErrorResponse({
+        errorCode: moduleTracking?.statusCode,
+        errorMessage:
+          moduleTracking?.errorMessage + "Could not create Module Tracking",
+      });
+    } else {
+      if (moduleTracking.data.moduleProgressId) {
+        return new SuccessResponse({
+          statusCode: moduleTracking?.statusCode,
+          message: "Ok.",
+          data: { ack: "Module and Course Tracking created" },
+        });
+      } else if (moduleTracking.data.affected_rows) {
+        return new SuccessResponse({
+          statusCode: moduleTracking?.statusCode,
+          message: "Ok.",
+          data: { ack: "Module and Course Tracking updated" },
+        });
+      } else {
+        return new SuccessResponse({
+          statusCode: moduleTracking?.statusCode,
+          message: "Ok.",
+          data: { ack: "Course completed" },
+        });
+      }
+    }
+  }
 }
