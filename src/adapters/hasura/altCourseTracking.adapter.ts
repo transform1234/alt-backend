@@ -492,4 +492,91 @@ export class ALTCourseTrackingService {
       data: data,
     });
   }
+  public async glaAddALTCourseTracking(
+    request: any,
+    altCourseTrackingDto: ALTCourseTrackingDto,
+    moduleStatus: string
+  ) {
+    let recordList: any = {};
+    try {
+      // Fetch existing course tracking records based on courseId and request parameters
+      recordList = await this.getExistingCourseTrackingRecords(
+        request,
+        altCourseTrackingDto.courseId,
+        null
+      );
+    } catch (error) {
+      return new ErrorResponse({
+        errorCode: "500",
+        errorMessage: "Error retrieving course tracking records.",
+      });
+    }
+
+    if (!recordList?.data) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Course tracking record not found.",
+      });
+    }
+
+    const numberOfRecords = parseInt(recordList?.data.length);
+
+    // Case: No existing records (create a new one)
+    if (numberOfRecords === 0) {
+      if (
+        altCourseTrackingDto.totalNumberOfModulesCompleted + 1 ===
+        altCourseTrackingDto.totalNumberOfModules
+      ) {
+        altCourseTrackingDto.status = "completed"; // Set status to completed
+      } else {
+        altCourseTrackingDto.status = "ongoing"; // Set status to ongoing
+      }
+
+      if (moduleStatus === "completed") {
+        altCourseTrackingDto.totalNumberOfModulesCompleted++; // Increment completed modules
+      }
+
+      return this.createALTCourseTracking(request, altCourseTrackingDto); // Create new record
+    }
+    // Case: One existing record found, and course is not completed
+    else if (
+      numberOfRecords === 1 &&
+      recordList.data[0].status !== "completed"
+    ) {
+      // Check if total modules completed (including current module) matches total number of modules
+      if (
+        parseInt(recordList.data[0].totalNumberOfModulesCompleted) + 1 ===
+        parseInt(recordList.data[0].totalNumberOfModules)
+      ) {
+        altCourseTrackingDto.status = "completed"; // Set status to completed
+      } else {
+        altCourseTrackingDto.status = "ongoing"; // Set status to ongoing
+      }
+
+      // If the module is marked as completed, increment the completed modules count
+      if (moduleStatus === "completed") {
+        altCourseTrackingDto.totalNumberOfModulesCompleted =
+          parseInt(recordList.data[0].totalNumberOfModulesCompleted) + 1;
+      }
+
+      altCourseTrackingDto.timeSpent =
+        parseInt(recordList.data[0].timeSpent) + altCourseTrackingDto.timeSpent; // Update timeSpent
+
+      return await this.updateALTCourseTracking(request, altCourseTrackingDto); // Update existing record
+    }
+    // Case: Duplicate records found
+    else if (numberOfRecords > 1) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Duplicate entry found in DataBase for Course",
+      });
+    }
+    // Case: Course already completed
+    else if (recordList.data[0].status === "completed") {
+      return new SuccessResponse({
+        statusCode: 200,
+        message: "Course is already completed.",
+      });
+    }
+  }
 }
