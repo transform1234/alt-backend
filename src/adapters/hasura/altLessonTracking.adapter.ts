@@ -522,6 +522,9 @@ export class ALTLessonTrackingService {
         }
       }
     });
+    if (altLessonTrackingDto?.score === 0) {
+      newAltLessonTracking += `score:${altLessonTracking?.score}`;
+    }
 
     const altLessonTrackingData = {
       query: `mutation CreateALTLessonTracking {
@@ -1013,7 +1016,8 @@ export class ALTLessonTrackingService {
           // if course content handling creation and updation of lesson with module
 
           if (numberOfRecords === 0) {
-            altLessonTrackingDto.attempts = 1; // keeping it one
+            altLessonTrackingDto.attempts = 1;
+            altLessonTrackingDto.score = altLessonTrackingDto?.score; // keeping it one
             const lessonTrack: any = await this.createALTLessonTracking(
               request,
               altLessonTrackingDto
