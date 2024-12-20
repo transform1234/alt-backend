@@ -131,6 +131,6 @@ export class ALTLessonTrackingController {
     @Query("program") programId: string,
     @Query("subject") subject: string,
   ){
-    return this.altLessonTrackingService.addLessonTracking(request,altLessonTrackingDto,programId,subject);
+    return this.altLessonTrackingService.glaAddLessonTracking(request,altLessonTrackingDto,programId,subject);
   }
 }
