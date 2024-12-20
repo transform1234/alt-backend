@@ -605,11 +605,6 @@ export class ALTLessonTrackingService {
 
     let altLessonUpdateTrackingData;
 
-    console.log(
-      "newUpdateAltLessonTracking-->>",
-      typeof newUpdateAltLessonTracking
-    );
-
     if (!lastAttempt) {
       altLessonUpdateTrackingData = {
         query: `mutation updateAltLessonTracking ($userId:uuid!, $lessonId:String, $courseId: String, $moduleId: String) {
@@ -631,6 +626,10 @@ export class ALTLessonTrackingService {
       // newUpdateAltLessonTracking[attemp] = lastAttempt + 1;
       lastAttempt = lastAttempt + 1;
       newUpdateAltLessonTracking += `attempts: ${lastAttempt}, `;
+      if (updateAltLessonTrackDto?.score === 0) {
+        newUpdateAltLessonTracking += `score:${updateAltLessonTrackDto?.score}`;
+      }
+
       altLessonUpdateTrackingData = {
         query: `mutation updateAltLessonTracking ($userId:uuid!, $lessonId:String, $courseId: String, $moduleId: String) {
               update_LessonProgressTracking(where: {lessonId: {_eq: $lessonId}, userId: {_eq: $userId}, courseId: {_eq: $courseId}, moduleId: {_eq:$moduleId}}, _set: {${newUpdateAltLessonTracking}}) {
@@ -649,8 +648,6 @@ export class ALTLessonTrackingService {
       };
     }
 
-    console.log("quer-->>", altLessonUpdateTrackingData);
-
     const configData = {
       method: "post",
       url: process.env.ALTHASURA,
@@ -662,11 +659,10 @@ export class ALTLessonTrackingService {
     };
 
     const response = await this.axios(configData);
-    console.log("response-->>", response.data);
 
     if (response?.data?.errors) {
       return new ErrorResponse({
-        errorCode: response.data.errors[0].extensions,
+        errorCode: "422",
         errorMessage: response.data.errors[0].message,
       });
     }
@@ -836,23 +832,28 @@ export class ALTLessonTrackingService {
     request: any,
     altLessonTrackingDto: ALTLessonTrackingDto,
     programId: string,
-    subject: string
+    subject: string,
+    response: any
   ) {
     //  Validate the `scoreDetails` field
     const scoreDetails = altLessonTrackingDto?.scoreDetails;
 
     if (Array.isArray(scoreDetails) && !scoreDetails.length) {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage: "Score Details is empty",
-      });
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: "Score Details is empty",
+        })
+      );
     }
 
     if (Object.keys(scoreDetails).length === 0) {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage: "Score Details is empty",
-      });
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: "Score Details is empty",
+        })
+      );
     }
     let lessonProgressId;
     //  Decode the JWT token for user identification
@@ -876,18 +877,22 @@ export class ALTLessonTrackingService {
         altLessonTrackingDto.lessonId
       );
     } catch (error) {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage:
-          error?.response?.data?.errorMessage ||
-          "Can't fetch existing records.",
-      });
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage:
+            error?.response?.data?.errorMessage ||
+            "Can't fetch existing records.",
+        })
+      );
     }
     if (!recordList?.data) {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage: recordList?.errorMessage,
-      });
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: recordList?.errorMessage,
+        })
+      );
     }
 
     // Determine if a record already exists
@@ -903,11 +908,14 @@ export class ALTLessonTrackingService {
         programId
       );
     } catch (error) {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage:
-          error?.response?.data?.errorMessage || "Can't fetch program details.",
-      });
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage:
+            error?.response?.data?.errorMessage ||
+            "Can't fetch program details.",
+        })
+      );
     }
 
     // Map program details to DTO for fetching rules
@@ -925,20 +933,24 @@ export class ALTLessonTrackingService {
         subject: subject,
       });
     } catch (error) {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage: "Program Rules not found for given subject!",
-      });
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: "Program Rules not found for given subject!",
+        })
+      );
     }
 
     let programRules: any;
     if (progTermData?.data[0]?.rules) {
       programRules = JSON.parse(progTermData.data[0].rules);
     } else {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage: "Program Rules not found for given subject!",
-      });
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: "Program Rules not found for given subject!",
+        })
+      );
     }
     //  Loop through program rules to process the lesson tracking
 
@@ -957,15 +969,19 @@ export class ALTLessonTrackingService {
     }
 
     if (!courseId) {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage: `Program details not available for LessonId ${currentLessonId}`,
-      });
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: `Program details not available for LessonId ${currentLessonId}`,
+        })
+      );
     } else if (!courseId?.courseId) {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage: `Course Id not available in the program rules for LessonId ${currentLessonId}`,
-      });
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: `Course Id not available in the program rules for LessonId ${currentLessonId}`,
+        })
+      );
     }
 
     // Call checkLessonAndModuleExistInCourse with the found courseId
@@ -1024,11 +1040,11 @@ export class ALTLessonTrackingService {
               lessonProgressId
             );
 
-            return {
+            return response.status(200).json({
               lessonTrack: lessonTrack,
               tracking: tracklessonModule,
               loggedAttempt: loggedAttempt,
-            };
+            });
           } else if (numberOfRecords >= 1) {
             //fetching the last records from database and checking its status
             const lastRecord = await this.getLastLessonTrackingRecord(
@@ -1037,17 +1053,21 @@ export class ALTLessonTrackingService {
               altLessonTrackingDto.moduleId,
               numberOfRecords
             ).catch(function (error) {
-              return new ErrorResponse({
-                errorCode: "400",
-                errorMessage: error,
-              });
+              return response.status(422).json(
+                new ErrorResponse({
+                  errorCode: "422",
+                  errorMessage: error,
+                })
+              );
             });
 
             if (!lastRecord[0]?.status) {
-              return new ErrorResponse({
-                errorCode: "400",
-                errorMessage: lastRecord + "Error getting last record",
-              });
+              return response.status(422).json(
+                new ErrorResponse({
+                  errorCode: "422",
+                  errorMessage: lastRecord + "Error getting last record",
+                })
+              );
             }
 
             if (lastRecord[0]?.status !== "completed") {
@@ -1088,6 +1108,7 @@ export class ALTLessonTrackingService {
                 loggedAttempt: loggedAttempt,
               };
             } else if (lastRecord[0]?.status === "completed") {
+              altLessonTrackingDto.score = altLessonTrackingDto.score;
               const lessonTrack: any = await this.updateALTLessonTracking(
                 request,
                 altLessonTrackingDto.lessonId,
@@ -1103,21 +1124,18 @@ export class ALTLessonTrackingService {
                 altLessonTrackingDto,
                 lessonProgressId
               );
-              return {
+              return response.status(201).json({
                 lessonTrack: lessonTrack,
                 tracking: tracklessonModule,
                 loggedAttempt: loggedAttempt,
-              };
-              // Do not update any  records if the lesson is already completed
-              // return new ErrorResponse({
-              //   errorCode: "409",
-              //   errorMessage: "Lesson is already completed",
-              // });
-            } else {
-              return new ErrorResponse({
-                errorCode: "400",
-                errorMessage: lastRecord,
               });
+            } else {
+              return response.status(422).json(
+                new ErrorResponse({
+                  errorCode: "422",
+                  errorMessage: lastRecord,
+                })
+              );
             }
           }
         }
@@ -1126,10 +1144,12 @@ export class ALTLessonTrackingService {
 
     //If no valid course is found in the program
     if (!flag) {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage: `Course provided does not exist in the current program.`,
-      });
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: `Course provided does not exist in the current program.`,
+        })
+      );
     }
   }
   public async logLessonAttemptProgressTracking(
