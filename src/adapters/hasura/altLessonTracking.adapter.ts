@@ -993,7 +993,11 @@ export class ALTLessonTrackingService {
       courseId,
     });
     if (checkLessonExist instanceof ErrorResponse) {
-      return checkLessonExist; // Return the error directly
+      return response.status(422).json({
+        // Return the error directly
+        errorCode: "422",
+        errorMessage: checkLessonExist,
+      });
     }
 
     const moduleId = checkLessonExist.data;
