@@ -4,6 +4,7 @@ import { SuccessResponse } from "src/success-response";
 import { QuestionDto } from "src/Question/dto/question.dto";
 import { IServicelocator } from "../questionservicelocator";
 import e from "express";
+import { ErrorResponse } from "src/error-response";
 export const DikshaQuestionToken = "EsamwadQuestion";
 @Injectable()
 export class QumlQuestionService implements IServicelocator {
@@ -508,4 +509,27 @@ export class QumlQuestionService implements IServicelocator {
     request: any
   ) {}
   bulkImport(request: any, questionDto: [Object]) {}
+  async getQuestionList(request: any, body: any, limit: string) {
+    try {
+      var axios = require("axios");
+      var config = {
+        method: "post",
+        url: "https://diksha.gov.in/api/question/v1/list",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        data: body,
+        limit: limit,
+      };
+
+      const responseData = await axios(config);
+      const data = responseData.data;
+      return data;
+    } catch (error) {
+      return new ErrorResponse({
+        errorCode: "500",
+        errorMessage: "Failed to fetch questions",
+      });
+    }
+  }
 }

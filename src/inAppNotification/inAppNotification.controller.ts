@@ -16,7 +16,9 @@ import {
   Get,
 } from "@nestjs/common";
 import { InAppNotificationService } from "src/adapters/sunbirdrc/inAppNotification.adapter";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("In App Notification")
 @Controller("inappnotification")
 export class InAppNotificationController {

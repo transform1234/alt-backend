@@ -24,6 +24,8 @@ import {
 
 import { NotificationService } from "src/adapters/sunbirdrc/notification.adapter";
 import { NotificationSearchDto } from "./dto/notification-search.dto";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Instant Notification")
 @Controller("instantNotification")
 export class instantNotificationController {

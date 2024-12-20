@@ -33,7 +33,9 @@ import { GroupDto } from "./dto/group.dto";
 
 import { GroupAdapter } from "./groupadapter";
 import { BMtoGroupDto } from "./dto/bmtogroup.dto";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Group")
 @Controller("group")
 export class GroupController {

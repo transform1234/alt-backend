@@ -77,6 +77,7 @@ async function getToken() {
     data: data,
   };
 
+
   let res;
   try {
     res = await axios(config);
@@ -168,6 +169,7 @@ async function checkIfEmailExists(email, token) {
 }
 
 async function checkIfUsernameExistsInKeycloak(username, token) {
+  console.log("checkIfUsernameExistsInKeycloak")
   const axios = require("axios");
   const config = {
     method: "get",
@@ -181,11 +183,13 @@ async function checkIfUsernameExistsInKeycloak(username, token) {
     },
   };
 
+  console.log("config", config)
+
   let userResponse;
   try {
     userResponse = await axios(config);
   } catch (e) {
-    console.log(e, "Keycloak error - username");
+    //console.log(e, "Keycloak error - username");
     return e;
   }
 
