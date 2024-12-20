@@ -15,6 +15,7 @@ import {
   Inject,
   UsePipes,
   ValidationPipe,
+  Res,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -127,10 +128,17 @@ export class ALTLessonTrackingController {
   @ApiBasicAuth("access-token")
   public async addLessonTracking(
     @Req() request: Request,
+    @Res() response: Response,
     @Body() altLessonTrackingDto: ALTLessonTrackingDto,
     @Query("program") programId: string,
-    @Query("subject") subject: string,
-  ){
-    return this.altLessonTrackingService.glaAddLessonTracking(request,altLessonTrackingDto,programId,subject);
+    @Query("subject") subject: string
+  ) {
+    return this.altLessonTrackingService.glaAddLessonTracking(
+      request,
+      altLessonTrackingDto,
+      programId,
+      subject,
+      response
+    );
   }
 }
