@@ -115,10 +115,15 @@ export class ALTLessonTrackingService {
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-
+    console.log(
+      "getLastLessonTrackingRecord-->>",
+      lessonId,
+      moduleId,
+      attemptNumber
+    );
     const altLastLessonTrackingRecord = {
-      query: `query GetLastLessonTrackingRecord ($userId:uuid!, $lessonId:String, $moduleId:String, $attemptNumber: Int) {
-          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}, moduleId: {_eq: $moduleId}, attempts: {_eq: $attemptNumber}}) {
+      query: `query GetLastLessonTrackingRecord ($userId:uuid!, $lessonId:String, $moduleId:String) {
+          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}, moduleId: {_eq: $moduleId}}) {
             created_at
             createdBy
             status
@@ -128,7 +133,6 @@ export class ALTLessonTrackingService {
         userId: userId,
         lessonId: lessonId,
         moduleId: moduleId,
-        attemptNumber: attemptNumber,
       },
     };
 
@@ -571,7 +575,7 @@ export class ALTLessonTrackingService {
   public async updateALTLessonTracking(
     request: any,
     lessonId: string,
-    updateAltLessonTrackDto: UpdateALTLessonTrackingDto,
+    updateAltLessonTrackDto: any,
     lastAttempt: number,
     data?: any
   ) {
@@ -580,9 +584,8 @@ export class ALTLessonTrackingService {
     const courseId = data?.courseId;
     const moduleId = data?.moduleId;
 
-    const updateAltLessonTracking = new UpdateALTLessonTrackingDto(
-      updateAltLessonTrackDto
-    );
+    const updateAltLessonTracking = updateAltLessonTrackDto;
+
     let newUpdateAltLessonTracking = "";
     Object.keys(updateAltLessonTrackDto).forEach((key) => {
       if (
@@ -602,6 +605,11 @@ export class ALTLessonTrackingService {
 
     let altLessonUpdateTrackingData;
 
+    console.log(
+      "newUpdateAltLessonTracking-->>",
+      typeof newUpdateAltLessonTracking
+    );
+
     if (!lastAttempt) {
       altLessonUpdateTrackingData = {
         query: `mutation updateAltLessonTracking ($userId:uuid!, $lessonId:String, $courseId: String, $moduleId: String) {
@@ -620,9 +628,12 @@ export class ALTLessonTrackingService {
         },
       };
     } else {
+      // newUpdateAltLessonTracking[attemp] = lastAttempt + 1;
+      lastAttempt = lastAttempt + 1;
+      newUpdateAltLessonTracking += `attempts: ${lastAttempt}, `;
       altLessonUpdateTrackingData = {
-        query: `mutation updateAltLessonTracking ($userId:uuid!, $lessonId:String, $lastAttempt:Int, $courseId: String, $moduleId: String) {
-              update_LessonProgressTracking(where: {lessonId: {_eq: $lessonId}, userId: {_eq: $userId}, courseId: {_eq: $courseId}, moduleId: {_eq:$moduleId} ,attempts: {_eq: $lastAttempt}}, _set: {${newUpdateAltLessonTracking}}) {
+        query: `mutation updateAltLessonTracking ($userId:uuid!, $lessonId:String, $courseId: String, $moduleId: String) {
+              update_LessonProgressTracking(where: {lessonId: {_eq: $lessonId}, userId: {_eq: $userId}, courseId: {_eq: $courseId}, moduleId: {_eq:$moduleId}}, _set: {${newUpdateAltLessonTracking}}) {
               affected_rows
               returning{
               lessonProgressId
@@ -634,10 +645,11 @@ export class ALTLessonTrackingService {
           lessonId: lessonId,
           courseId: courseId,
           moduleId: moduleId,
-          lastAttempt: lastAttempt,
         },
       };
     }
+
+    console.log("quer-->>", altLessonUpdateTrackingData);
 
     const configData = {
       method: "post",
@@ -650,6 +662,7 @@ export class ALTLessonTrackingService {
     };
 
     const response = await this.axios(configData);
+    console.log("response-->>", response.data);
 
     if (response?.data?.errors) {
       return new ErrorResponse({
@@ -896,6 +909,7 @@ export class ALTLessonTrackingService {
           error?.response?.data?.errorMessage || "Can't fetch program details.",
       });
     }
+
     // Map program details to DTO for fetching rules
 
     const paramData = new TermsProgramtoRulesDto(currentProgramDetails.data);
@@ -916,6 +930,7 @@ export class ALTLessonTrackingService {
         errorMessage: "Program Rules not found for given subject!",
       });
     }
+
     let programRules: any;
     if (progTermData?.data[0]?.rules) {
       programRules = JSON.parse(progTermData.data[0].rules);
@@ -936,7 +951,7 @@ export class ALTLessonTrackingService {
         program.contentId === currentLessonId ||
         program.lesson_questionset === currentLessonId
       ) {
-        courseId = program.courseId; // Fetch courseId for the matched lessonId
+        courseId = program; // Fetch courseId for the matched lessonId
         break;
       }
     }
@@ -944,7 +959,12 @@ export class ALTLessonTrackingService {
     if (!courseId) {
       return new ErrorResponse({
         errorCode: "400",
-        errorMessage: `Lesson ID ${currentLessonId} not found in program rules.`,
+        errorMessage: `Program details not available for LessonId ${currentLessonId}`,
+      });
+    } else if (!courseId?.courseId) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: `Course Id not available in the program rules for LessonId ${currentLessonId}`,
       });
     }
 
@@ -956,8 +976,9 @@ export class ALTLessonTrackingService {
     if (checkLessonExist instanceof ErrorResponse) {
       return checkLessonExist; // Return the error directly
     }
+
     const moduleId = checkLessonExist.data;
-    altLessonTrackingDto.courseId = courseId;
+    altLessonTrackingDto.courseId = courseId?.courseId;
     altLessonTrackingDto.moduleId = moduleId;
 
     let flag = false;
@@ -1060,22 +1081,38 @@ export class ALTLessonTrackingService {
                 altLessonTrackingDto,
                 lessonProgressId
               );
+
               return {
                 lessonTrack: lessonTrack,
                 tracking: tracklessonModule,
                 loggedAttempt: loggedAttempt,
               };
             } else if (lastRecord[0]?.status === "completed") {
+              const lessonTrack: any = await this.updateALTLessonTracking(
+                request,
+                altLessonTrackingDto.lessonId,
+                altLessonTrackingDto,
+                lastRecord[0]?.attempts,
+                {
+                  courseId: altLessonTrackingDto.courseId,
+                  moduleId: altLessonTrackingDto.moduleId,
+                }
+              );
               const loggedAttempt = await this.logLessonAttemptProgressTracking(
                 request,
                 altLessonTrackingDto,
                 lessonProgressId
               );
+              return {
+                lessonTrack: lessonTrack,
+                tracking: tracklessonModule,
+                loggedAttempt: loggedAttempt,
+              };
               // Do not update any  records if the lesson is already completed
-              return new ErrorResponse({
-                errorCode: "409",
-                errorMessage: "Lesson is already completed",
-              });
+              // return new ErrorResponse({
+              //   errorCode: "409",
+              //   errorMessage: "Lesson is already completed",
+              // });
             } else {
               return new ErrorResponse({
                 errorCode: "400",
@@ -1148,17 +1185,18 @@ export class ALTLessonTrackingService {
       data: result,
     });
   }
-  public async checkLessonAndModuleExistInCourse(
-    altLessonTrackingDto: ALTLessonTrackingDto
-  ) {
+  public async checkLessonAndModuleExistInCourse(altLessonTrackingDto: any) {
+    console.log("caltourseId-->>", altLessonTrackingDto?.courseId?.courseId);
     const currentUrl = process.env.SUNBIRDURL;
     const config = {
       method: "get",
-      url: `${currentUrl}/api/course/v1/hierarchy/${altLessonTrackingDto.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`,
+      url: `${currentUrl}/api/course/v1/hierarchy/${altLessonTrackingDto.courseId?.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`,
     };
 
+    console.log("axiosherer-->>>", config.url);
     const courseHierarchy = await this.axios(config);
     const data = courseHierarchy?.data.result.content;
+    console.log("axiosData-->>", data);
 
     let moduleId = null;
 
