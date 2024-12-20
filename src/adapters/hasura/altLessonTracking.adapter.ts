@@ -1147,7 +1147,7 @@ export class ALTLessonTrackingService {
       return response.status(422).json(
         new ErrorResponse({
           errorCode: "422",
-          errorMessage: `Course provided doesnt not exist in the current program.`,
+          errorMessage: `Course provided does not exist in the current program.`,
         })
       );
     }
