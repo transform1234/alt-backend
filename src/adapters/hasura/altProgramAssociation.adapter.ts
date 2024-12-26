@@ -582,7 +582,8 @@ export class ALTProgramAssociationService {
               allowedAttempts: item.allowedAttempts,
               criteria: item.criteria,
               contentSource: item.contentSource,
-              lesson_questionset: item.lesson_questionset
+              lesson_questionset: item.lesson_questionset,
+              thumbnailUrl: item.thumbnailUrl
             });
           });
         } else {
