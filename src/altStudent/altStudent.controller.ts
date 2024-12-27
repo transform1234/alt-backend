@@ -5,6 +5,7 @@ import {
   Request,
   UsePipes,
   ValidationPipe,
+  Query,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -195,5 +196,21 @@ export class ALTStudentController {
     @Body() body: any
   ) {
     return this.altStudentService.updateStudent(id, request, body);
+  }
+  @Post("glaProgramProgress")
+  @UsePipes(ValidationPipe)
+  @ApiBasicAuth("access-token")
+  @ApiCreatedResponse({ description: "Student Progress." })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  public async glaStudentProgramProgress(
+    @Req() request: Request,
+    @Query("program") programId: string,
+    @Body() body?: any
+  ) {
+    return await this.altStudentService.glaStudentProgramProgress(
+      request,
+      programId,
+      body
+    );
   }
 }
