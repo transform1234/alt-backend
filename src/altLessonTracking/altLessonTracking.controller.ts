@@ -31,6 +31,7 @@ import { ALTLessonTrackingDto } from "./dto/altLessonTracking.dto";
 import { ALTLessonTrackingService } from "../adapters/hasura/altLessonTracking.adapter";
 import { UpdateALTLessonTrackingDto } from "./dto/updateAltLessonTracking.dto";
 import { ALTLessonTrackingSearch } from "./dto/searchAltLessonTracking.dto";
+import { Response } from 'express';
 
 @ApiTags("ALT Lesson Tracking")
 @Controller("altlessontracking")
