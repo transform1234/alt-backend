@@ -10,7 +10,7 @@ import { GroupMembershipDtoById } from "src/groupMembership/dto/groupMembership.
 import { HasuraGroupService } from "./group.adapter";
 
 @Injectable()
-export class ALTStudentService {      
+export class ALTStudentService {
   constructor(
     private groupService: HasuraGroupService,
     private userService: ALTHasuraUserService,
@@ -140,6 +140,8 @@ export class ALTStudentService {
         studentDto.className,
         new Date().getFullYear().toString()
       );
+      console.log(groupRes);
+
       if (!groupRes?.data[0]?.groupId) {
         return new ErrorResponse({
           errorCode: "400",
@@ -1301,5 +1303,153 @@ export class ALTStudentService {
         data: result,
       });
     }
+  }
+  public async glaStudentProgramProgress(
+    request: any,
+    programId: any,
+    body?: any
+  ) {
+    const subjectCondition = body.subject
+      ? `subject: {_eq: "${body.subject}"}, `
+      : "";
+
+    //Decoding JWT to extract roles and it's permissions
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"]; // Extracting user ID from token
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+
+    const data = {
+      query: `query MyQuery($programId: uuid) {
+                  ProgramTermAssoc(where: {programId: {_eq: $programId},
+                  ${subjectCondition}
+                  }) {
+                    rules
+                    board
+                    grade
+                    medium
+                    subject
+                  }
+                }`,
+      variables: {
+        programId: programId,
+      },
+    };
+    console.log(data.query);
+
+    // Axios configuration for sending the GraphQL request
+    const config = {
+      method: "post",
+      url: this.baseURL,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+
+    const response = await this.axios(config);
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: "401",
+        errorMessage: response?.data?.errors,
+      });
+    }
+
+    const programData = response.data.data.ProgramTermAssoc;
+
+    const lessonData = {
+      query: `
+        query LessonCount($programId: uuid, $userId: uuid) {
+          LessonProgressTracking(where: {programId: {_eq: $programId}, userId: {_eq: $userId}}) {
+            programId
+            userId
+            lessonId
+            status
+            attempts
+            contentType
+            courseId
+            createdBy
+            created_at
+            duration
+            lessonProgressId
+            moduleId
+            score
+            scoreDetails
+            timeSpent
+            updatedBy
+            updated_at
+          }
+          LessonProgressTracking_aggregate(where: {programId: {_eq: $programId}, userId: {_eq: $userId}}){
+            aggregate{
+              count
+            }
+          }
+        }`,
+      variables: {
+        programId: programId,
+        userId: userId,
+      },
+    };
+    console.log(lessonData.query);
+
+    const lessonConfig = {
+      method: "post",
+      url: this.baseURL,
+      headers: {
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+        "Content-Type": "application/json",
+      },
+      data: lessonData,
+    };
+    const lessonResponse = await this.axios(lessonConfig);
+    if (lessonResponse?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: "401",
+        errorMessage: lessonResponse?.data?.errors,
+      });
+    }
+    const lessonResult = lessonResponse.data.data.LessonProgressTracking;
+
+    const matchedContent: any[] = [];
+    let totalLessonsCount = 0; // Total number of lessons
+    let matchedContentCount = 0; // Count of matched content
+
+    for (const programTerm of programData) {
+      const rules = JSON.parse(programTerm.rules).prog || [];
+
+      // Iterate over rules and find matched content based on lessonId and contentId
+      for (const rule of rules) {
+        totalLessonsCount++; // Increment total lessons count
+
+        // Find lessons that match contentId
+        const matchedLessons = lessonResult.filter(
+          (lesson) =>
+            lesson.lessonId === rule.contentId && lesson.status === "completed"
+        );
+
+        // Add all matched lessons to matchedContent array
+        matchedContentCount += matchedLessons.length; // Increment matched content count
+        matchedContent.push(...matchedLessons); // Add matched lessons to matchedContent array
+      }
+    }
+    // Calculate percentage of matched content
+    const percentage =
+      totalLessonsCount > 0
+        ? ((matchedContentCount / totalLessonsCount) * 100).toFixed(2)
+        : "0.00";
+
+    // Return the results including percentage, matched content count, total lessons count, and matched content
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Success",
+      data: {
+        percentage,
+        matchedContentCount,
+        totalLessonsCount,
+        matchedContent,
+      },
+    });
   }
 }

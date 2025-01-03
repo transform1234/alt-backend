@@ -14,6 +14,7 @@ import {
   CacheInterceptor,
   Inject,
   Query,
+  HttpStatus
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -37,7 +38,7 @@ import { SentryInterceptor } from "src/common/sentry.interceptor";
 export class ALTProgramAssociationController {
   constructor(
     private altProgramAssociationService: ALTProgramAssociationService
-  ) {}
+  ) { }
 
   @Post("/altsubjectlist")
   @ApiBasicAuth("access-token")
@@ -135,7 +136,7 @@ export class ALTProgramAssociationController {
     @Query('page') page: any,
     @Query('limit') limit: any
   ) {
-    
+
     return this.altProgramAssociationService.getGlaUserContent(
       request,
       altTermstoRulesDto,
@@ -148,7 +149,66 @@ export class ALTProgramAssociationController {
   public async contentSearch(
     @Req() request: Request,
     @Body() body: any
-  ){
-    return this.altProgramAssociationService.contentSearch(request,body);
+  ) {
+    return this.altProgramAssociationService.contentSearch(request, body);
   }
+
+  // @Post("/contentLike")
+  // @ApiBasicAuth("access-token")
+  // public async contentLike(
+  //   @Req() request: Request,
+  //   @Body() body: any
+  // ){
+  //   return this.altProgramAssociationService.contentLike(request,body);
+  // }
+
+  @Post('contentLike')
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "ALT Rules" })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  async contentLike(@Body() body: any, @Req() request: Request,) {
+    const { programId, subject, contentId, like } = body;
+
+    if (!programId || !subject || !contentId || like === undefined) {
+      return {
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Invalid request body. Missing required fields.',
+      };
+    }
+
+    return this.altProgramAssociationService.likeContent(request, {
+      programId,
+      subject,
+      contentId,
+      like,
+    });
+
+  }
+
+  @Post('isContentLiked')
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "ALT Rules" })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  async isContentLike(@Body() body: any, @Req() request: Request,) {
+    const { programId, subject, contentId } = body;
+
+    if (!programId || !subject || !contentId) {
+      return {
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Invalid request body. Missing required fields.',
+      };
+    }
+
+    return this.altProgramAssociationService.isContentLike(request, {
+      programId,
+      subject,
+      contentId,
+    });
+
+  }
+
+
+
 }
+
+

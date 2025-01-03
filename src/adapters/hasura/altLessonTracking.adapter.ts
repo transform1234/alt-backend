@@ -115,10 +115,15 @@ export class ALTLessonTrackingService {
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-
+    console.log(
+      "getLastLessonTrackingRecord-->>",
+      lessonId,
+      moduleId,
+      attemptNumber
+    );
     const altLastLessonTrackingRecord = {
-      query: `query GetLastLessonTrackingRecord ($userId:uuid!, $lessonId:String, $moduleId:String, $attemptNumber: Int) {
-          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}, moduleId: {_eq: $moduleId}, attempts: {_eq: $attemptNumber}}) {
+      query: `query GetLastLessonTrackingRecord ($userId:uuid!, $lessonId:String, $moduleId:String) {
+          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}, moduleId: {_eq: $moduleId}}) {
             created_at
             createdBy
             status
@@ -128,7 +133,6 @@ export class ALTLessonTrackingService {
         userId: userId,
         lessonId: lessonId,
         moduleId: moduleId,
-        attemptNumber: attemptNumber,
       },
     };
 
@@ -518,6 +522,9 @@ export class ALTLessonTrackingService {
         }
       }
     });
+    if (altLessonTrackingDto?.score === 0) {
+      newAltLessonTracking += `score:${altLessonTracking?.score}`;
+    }
 
     const altLessonTrackingData = {
       query: `mutation CreateALTLessonTracking {
@@ -538,6 +545,7 @@ export class ALTLessonTrackingService {
         }`,
       variables: {},
     };
+    console.log(altLessonTrackingData.query);
 
     const configDataforCreate = {
       method: "post",
@@ -570,7 +578,7 @@ export class ALTLessonTrackingService {
   public async updateALTLessonTracking(
     request: any,
     lessonId: string,
-    updateAltLessonTrackDto: UpdateALTLessonTrackingDto,
+    updateAltLessonTrackDto: any,
     lastAttempt: number,
     data?: any
   ) {
@@ -579,9 +587,8 @@ export class ALTLessonTrackingService {
     const courseId = data?.courseId;
     const moduleId = data?.moduleId;
 
-    const updateAltLessonTracking = new UpdateALTLessonTrackingDto(
-      updateAltLessonTrackDto
-    );
+    const updateAltLessonTracking = updateAltLessonTrackDto;
+
     let newUpdateAltLessonTracking = "";
     Object.keys(updateAltLessonTrackDto).forEach((key) => {
       if (
@@ -619,9 +626,16 @@ export class ALTLessonTrackingService {
         },
       };
     } else {
+      // newUpdateAltLessonTracking[attemp] = lastAttempt + 1;
+      lastAttempt = lastAttempt + 1;
+      newUpdateAltLessonTracking += `attempts: ${lastAttempt}, `;
+      if (updateAltLessonTrackDto?.score === 0) {
+        newUpdateAltLessonTracking += `score:${updateAltLessonTrackDto?.score}`;
+      }
+
       altLessonUpdateTrackingData = {
-        query: `mutation updateAltLessonTracking ($userId:uuid!, $lessonId:String, $lastAttempt:Int, $courseId: String, $moduleId: String) {
-              update_LessonProgressTracking(where: {lessonId: {_eq: $lessonId}, userId: {_eq: $userId}, courseId: {_eq: $courseId}, moduleId: {_eq:$moduleId} ,attempts: {_eq: $lastAttempt}}, _set: {${newUpdateAltLessonTracking}}) {
+        query: `mutation updateAltLessonTracking ($userId:uuid!, $lessonId:String, $courseId: String, $moduleId: String) {
+              update_LessonProgressTracking(where: {lessonId: {_eq: $lessonId}, userId: {_eq: $userId}, courseId: {_eq: $courseId}, moduleId: {_eq:$moduleId}}, _set: {${newUpdateAltLessonTracking}}) {
               affected_rows
               returning{
               lessonProgressId
@@ -633,7 +647,6 @@ export class ALTLessonTrackingService {
           lessonId: lessonId,
           courseId: courseId,
           moduleId: moduleId,
-          lastAttempt: lastAttempt,
         },
       };
     }
@@ -652,7 +665,7 @@ export class ALTLessonTrackingService {
 
     if (response?.data?.errors) {
       return new ErrorResponse({
-        errorCode: response.data.errors[0].extensions,
+        errorCode: "422",
         errorMessage: response.data.errors[0].message,
       });
     }
@@ -818,27 +831,32 @@ export class ALTLessonTrackingService {
       }
     }
   }
-  public async addLessonTracking(
+  public async glaAddLessonTracking(
     request: any,
     altLessonTrackingDto: ALTLessonTrackingDto,
     programId: string,
-    subject: string
+    subject: string,
+    response: any
   ) {
     //  Validate the `scoreDetails` field
     const scoreDetails = altLessonTrackingDto?.scoreDetails;
 
     if (Array.isArray(scoreDetails) && !scoreDetails.length) {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage: "Score Details is empty",
-      });
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: "Score Details is empty",
+        })
+      );
     }
 
     if (Object.keys(scoreDetails).length === 0) {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage: "Score Details is empty",
-      });
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: "Score Details is empty",
+        })
+      );
     }
     let lessonProgressId;
     //  Decode the JWT token for user identification
@@ -849,7 +867,9 @@ export class ALTLessonTrackingService {
     altLessonTrackingDto.createdBy = altLessonTrackingDto.userId;
     altLessonTrackingDto.updatedBy = altLessonTrackingDto.userId;
     altLessonTrackingDto.timeSpent =
-      altLessonTrackingDto.timeSpent > 0 ? altLessonTrackingDto.timeSpent : 0;
+      altLessonTrackingDto.timeSpent > 0
+        ? Math.round(altLessonTrackingDto.timeSpent)
+        : 0;
     altLessonTrackingDto.programId = programId;
 
     //  Fetch existing lesson tracking records
@@ -860,18 +880,22 @@ export class ALTLessonTrackingService {
         altLessonTrackingDto.lessonId
       );
     } catch (error) {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage:
-          error?.response?.data?.errorMessage ||
-          "Can't fetch existing records.",
-      });
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage:
+            error?.response?.data?.errorMessage ||
+            "Can't fetch existing records.",
+        })
+      );
     }
     if (!recordList?.data) {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage: recordList?.errorMessage,
-      });
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: recordList?.errorMessage,
+        })
+      );
     }
 
     // Determine if a record already exists
@@ -887,12 +911,16 @@ export class ALTLessonTrackingService {
         programId
       );
     } catch (error) {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage:
-          error?.response?.data?.errorMessage || "Can't fetch program details.",
-      });
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage:
+            error?.response?.data?.errorMessage ||
+            "Can't fetch program details.",
+        })
+      );
     }
+
     // Map program details to DTO for fetching rules
 
     const paramData = new TermsProgramtoRulesDto(currentProgramDetails.data);
@@ -908,19 +936,24 @@ export class ALTLessonTrackingService {
         subject: subject,
       });
     } catch (error) {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage: "Program Rules not found for given subject!",
-      });
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: "Program Rules not found for given subject!",
+        })
+      );
     }
+
     let programRules: any;
     if (progTermData?.data[0]?.rules) {
       programRules = JSON.parse(progTermData.data[0].rules);
     } else {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage: "Program Rules not found for given subject!",
-      });
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: "Program Rules not found for given subject!",
+        })
+      );
     }
     //  Loop through program rules to process the lesson tracking
 
@@ -929,17 +962,29 @@ export class ALTLessonTrackingService {
     let courseId;
 
     for (const program of programRules.prog) {
-      if (program.contentId === currentLessonId) {
-        courseId = program.courseId; // Fetch courseId for the matched lessonId
+      if (
+        program.contentId === currentLessonId ||
+        program.lesson_questionset === currentLessonId
+      ) {
+        courseId = program; // Fetch courseId for the matched lessonId
         break;
       }
     }
 
     if (!courseId) {
-      return new ErrorResponse({
-        errorCode: "400",
-        errorMessage: `Lesson ID ${currentLessonId} not found in program rules.`,
-      });
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: `Program details not available for LessonId ${currentLessonId}`,
+        })
+      );
+    } else if (!courseId?.courseId) {
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: `Course Id not available in the program rules for LessonId ${currentLessonId}`,
+        })
+      );
     }
 
     // Call checkLessonAndModuleExistInCourse with the found courseId
@@ -948,10 +993,15 @@ export class ALTLessonTrackingService {
       courseId,
     });
     if (checkLessonExist instanceof ErrorResponse) {
-      return checkLessonExist; // Return the error directly
+      return response.status(422).json({
+        // Return the error directly
+        errorCode: "422",
+        errorMessage: checkLessonExist,
+      });
     }
+
     const moduleId = checkLessonExist.data;
-    altLessonTrackingDto.courseId = courseId;
+    altLessonTrackingDto.courseId = courseId?.courseId;
     altLessonTrackingDto.moduleId = moduleId;
 
     let flag = false;
@@ -961,58 +1011,91 @@ export class ALTLessonTrackingService {
       for (const course of programRules?.prog) {
         const numberOfRecords = parseInt(recordList?.data.length);
         // Check if the course matches
-        if (course.contentId == courseId) {
+        if (
+          course.contentId == altLessonTrackingDto.lessonId ||
+          course.lesson_questionset == altLessonTrackingDto.lessonId
+        ) {
           flag = true;
-          if (course.contentType === "assessment") {
-            if (numberOfRecords === 0) {
-              // No record exists for this lessonId and moduleId
-              altLessonTrackingDto.attempts = 1; // First attempt
-              // Create a new LessonProgressTracking record
-              const lessonTrack: any = await this.createALTLessonTracking(
-                request,
-                altLessonTrackingDto
-              );
-              lessonProgressId = lessonTrack?.data?.lessonProgressId;
-            } else if (numberOfRecords === 1) {
-              // Update or reject if the assessment is completed
-              const existingRecord = recordList.data[0];
 
-              if (existingRecord.status !== "completed") {
-                // If the status is "inprogress", update it to "completed"
-                await this.updateALTLessonTracking(
-                  request,
-                  altLessonTrackingDto.lessonId,
-                  altLessonTrackingDto,
-                  0,
-                  {
-                    courseId: courseId,
-                    moduleId: altLessonTrackingDto.moduleId,
-                  }
-                );
-              } else if (existingRecord.status === "completed") {
-                // If the status is "completed", do not update or create a new record
-                return new ErrorResponse({
-                  errorCode: "400",
-                  errorMessage: "Record for Assessment already exists!",
-                });
-              }
+          // if course content handling creation and updation of lesson with module
+
+          if (numberOfRecords === 0) {
+            altLessonTrackingDto.attempts = 1;
+            altLessonTrackingDto.score = altLessonTrackingDto?.score; // keeping it one
+            const lessonTrack: any = await this.createALTLessonTracking(
+              request,
+              altLessonTrackingDto
+            );
+
+            lessonProgressId = lessonTrack?.data?.lessonProgressId;
+
+            if (
+              altLessonTrackingDto.status === "completed" &&
+              lessonTrack?.statusCode === 200
+            ) {
+              tracklessonModule = await this.glalessonToModuleTracking(
+                request,
+                altLessonTrackingDto,
+                programId,
+                subject,
+                false
+              );
             }
-          } else if (course.contentType == "course") {
-            // if course content handling creation and updation of lesson with module
-            if (numberOfRecords === 0) {
-              altLessonTrackingDto.attempts = 1;
-              const lessonTrack: any = await this.createALTLessonTracking(
+            // Log progress tracking after insertion
+            const loggedAttempt = await this.logLessonAttemptProgressTracking(
+              request,
+              altLessonTrackingDto,
+              lessonProgressId
+            );
+
+            return response.status(200).json({
+              lessonTrack: lessonTrack,
+              tracking: tracklessonModule,
+              loggedAttempt: loggedAttempt,
+            });
+          } else if (numberOfRecords >= 1) {
+            //fetching the last records from database and checking its status
+            const lastRecord = await this.getLastLessonTrackingRecord(
+              request,
+              altLessonTrackingDto.lessonId,
+              altLessonTrackingDto.moduleId,
+              numberOfRecords
+            ).catch(function (error) {
+              return response.status(422).json(
+                new ErrorResponse({
+                  errorCode: "422",
+                  errorMessage: error,
+                })
+              );
+            });
+
+            if (!lastRecord[0]?.status) {
+              return response.status(422).json(
+                new ErrorResponse({
+                  errorCode: "422",
+                  errorMessage: lastRecord + "Error getting last record",
+                })
+              );
+            }
+
+            if (lastRecord[0]?.status !== "completed") {
+              const lessonTrack: any = await this.updateALTLessonTracking(
                 request,
-                altLessonTrackingDto
+                altLessonTrackingDto.lessonId,
+                altLessonTrackingDto,
+                lastRecord[0]?.attempts,
+                {
+                  courseId: altLessonTrackingDto.courseId,
+                  moduleId: altLessonTrackingDto.moduleId,
+                }
               );
 
-              lessonProgressId = lessonTrack?.data?.lessonProgressId;
-
+              // Adding to module only when its first attempt and increasing count in module for lesson
               if (
                 altLessonTrackingDto.status === "completed" &&
                 lessonTrack?.statusCode === 200
               ) {
-                tracklessonModule = await this.lessonToModuleTracking(
+                tracklessonModule = await this.glalessonToModuleTracking(
                   request,
                   altLessonTrackingDto,
                   programId,
@@ -1020,8 +1103,8 @@ export class ALTLessonTrackingService {
                   false
                 );
               }
-              //adding an entry into LessonProgressAttemptTracking Table
-              await this.logLessonAttemptProgressTracking(
+              // Log progress tracking after insertion
+              const loggedAttempt = await this.logLessonAttemptProgressTracking(
                 request,
                 altLessonTrackingDto,
                 lessonProgressId
@@ -1030,92 +1113,51 @@ export class ALTLessonTrackingService {
               return {
                 lessonTrack: lessonTrack,
                 tracking: tracklessonModule,
+                loggedAttempt: loggedAttempt,
               };
-            } else if (numberOfRecords >= 1) {
-              const lastRecord = await this.getLastLessonTrackingRecord(
+            } else if (lastRecord[0]?.status === "completed") {
+              altLessonTrackingDto.score = altLessonTrackingDto.score;
+              const lessonTrack: any = await this.updateALTLessonTracking(
                 request,
                 altLessonTrackingDto.lessonId,
-                altLessonTrackingDto.moduleId,
-                numberOfRecords
-              ).catch(function (error) {
-                return new ErrorResponse({
-                  errorCode: "400",
-                  errorMessage: error,
-                });
-              });
-
-              if (!lastRecord[0]?.status) {
-                return new ErrorResponse({
-                  errorCode: "400",
-                  errorMessage: lastRecord + "Error getting last record",
-                });
-              }
-
-              if (lastRecord[0]?.status !== "completed") {
-                const lessonTrack: any = await this.updateALTLessonTracking(
-                  request,
-                  altLessonTrackingDto.lessonId,
-                  altLessonTrackingDto,
-                  lastRecord[0]?.attempts,
-                  {
-                    courseId: altLessonTrackingDto.courseId,
-                    moduleId: altLessonTrackingDto.moduleId,
-                  }
-                );
-
-                // Adding to module only when its first attempt and increasing count in module for lesson
-                if (
-                  altLessonTrackingDto.status === "completed" &&
-                  lastRecord[0].attempts === 1 &&
-                  lessonTrack?.statusCode === 200
-                ) {
-                  tracklessonModule = await this.lessonToModuleTracking(
-                    request,
-                    altLessonTrackingDto,
-                    programId,
-                    subject,
-                    false
-                  );
+                altLessonTrackingDto,
+                lastRecord[0]?.attempts,
+                {
+                  courseId: altLessonTrackingDto.courseId,
+                  moduleId: altLessonTrackingDto.moduleId,
                 }
-
-                await this.logLessonAttemptProgressTracking(
-                  request,
-                  altLessonTrackingDto,
-                  lessonProgressId
-                );
-
-                return {
-                  lessonTrack: lessonTrack,
-                  tracking: tracklessonModule,
-                };
-              } else if (lastRecord[0]?.status === "completed") {
-                await this.logLessonAttemptProgressTracking(
-                  request,
-                  altLessonTrackingDto,
-                  lessonProgressId
-                );
-                // Do not update any  records if the lesson is already completed
-                return new ErrorResponse({
-                  errorCode: "409",
-                  errorMessage: "Lesson is already completed",
-                });
-              } else {
-                return new ErrorResponse({
-                  errorCode: "400",
+              );
+              const loggedAttempt = await this.logLessonAttemptProgressTracking(
+                request,
+                altLessonTrackingDto,
+                lessonProgressId
+              );
+              return response.status(201).json({
+                lessonTrack: lessonTrack,
+                tracking: tracklessonModule,
+                loggedAttempt: loggedAttempt,
+              });
+            } else {
+              return response.status(422).json(
+                new ErrorResponse({
+                  errorCode: "422",
                   errorMessage: lastRecord,
-                });
-              }
+                })
+              );
             }
           }
         }
       }
-      // If no valid course is found in the program
-      if (!flag) {
-        return new ErrorResponse({
-          errorCode: "400",
+    }
+
+    //If no valid course is found in the program
+    if (!flag) {
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
           errorMessage: `Course provided does not exist in the current program.`,
-        });
-      }
+        })
+      );
     }
   }
   public async logLessonAttemptProgressTracking(
@@ -1171,17 +1213,18 @@ export class ALTLessonTrackingService {
       data: result,
     });
   }
-  public async checkLessonAndModuleExistInCourse(
-    altLessonTrackingDto: ALTLessonTrackingDto
-  ) {
+  public async checkLessonAndModuleExistInCourse(altLessonTrackingDto: any) {
+    console.log("caltourseId-->>", altLessonTrackingDto?.courseId?.courseId);
     const currentUrl = process.env.SUNBIRDURL;
     const config = {
       method: "get",
-      url: `${currentUrl}/api/course/v1/hierarchy/${altLessonTrackingDto.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`,
+      url: `${currentUrl}/api/course/v1/hierarchy/${altLessonTrackingDto.courseId?.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`,
     };
 
+    console.log("axiosherer-->>>", config.url);
     const courseHierarchy = await this.axios(config);
     const data = courseHierarchy?.data.result.content;
+    console.log("axiosData-->>", data);
 
     let moduleId = null;
 
@@ -1214,5 +1257,81 @@ export class ALTLessonTrackingService {
       data: moduleId,
     });
   }
+  public async glalessonToModuleTracking(
+    request: any,
+    altLessonTrackingDto: ALTLessonTrackingDto,
+    programId: string,
+    subject: string,
+    repeatAttempt: boolean
+  ) {
+    //add or update the recond in the moduleTRacking table
+    const currentUrl = process.env.SUNBIRDURL;
 
+    let config = {
+      method: "get",
+      url:
+        currentUrl +
+        `/api/course/v1/hierarchy/${altLessonTrackingDto.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`,
+    };
+
+    const courseHierarchy = await this.axios(config);
+    const data = courseHierarchy?.data.result.content;
+    let noOfModules = data.children.length;
+
+    let currentModule = data.children.find((item) => {
+      return item.identifier === altLessonTrackingDto.moduleId;
+    });
+
+    let altModuleTracking = {
+      userId: altLessonTrackingDto.userId,
+      courseId: altLessonTrackingDto.courseId,
+      moduleId: altLessonTrackingDto.moduleId,
+      status: "ongoing",
+      totalNumberOfLessonsCompleted: 1,
+      totalNumberOfLessons: currentModule.children.length,
+      timeSpent: altLessonTrackingDto.timeSpent,
+      createdBy: altLessonTrackingDto.userId,
+      updatedBy: altLessonTrackingDto.userId,
+    };
+
+    const altModuleTrackingDto = new ALTModuleTrackingDto(altModuleTracking);
+    let moduleTracking: any;
+    moduleTracking =
+      await this.altModuleTrackingService.glaCheckAndAddALTModuleTracking(
+        request,
+        programId,
+        subject,
+        noOfModules,
+        repeatAttempt,
+        altModuleTrackingDto
+      );
+
+    if (moduleTracking?.statusCode != 200) {
+      return new ErrorResponse({
+        errorCode: moduleTracking?.statusCode,
+        errorMessage:
+          moduleTracking?.errorMessage + "Could not create Module Tracking",
+      });
+    } else {
+      if (moduleTracking.data.moduleProgressId) {
+        return new SuccessResponse({
+          statusCode: moduleTracking?.statusCode,
+          message: "Ok.",
+          data: { ack: "Module and Course Tracking created" },
+        });
+      } else if (moduleTracking.data.affected_rows) {
+        return new SuccessResponse({
+          statusCode: moduleTracking?.statusCode,
+          message: "Ok.",
+          data: { ack: "Module and Course Tracking updated" },
+        });
+      } else {
+        return new SuccessResponse({
+          statusCode: moduleTracking?.statusCode,
+          message: "Ok.",
+          data: { ack: "Course completed" },
+        });
+      }
+    }
+  }
 }

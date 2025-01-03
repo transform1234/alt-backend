@@ -1,4 +1,4 @@
-import { HttpException, Injectable } from "@nestjs/common";
+import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
 import { SuccessResponse } from "src/success-response";
 import { ALTSubjectListDto } from "src/altProgramAssociation/dto/altSubjectList.dto";
@@ -8,10 +8,13 @@ import { UpdateALTProgramAssociationDto } from "src/altProgramAssociation/dto/up
 import { ErrorResponse } from "src/error-response";
 import { ALTProgramAssociationSearch } from "src/altProgramAssociation/dto/searchAltProgramAssociation.dto";
 import jwt_decode from "jwt-decode";
+import { firstValueFrom } from 'rxjs';
 
 Injectable();
 export class ALTProgramAssociationService {
   axios = require("axios");
+
+  constructor(private readonly httpService: HttpService) {}
 
   public async mappedResponse(data: any) {
     const programResponse = data.map((item: any) => {
@@ -582,6 +585,8 @@ export class ALTProgramAssociationService {
               allowedAttempts: item.allowedAttempts,
               criteria: item.criteria,
               contentSource: item.contentSource,
+              lesson_questionset: item.lesson_questionset,
+              thumbnailUrl: item.thumbnailUrl
             });
           });
         } else {
@@ -620,4 +625,370 @@ export class ALTProgramAssociationService {
       data: { paginatedData, meta },
     });
   }
+
+  // async likeContent(request, data: {
+  //   programId: string;
+  //   subject: string;
+  //   userId: string;
+  //   contentId: string;
+  //   like: boolean;
+  // }) {
+  //   const graphqlMutation = {
+  //     query: `
+  //       mutation ($input: GlaLikedContents_insert_input!) {
+  //         insert_GlaLikedContents_one(object: $input) {
+  //           id
+  //         }
+  //       }
+  //     `,
+  //     variables: {
+  //       input: data,
+  //     },
+  //   };
+
+  //   console.log(graphqlMutation.query);
+
+  //   const config_data = {
+  //     method: "post",
+  //     url: process.env.ALTHASURA,
+  //     headers: {
+  //       Authorization: request.headers.authorization,
+  //       "Content-Type": "application/json",
+  //     },
+  //     data: graphqlMutation,
+  //   };
+  //   const response = await this.axios(config_data);
+
+  //   if (response?.data?.errors) {
+  //     return new ErrorResponse({
+  //       errorCode: response.data.errors[0].extensions,
+  //       errorMessage: response.data.errors[0].message,
+  //     });
+  //   }
+  //   return response
+
+  // }
+
+
+  // async likeContent(request, data: {
+  //   programId: string;
+  //   subject: string;
+  //   contentId: string;
+  //   like: boolean;
+  // }) {
+
+  //   const decoded: any = jwt_decode(request.headers.authorization);
+  //   const altUserId =
+  //     decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+  //   console.log("altUserId", altUserId);
+  //   //console.log("altTermsProgramDto", altTermsProgramDto);
+  //   const graphqlMutation = {
+  //     query: `
+  //       mutation InsertLike($contentId: String!, $like: Boolean!, $programId: String!, $subject: String!, $userId: String!) {
+  //         insert_GlaLikedContents_one(object: {
+  //           contentId: $contentId,
+  //           like: $like,
+  //           programId: $programId,
+  //           subject: $subject,
+  //           userId: $userId
+  //         }) {
+  //           id
+  //           like
+  //           programId
+  //           subject
+  //           userId
+  //           contentId
+  //           created_at
+  //           updated_at
+  //         }
+  //       }
+  //     `,
+  //     variables: {
+  //       contentId: data.contentId,
+  //       like: data.like,
+  //       programId: data.programId,
+  //       subject: data.subject,
+  //       userId: altUserId,
+  //     },
+  //   };
+
+    
+  
+  //   console.log('GraphQL Mutation:', graphqlMutation.query);
+  
+  //   const config_data = {
+  //     method: 'post',
+  //     url: process.env.ALTHASURA,
+  //     headers: {
+  //       Authorization: request.headers.authorization,
+  //       'Content-Type': 'application/json',
+  //     },
+  //     data: graphqlMutation,
+  //   };
+  
+  //   try {
+  //     const response = await this.axios(config_data);
+
+  //     console.log("response", response.data.data)
+  
+  //     if (response?.data?.errors) {
+  //       console.error('GraphQL Errors:', response.data.errors);
+  //       return new ErrorResponse({
+  //         errorCode: response.data.errors[0]?.extensions?.code || 'UNKNOWN_ERROR',
+  //         errorMessage: response.data.errors[0]?.message || 'An unknown error occurred.',
+  //       });
+  //     }
+  
+  //     return new SuccessResponse({
+  //       statusCode: 200,
+  //       message: 'Content like status updated successfully.',
+  //       data: response.data.data,
+  //     });
+  //   } catch (error) {
+  //     console.error('Axios Error:', error.message);
+  //     throw new ErrorResponse({
+  //       errorCode: 'AXIOS_ERROR',
+  //       errorMessage: 'Failed to execute the GraphQL mutation.',
+  //     });
+  //   }
+  // }
+
+  async likeContent(request, data: {
+    programId: string;
+    subject: string;
+    contentId: string;
+    like: boolean;
+  }) {
+
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    console.log("altUserId", altUserId);
+
+    // First, check if the combination exists
+    const checkGraphQLQuery = {
+      query: `
+        query CheckLikeStatus($contentId: String!, $programId: String!, $subject: String!, $userId: String!) {
+          GlaLikedContents(where: {
+            contentId: { _eq: $contentId },
+            programId: { _eq: $programId },
+            subject: { _eq: $subject },
+            userId: { _eq: $userId }
+          }) {
+            id
+            like
+          }
+        }
+      `,
+      variables: {
+        contentId: data.contentId,
+        programId: data.programId,
+        subject: data.subject,
+        userId: altUserId,
+      },
+    };
+
+    const config_data = {
+      method: 'post',
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        'Content-Type': 'application/json',
+      },
+      data: checkGraphQLQuery,
+    };
+
+    try {
+      // Check if the like entry already exists
+      const checkResponse = await this.axios(config_data);
+      console.log("checkResponse", checkResponse.data.data)
+      const existingLike = checkResponse?.data?.data?.GlaLikedContents[0];
+      console.log("existingLike", existingLike)
+
+      if (existingLike) {
+        // If entry exists, update the like status
+        console.log("entry exists")
+        const updateGraphQLQuery = {
+          query: `
+            mutation UpdateLike($contentId: String!, $like: Boolean!, $programId: String!, $subject: String!, $userId: String!) {
+              update_GlaLikedContents(where: {
+                contentId: { _eq: $contentId },
+                programId: { _eq: $programId },
+                subject: { _eq: $subject },
+                userId: { _eq: $userId }
+              }, _set: { like: $like }) {
+                affected_rows
+                returning {
+                  id
+                  like
+                  programId
+                  subject
+                  userId
+                  contentId
+                  created_at
+                  updated_at
+                }
+              }
+            }
+          `,
+          variables: {
+            contentId: data.contentId,
+            like: data.like,
+            programId: data.programId,
+            subject: data.subject,
+            userId: altUserId,
+          },
+        };
+
+        config_data.data = updateGraphQLQuery;
+
+        const updateResponse = await this.axios(config_data);
+        console.log("Updated Like:", updateResponse.data.data);
+
+        return new SuccessResponse({
+          statusCode: 200,
+          message: 'Content like status updated successfully.',
+          data: updateResponse.data.data,
+        });
+      } else {
+        // If no entry exists, insert a new one
+        console.log("no entry exists")
+        const insertGraphQLQuery = {
+          query: `
+            mutation InsertLike($contentId: String!, $like: Boolean!, $programId: String!, $subject: String!, $userId: String!) {
+              insert_GlaLikedContents_one(object: {
+                contentId: $contentId,
+                like: $like,
+                programId: $programId,
+                subject: $subject,
+                userId: $userId
+              }) {
+                id
+                like
+                programId
+                subject
+                userId
+                contentId
+                created_at
+                updated_at
+              }
+            }
+          `,
+          variables: {
+            contentId: data.contentId,
+            like: data.like,
+            programId: data.programId,
+            subject: data.subject,
+            userId: altUserId,
+          },
+        };
+
+        config_data.data = insertGraphQLQuery;
+
+        const insertResponse = await this.axios(config_data);
+        console.log("Inserted Like:", insertResponse.data.data);
+
+        return new SuccessResponse({
+          statusCode: 200,
+          message: 'Content like status inserted successfully.',
+          data: insertResponse.data.data,
+        });
+      }
+
+    } catch (error) {
+      console.error('Axios Error:', error.message);
+      throw new ErrorResponse({
+        errorCode: 'AXIOS_ERROR',
+        errorMessage: 'Failed to execute the GraphQL mutation.',
+      });
+    }
+  }
+
+  async isContentLike(request, data: {
+    programId: string;
+    subject: string;
+    contentId: string;
+  }) {
+
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    console.log("altUserId", altUserId);
+
+    // First, check if the combination exists
+    const checkGraphQLQuery = {
+      query: `
+        query CheckLikeStatus($contentId: String!, $programId: String!, $subject: String!) {
+          GlaLikedContents(where: {
+            contentId: { _eq: $contentId },
+            programId: { _eq: $programId },
+            subject: { _eq: $subject }
+          }) {
+            id
+            userId
+            contentId
+            programId
+            subject
+            like
+          }
+        }
+      `,
+      variables: {
+        contentId: data.contentId,
+        programId: data.programId,
+        subject: data.subject
+      },
+    };
+
+    const config_data = {
+      method: 'post',
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        'Content-Type': 'application/json',
+      },
+      data: checkGraphQLQuery,
+    };
+
+    try {
+      // Check if the like entry already exists
+      const checkResponse = await this.axios(config_data);
+      console.log("checkResponse", checkResponse.data.data)
+      const existingLike = checkResponse?.data?.data?.GlaLikedContents[0];
+      console.log("existingLike", existingLike)
+
+      if (existingLike) {
+        // If entry exists, update the like status
+        
+
+        return new SuccessResponse({
+          statusCode: 200,
+          message: 'Content fetched successfully.',
+          data: checkResponse?.data?.data?.GlaLikedContents,
+        });
+      } else {
+        // If no entry exists, insert a new one
+        console.log("no entry exists")
+        
+
+        return new SuccessResponse({
+          statusCode: 200,
+          message: 'Content not exists.',
+          data: [],
+        });
+      }
+
+    } catch (error) {
+      console.error('Axios Error:', error.message);
+      throw new ErrorResponse({
+        errorCode: 'AXIOS_ERROR',
+        errorMessage: 'Failed to execute the GraphQL mutation.',
+      });
+    }
+  }
+
+  
 }

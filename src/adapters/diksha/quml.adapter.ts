@@ -509,7 +509,7 @@ export class QumlQuestionService implements IServicelocator {
     request: any
   ) {}
   bulkImport(request: any, questionDto: [Object]) {}
-  async getQuestionList(request: any, body: any,limit:string) {
+  async getQuestionList(request: any, body: any, limit: string) {
     try {
       var axios = require("axios");
       var config = {
@@ -519,16 +519,12 @@ export class QumlQuestionService implements IServicelocator {
           "Content-Type": "application/json",
         },
         data: body,
-        limit:limit
+        limit: limit,
       };
 
       const responseData = await axios(config);
       const data = responseData.data;
-      return new SuccessResponse({
-        statusCode: 200,
-        message: "Ok",
-        data: data.result.questions,
-      });
+      return data;
     } catch (error) {
       return new ErrorResponse({
         errorCode: "500",
