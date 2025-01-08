@@ -754,6 +754,7 @@ export class ALTProgramAssociationService {
   //   }
   // }
 
+  // Like content
   async likeContent(request, data: {
     programId: string;
     subject: string;
@@ -956,7 +957,7 @@ export class ALTProgramAssociationService {
     try {
       // Check if the like entry already exists
       const checkResponse = await this.axios(config_data);
-      console.log("checkResponse", checkResponse.data.data)
+      console.log("checkResponse", checkResponse.data)
       const existingLike = checkResponse?.data?.data?.GlaLikedContents[0];
       console.log("existingLike", existingLike)
 
@@ -990,5 +991,308 @@ export class ALTProgramAssociationService {
     }
   }
 
+  // Rate Quiz
+  async rateQuiz(request, data: {
+    programId: string;
+    subject: string;
+    contentId: string;
+    rating: boolean;
+  }) {
+
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    console.log("altUserId", altUserId);
+
+    // First, check if the combination exists
+    const checkGraphQLQuery = {
+      query: `
+        query CheckLikeStatus($contentId: String!, $programId: String!, $subject: String!, $userId: String!) {
+          GlaQuizRating(where: {
+            contentId: { _eq: $contentId },
+            programId: { _eq: $programId },
+            subject: { _eq: $subject },
+            userId: { _eq: $userId }
+          }) {
+            id
+            rating
+          }
+        }
+      `,
+      variables: {
+        contentId: data.contentId,
+        programId: data.programId,
+        subject: data.subject,
+        userId: altUserId,
+      },
+    };
+
+    const config_data = {
+      method: 'post',
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        'Content-Type': 'application/json',
+      },
+      data: checkGraphQLQuery,
+    };
+
+    try {
+      // Check if the like entry already exists
+      const checkResponse = await this.axios(config_data);
+      console.log("checkResponse", checkResponse.data.data)
+      const existingLike = checkResponse?.data?.data?.GlaQuizRating[0];
+      console.log("existingLike", existingLike)
+
+      if (existingLike) {
+        // If entry exists, update the like status
+        console.log("entry exists")
+        const updateGraphQLQuery = {
+          query: `
+            mutation UpdateLike($contentId: String!, $rating: Int!, $programId: String!, $subject: String!, $userId: String!) {
+              update_GlaQuizRating(where: {
+                contentId: { _eq: $contentId },
+                programId: { _eq: $programId },
+                subject: { _eq: $subject },
+                userId: { _eq: $userId }
+              }, _set: { rating: $rating }) {
+                affected_rows
+                returning {
+                  id
+                  rating
+                  programId
+                  subject
+                  userId
+                  contentId
+                  created_at
+                  updated_at
+                }
+              }
+            }
+          `,
+          variables: {
+            contentId: data.contentId,
+            rating: data.rating,
+            programId: data.programId,
+            subject: data.subject,
+            userId: altUserId,
+          },
+        };
+
+        config_data.data = updateGraphQLQuery;
+
+        const updateResponse = await this.axios(config_data);
+        console.log("Updated Like:", updateResponse.data.data);
+
+        return new SuccessResponse({
+          statusCode: 200,
+          message: 'Content like status updated successfully.',
+          data: updateResponse.data.data,
+        });
+      } else {
+        // If no entry exists, insert a new one
+        console.log("no entry exists")
+        const insertGraphQLQuery = {
+          query: `
+            mutation InsertLike($contentId: String!, $rating: Int!, $programId: String!, $subject: String!, $userId: String!) {
+              insert_GlaQuizRating_one(object: {
+                contentId: $contentId,
+                rating: $rating,
+                programId: $programId,
+                subject: $subject,
+                userId: $userId
+              }) {
+                id
+                rating
+                programId
+                subject
+                userId
+                contentId
+                created_at
+                updated_at
+              }
+            }
+          `,
+          variables: {
+            contentId: data.contentId,
+            rating: data.rating,
+            programId: data.programId,
+            subject: data.subject,
+            userId: altUserId,
+          },
+        };
+
+        config_data.data = insertGraphQLQuery;
+
+        const insertResponse = await this.axios(config_data);
+        console.log("Inserted Like:", insertResponse.data.data);
+
+        return new SuccessResponse({
+          statusCode: 200,
+          message: 'Content like status inserted successfully.',
+          data: insertResponse.data.data,
+        });
+      }
+
+    } catch (error) {
+      console.error('Axios Error:', error.message);
+      throw new ErrorResponse({
+        errorCode: 'AXIOS_ERROR',
+        errorMessage: 'Failed to execute the GraphQL mutation.',
+      });
+    }
+  }
+
+  async isQuizRated(request, data: {
+    programId: string;
+    subject: string;
+    contentId: string;
+  }) {
+
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    console.log("altUserId", altUserId);
+
+    // First, check if the combination exists
+    const checkGraphQLQuery = {
+      query: `
+        query CheckLikeStatus($contentId: String!, $programId: String!, $subject: String!) {
+          GlaQuizRating(where: {
+            contentId: { _eq: $contentId },
+            programId: { _eq: $programId },
+            subject: { _eq: $subject }
+          }) {
+            id
+            userId
+            contentId
+            programId
+            subject
+            rating
+          }
+        }
+      `,
+      variables: {
+        contentId: data.contentId,
+        programId: data.programId,
+        subject: data.subject
+      },
+    };
+
+    const config_data = {
+      method: 'post',
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        'Content-Type': 'application/json',
+      },
+      data: checkGraphQLQuery,
+    };
+
+    try {
+      // Check if the like entry already exists
+      const checkResponse = await this.axios(config_data);
+      console.log("checkResponse", checkResponse.data)
+      const existingLike = checkResponse?.data?.data?.GlaQuizRating[0];
+      console.log("existingLike", existingLike)
+
+      if (existingLike) {
+        // If entry exists, update the like status
+        
+
+        return new SuccessResponse({
+          statusCode: 200,
+          message: 'Content fetched successfully.',
+          data: checkResponse?.data?.data?.GlaQuizRating,
+        });
+      } else {
+        // If no entry exists, insert a new one
+        console.log("no entry exists")
+        
+
+        return new SuccessResponse({
+          statusCode: 200,
+          message: 'Content not exists.',
+          data: [],
+        });
+      }
+
+    } catch (error) {
+      console.error('Axios Error:', error.message);
+      throw new ErrorResponse({
+        errorCode: 'AXIOS_ERROR',
+        errorMessage: 'Failed to execute the GraphQL mutation.',
+      });
+    }
+  }
+
+
+  async getUserPoints(request) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+  
+    console.log("altUserId", altUserId);
+  
+    const checkGraphQLQuery = {
+      query: `
+      query MyQuery($userId: String!) {
+        UserPoints(
+          where: { user_id: { _eq: $userId } }
+          order_by: { created_at: desc }
+
+        ) {
+          id
+          identifier
+          points
+          description
+          user_id
+          created_at
+          updated_at
+        }
+      }
+      `,
+      variables: {
+        userId: altUserId,
+      },
+    };
+  
+    const config_data = {
+      method: 'post',
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        'Content-Type': 'application/json',
+      },
+      data: checkGraphQLQuery,
+    };
+  
+    try {
+      const checkResponse = await this.axios(config_data);
+      console.log("checkResponse", checkResponse.data);
+  
+      if (checkResponse) {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: 'User Points fetched successfully.',
+          data: checkResponse?.data?.data,
+        });
+      } else {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: 'User Points not exists.',
+          data: [],
+        });
+      }
+    } catch (error) {
+      console.error('Axios Error:', error.message);
+      throw new ErrorResponse({
+        errorCode: 'AXIOS_ERROR',
+        errorMessage: 'Failed to execute the GraphQL mutation.',
+      });
+    }
+  }
+  
   
 }

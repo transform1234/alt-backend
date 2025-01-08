@@ -153,15 +153,7 @@ export class ALTProgramAssociationController {
     return this.altProgramAssociationService.contentSearch(request, body);
   }
 
-  // @Post("/contentLike")
-  // @ApiBasicAuth("access-token")
-  // public async contentLike(
-  //   @Req() request: Request,
-  //   @Body() body: any
-  // ){
-  //   return this.altProgramAssociationService.contentLike(request,body);
-  // }
-
+  // Like content
   @Post('contentLike')
   @ApiBasicAuth("access-token")
   @ApiOkResponse({ description: "ALT Rules" })
@@ -204,6 +196,64 @@ export class ALTProgramAssociationController {
       subject,
       contentId,
     });
+
+  }
+
+  // Rate content
+  @Post('rateQuiz')
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "ALT Rules" })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  async rateQuiz(@Body() body: any, @Req() request: Request,) {
+    const { programId, subject, contentId, rating } = body;
+
+    if (!programId || !subject || !contentId || rating === undefined) {
+      return {
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Invalid request body. Missing required fields.',
+      };
+    }
+
+    return this.altProgramAssociationService.rateQuiz(request, {
+      programId,
+      subject,
+      contentId,
+      rating,
+    });
+
+  }
+
+  @Post('isQuizRated')
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "ALT Rules" })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  async isQuizRated(@Body() body: any, @Req() request: Request,) {
+    const { programId, subject, contentId } = body;
+
+    if (!programId || !subject || !contentId) {
+      return {
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Invalid request body. Missing required fields.',
+      };
+    }
+
+    return this.altProgramAssociationService.isQuizRated(request, {
+      programId,
+      subject,
+      contentId,
+    });
+
+  }
+
+
+
+  @Get('getUserPoints')
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "ALT Rules" })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  async getUserPoints(@Body() body: any, @Req() request: Request,) {
+
+    return this.altProgramAssociationService.getUserPoints(request);
 
   }
 
