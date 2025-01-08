@@ -1005,7 +1005,7 @@ export class ALTLessonTrackingService {
     altLessonTrackingDto.moduleId = moduleId;
 
     let flag = false;
-    let tracklessonModule;
+    // let tracklessonModule;
 
     if (altLessonTrackingDto.userId) {
       for (const course of programRules?.prog) {
@@ -1021,7 +1021,7 @@ export class ALTLessonTrackingService {
 
           if (numberOfRecords === 0) {
             altLessonTrackingDto.attempts = 1;
-            altLessonTrackingDto.score = altLessonTrackingDto?.score; // keeping it one
+            altLessonTrackingDto.score = altLessonTrackingDto?.score;
             const lessonTrack: any = await this.createALTLessonTracking(
               request,
               altLessonTrackingDto
@@ -1033,13 +1033,13 @@ export class ALTLessonTrackingService {
               altLessonTrackingDto.status === "completed" &&
               lessonTrack?.statusCode === 200
             ) {
-              tracklessonModule = await this.glalessonToModuleTracking(
-                request,
-                altLessonTrackingDto,
-                programId,
-                subject,
-                false
-              );
+              // tracklessonModule = await this.glalessonToModuleTracking(
+              //   request,
+              //   altLessonTrackingDto,
+              //   programId,
+              //   subject,
+              //   false
+              // );
             }
             // Log progress tracking after insertion
             const loggedAttempt = await this.logLessonAttemptProgressTracking(
@@ -1050,7 +1050,7 @@ export class ALTLessonTrackingService {
 
             return response.status(200).json({
               lessonTrack: lessonTrack,
-              tracking: tracklessonModule,
+              //tracking: tracklessonModule,
               loggedAttempt: loggedAttempt,
             });
           } else if (numberOfRecords >= 1) {
@@ -1095,13 +1095,13 @@ export class ALTLessonTrackingService {
                 altLessonTrackingDto.status === "completed" &&
                 lessonTrack?.statusCode === 200
               ) {
-                tracklessonModule = await this.glalessonToModuleTracking(
-                  request,
-                  altLessonTrackingDto,
-                  programId,
-                  subject,
-                  false
-                );
+                // tracklessonModule = await this.glalessonToModuleTracking(
+                //   request,
+                //   altLessonTrackingDto,
+                //   programId,
+                //   subject,
+                //   false
+                // );
               }
               // Log progress tracking after insertion
               const loggedAttempt = await this.logLessonAttemptProgressTracking(
@@ -1109,18 +1109,20 @@ export class ALTLessonTrackingService {
                 altLessonTrackingDto,
                 lessonProgressId
               );
-
-              return {
+              return response.status(201).json({
                 lessonTrack: lessonTrack,
-                tracking: tracklessonModule,
+                // tracking: tracklessonModule,
                 loggedAttempt: loggedAttempt,
-              };
+              });
             } else if (lastRecord[0]?.status === "completed") {
+              const { status, ...altLessonTrackingDtoWithoutStatus } =
+                altLessonTrackingDto;
+
               altLessonTrackingDto.score = altLessonTrackingDto.score;
               const lessonTrack: any = await this.updateALTLessonTracking(
                 request,
                 altLessonTrackingDto.lessonId,
-                altLessonTrackingDto,
+                altLessonTrackingDtoWithoutStatus,
                 lastRecord[0]?.attempts,
                 {
                   courseId: altLessonTrackingDto.courseId,
@@ -1132,9 +1134,10 @@ export class ALTLessonTrackingService {
                 altLessonTrackingDto,
                 lessonProgressId
               );
+
               return response.status(201).json({
                 lessonTrack: lessonTrack,
-                tracking: tracklessonModule,
+                // tracking: tracklessonModule,
                 loggedAttempt: loggedAttempt,
               });
             } else {
@@ -1257,81 +1260,81 @@ export class ALTLessonTrackingService {
       data: moduleId,
     });
   }
-  public async glalessonToModuleTracking(
-    request: any,
-    altLessonTrackingDto: ALTLessonTrackingDto,
-    programId: string,
-    subject: string,
-    repeatAttempt: boolean
-  ) {
-    //add or update the recond in the moduleTRacking table
-    const currentUrl = process.env.SUNBIRDURL;
+  // public async glalessonToModuleTracking(
+  //   request: any,
+  //   altLessonTrackingDto: ALTLessonTrackingDto,
+  //   programId: string,
+  //   subject: string,
+  //   repeatAttempt: boolean
+  // ) {
+  //   //add or update the recond in the moduleTRacking table
+  //   const currentUrl = process.env.SUNBIRDURL;
 
-    let config = {
-      method: "get",
-      url:
-        currentUrl +
-        `/api/course/v1/hierarchy/${altLessonTrackingDto.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`,
-    };
+  //   let config = {
+  //     method: "get",
+  //     url:
+  //       currentUrl +
+  //       `/api/course/v1/hierarchy/${altLessonTrackingDto.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`,
+  //   };
 
-    const courseHierarchy = await this.axios(config);
-    const data = courseHierarchy?.data.result.content;
-    let noOfModules = data.children.length;
+  //   const courseHierarchy = await this.axios(config);
+  //   const data = courseHierarchy?.data.result.content;
+  //   let noOfModules = data.children.length;
 
-    let currentModule = data.children.find((item) => {
-      return item.identifier === altLessonTrackingDto.moduleId;
-    });
+  //   let currentModule = data.children.find((item) => {
+  //     return item.identifier === altLessonTrackingDto.moduleId;
+  //   });
 
-    let altModuleTracking = {
-      userId: altLessonTrackingDto.userId,
-      courseId: altLessonTrackingDto.courseId,
-      moduleId: altLessonTrackingDto.moduleId,
-      status: "ongoing",
-      totalNumberOfLessonsCompleted: 1,
-      totalNumberOfLessons: currentModule.children.length,
-      timeSpent: altLessonTrackingDto.timeSpent,
-      createdBy: altLessonTrackingDto.userId,
-      updatedBy: altLessonTrackingDto.userId,
-    };
+  //   let altModuleTracking = {
+  //     userId: altLessonTrackingDto.userId,
+  //     courseId: altLessonTrackingDto.courseId,
+  //     moduleId: altLessonTrackingDto.moduleId,
+  //     status: "ongoing",
+  //     totalNumberOfLessonsCompleted: 1,
+  //     totalNumberOfLessons: currentModule.children.length,
+  //     timeSpent: altLessonTrackingDto.timeSpent,
+  //     createdBy: altLessonTrackingDto.userId,
+  //     updatedBy: altLessonTrackingDto.userId,
+  //   };
 
-    const altModuleTrackingDto = new ALTModuleTrackingDto(altModuleTracking);
-    let moduleTracking: any;
-    moduleTracking =
-      await this.altModuleTrackingService.glaCheckAndAddALTModuleTracking(
-        request,
-        programId,
-        subject,
-        noOfModules,
-        repeatAttempt,
-        altModuleTrackingDto
-      );
+  //   const altModuleTrackingDto = new ALTModuleTrackingDto(altModuleTracking);
+  //   let moduleTracking: any;
+  //   moduleTracking =
+  //     await this.altModuleTrackingService.glaCheckAndAddALTModuleTracking(
+  //       request,
+  //       programId,
+  //       subject,
+  //       noOfModules,
+  //       repeatAttempt,
+  //       altModuleTrackingDto
+  //     );
 
-    if (moduleTracking?.statusCode != 200) {
-      return new ErrorResponse({
-        errorCode: moduleTracking?.statusCode,
-        errorMessage:
-          moduleTracking?.errorMessage + "Could not create Module Tracking",
-      });
-    } else {
-      if (moduleTracking.data.moduleProgressId) {
-        return new SuccessResponse({
-          statusCode: moduleTracking?.statusCode,
-          message: "Ok.",
-          data: { ack: "Module and Course Tracking created" },
-        });
-      } else if (moduleTracking.data.affected_rows) {
-        return new SuccessResponse({
-          statusCode: moduleTracking?.statusCode,
-          message: "Ok.",
-          data: { ack: "Module and Course Tracking updated" },
-        });
-      } else {
-        return new SuccessResponse({
-          statusCode: moduleTracking?.statusCode,
-          message: "Ok.",
-          data: { ack: "Course completed" },
-        });
-      }
-    }
-  }
+  //   if (moduleTracking?.statusCode != 200) {
+  //     return new ErrorResponse({
+  //       errorCode: moduleTracking?.statusCode,
+  //       errorMessage:
+  //         moduleTracking?.errorMessage + "Could not create Module Tracking",
+  //     });
+  //   } else {
+  //     if (moduleTracking.data.moduleProgressId) {
+  //       return new SuccessResponse({
+  //         statusCode: moduleTracking?.statusCode,
+  //         message: "Ok.",
+  //         data: { ack: "Module and Course Tracking created" },
+  //       });
+  //     } else if (moduleTracking.data.affected_rows) {
+  //       return new SuccessResponse({
+  //         statusCode: moduleTracking?.statusCode,
+  //         message: "Ok.",
+  //         data: { ack: "Module and Course Tracking updated" },
+  //       });
+  //     } else {
+  //       return new SuccessResponse({
+  //         statusCode: moduleTracking?.statusCode,
+  //         message: "Ok.",
+  //         data: { ack: "Course completed" },
+  //       });
+  //     }
+  //   }
+  // }
 }
