@@ -257,6 +257,18 @@ export class ALTProgramAssociationController {
 
   }
 
+  @Post('addUserPoints')
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "ALT Rules" })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  async addUserPoints(@Body() body: any, @Req() request: Request,) {
+
+    const {identifier, description} = body
+
+    return this.altProgramAssociationService.addUserPoints(request, {identifier, description});
+
+  }
+
 
 
 }

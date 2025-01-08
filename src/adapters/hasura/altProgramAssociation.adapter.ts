@@ -14,7 +14,7 @@ Injectable();
 export class ALTProgramAssociationService {
   axios = require("axios");
 
-  constructor(private readonly httpService: HttpService) {}
+  constructor(private readonly httpService: HttpService) { }
 
   public async mappedResponse(data: any) {
     const programResponse = data.map((item: any) => {
@@ -578,8 +578,8 @@ export class ALTProgramAssociationService {
             responseData.push({
               contentId: item.contentId,
               name: item.name,
-              subject: rule.subject ,
-              courseId: item.courseId ,
+              subject: rule.subject,
+              courseId: item.courseId,
               contentType: item.contentType,
               order: item.order,
               allowedAttempts: item.allowedAttempts,
@@ -713,10 +713,10 @@ export class ALTProgramAssociationService {
   //     },
   //   };
 
-    
-  
+
+
   //   console.log('GraphQL Mutation:', graphqlMutation.query);
-  
+
   //   const config_data = {
   //     method: 'post',
   //     url: process.env.ALTHASURA,
@@ -726,12 +726,12 @@ export class ALTProgramAssociationService {
   //     },
   //     data: graphqlMutation,
   //   };
-  
+
   //   try {
   //     const response = await this.axios(config_data);
 
   //     console.log("response", response.data.data)
-  
+
   //     if (response?.data?.errors) {
   //       console.error('GraphQL Errors:', response.data.errors);
   //       return new ErrorResponse({
@@ -739,7 +739,7 @@ export class ALTProgramAssociationService {
   //         errorMessage: response.data.errors[0]?.message || 'An unknown error occurred.',
   //       });
   //     }
-  
+
   //     return new SuccessResponse({
   //       statusCode: 200,
   //       message: 'Content like status updated successfully.',
@@ -963,7 +963,7 @@ export class ALTProgramAssociationService {
 
       if (existingLike) {
         // If entry exists, update the like status
-        
+
 
         return new SuccessResponse({
           statusCode: 200,
@@ -973,7 +973,7 @@ export class ALTProgramAssociationService {
       } else {
         // If no entry exists, insert a new one
         console.log("no entry exists")
-        
+
 
         return new SuccessResponse({
           statusCode: 200,
@@ -1200,7 +1200,7 @@ export class ALTProgramAssociationService {
 
       if (existingLike) {
         // If entry exists, update the like status
-        
+
 
         return new SuccessResponse({
           statusCode: 200,
@@ -1210,7 +1210,7 @@ export class ALTProgramAssociationService {
       } else {
         // If no entry exists, insert a new one
         console.log("no entry exists")
-        
+
 
         return new SuccessResponse({
           statusCode: 200,
@@ -1232,9 +1232,9 @@ export class ALTProgramAssociationService {
   async getUserPoints(request) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-  
+
     console.log("altUserId", altUserId);
-  
+
     const checkGraphQLQuery = {
       query: `
       query MyQuery($userId: String!) {
@@ -1257,7 +1257,7 @@ export class ALTProgramAssociationService {
         userId: altUserId,
       },
     };
-  
+
     const config_data = {
       method: 'post',
       url: process.env.ALTHASURA,
@@ -1267,11 +1267,11 @@ export class ALTProgramAssociationService {
       },
       data: checkGraphQLQuery,
     };
-  
+
     try {
       const checkResponse = await this.axios(config_data);
       console.log("checkResponse", checkResponse.data);
-  
+
       if (checkResponse) {
         return new SuccessResponse({
           statusCode: 200,
@@ -1293,6 +1293,93 @@ export class ALTProgramAssociationService {
       });
     }
   }
-  
-  
+
+  async addUserPoints(request, data) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    console.log("altUserId", altUserId);
+    console.log("identifier", data.identifier)
+
+    // get the points to be allocated to the user for a given identifier
+    const checkGraphQLQuery = {
+      query: `
+      query MyQuery($identifier: String!) {
+        PointsConfig(
+          where: { identifier: { _eq: $identifier } }
+
+        ) {
+          id
+          title
+          description
+          points
+          identifier
+          created_at
+          updated_at
+        }
+      }
+      `,
+      variables: {
+        identifier: data.identifier,
+      },
+    };
+
+    const config_data = {
+      method: 'post',
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        'Content-Type': 'application/json',
+      },
+      data: checkGraphQLQuery,
+    };
+
+    const checkResponse = await this.axios(config_data);
+    console.log("checkResponse", checkResponse.data.data);
+
+    const points = checkResponse.data.data.PointsConfig[0].points || 0
+
+    // Add entry into user_points table againt the loggrd in user
+
+    const insertGraphQLQuery = {
+      query: `
+        mutation InsertUserPoints($userId: String!, $identifier: String!, $points: Int!, $description: String!) {
+          insert_UserPoints_one(object: {
+            user_id: $userId,
+            identifier: $identifier,
+            points: $points,
+            description: $description
+          }) {
+            id
+            identifier
+            user_id
+            points
+            description
+            created_at
+            updated_at
+          }
+        }
+      `,
+      variables: {
+        userId: altUserId,
+        identifier: data.identifier,
+        points: points,
+        description: data.description,
+      },
+    };
+
+    config_data.data = insertGraphQLQuery;
+
+    const insertResponse = await this.axios(config_data);
+    console.log("Inserted Like:", insertResponse.data.data);
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: 'User points added successfully.',
+      data: insertResponse.data.data,
+    });
+
+  }
+
+
 }
