@@ -1343,7 +1343,7 @@ export class ALTProgramAssociationService {
 
     const insertGraphQLQuery = {
       query: `
-        mutation InsertUserPoints($userId: String!, $identifier: String!, $points: Int!, $description: String!) {
+        mutation InsertUserPoints($userId: uuid!, $identifier: String!, $points: Int!, $description: String!) {
           insert_UserPoints_one(object: {
             user_id: $userId,
             identifier: $identifier,
@@ -1371,7 +1371,7 @@ export class ALTProgramAssociationService {
     config_data.data = insertGraphQLQuery;
 
     const insertResponse = await this.axios(config_data);
-    console.log("Inserted Like:", insertResponse.data.data);
+    console.log("Inserted Like:", insertResponse.data);
 
     return new SuccessResponse({
       statusCode: 200,
