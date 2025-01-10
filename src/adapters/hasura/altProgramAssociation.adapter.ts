@@ -1375,7 +1375,7 @@ export class ALTProgramAssociationService {
     config_data.data = insertGraphQLQuery;
 
     const insertResponse = await this.axios(config_data);
-    console.log("Inserted Like:", insertResponse.data.data);
+    console.log("Inserted Like:", insertResponse.data);
 
     return new SuccessResponse({
       statusCode: 200,

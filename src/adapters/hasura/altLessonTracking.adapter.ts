@@ -1043,6 +1043,7 @@ export class ALTLessonTrackingService {
             }
             //ASSIGNING REWARD POINTS FOR ASSESSMENT OR LESSON COMPLETION OR SUBJECT COMPLETION
             let assignRewardPoints;
+            let subjectAssignRewardPoints;
             //if the current do_id is the questionSetId
             if (!questionIdFlag) {
               assignRewardPoints =
@@ -1080,7 +1081,7 @@ export class ALTLessonTrackingService {
               subject
             );
             if (assignSubjectPoints) {
-              assignRewardPoints =
+              subjectAssignRewardPoints =
                 await this.altProgramAssociationService.addUserPoints(request, {
                   identifier: "subject_completion",
                   description: "Student has completed subject and has earned",
@@ -1092,7 +1093,7 @@ export class ALTLessonTrackingService {
             }
             const rewardPoints = assignSubjectPoints
               ? {
-                  subjectCompletionPoints: assignSubjectPoints,
+                  subjectCompletionPoints: subjectAssignRewardPoints,
                   contentCompletionPoints: assignRewardPoints,
                 }
               : assignRewardPoints;
@@ -1160,6 +1161,7 @@ export class ALTLessonTrackingService {
               }
               //ASSIGNING REWARD POINTS FOR ASSESSMENT OR LESSON COMPLETION
               let assignRewardPoints;
+              let subjectAssignRewardPoints;
               //if content is a lesson
               if (!questionIdFlag) {
                 assignRewardPoints =
@@ -1220,7 +1222,7 @@ export class ALTLessonTrackingService {
               }
               const rewardPoints = assignSubjectPoints
                 ? {
-                    subjectCompletionPoints: assignSubjectPoints,
+                    subjectCompletionPoints: subjectAssignRewardPoints,
                     contentCompletionPoints: assignRewardPoints,
                   }
                 : assignRewardPoints;
