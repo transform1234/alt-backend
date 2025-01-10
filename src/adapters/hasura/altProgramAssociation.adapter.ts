@@ -9,6 +9,9 @@ import { ErrorResponse } from "src/error-response";
 import { ALTProgramAssociationSearch } from "src/altProgramAssociation/dto/searchAltProgramAssociation.dto";
 import jwt_decode from "jwt-decode";
 import { firstValueFrom } from 'rxjs';
+import moment from 'moment';
+import { lastValueFrom } from 'rxjs';
+
 
 Injectable();
 export class ALTProgramAssociationService {
@@ -1381,5 +1384,426 @@ export class ALTProgramAssociationService {
 
   }
 
+  // async leaderBoardPoints(request, data) {
+
+  //   console.log("timeframe", data.timeframe)
+
+  //   const { startDate, endDate } = await this.getDateRange(data.timeframe);
+
+  //   console.log("startDate", moment(startDate).format("DD-MM-YYYY"))
+  //   console.log("endDate", moment(endDate).format("DD-MM-YYYY"))
+
+  //   console.log("board", data.filters.board)
+  //   const board = data.filters.board;
+
+  //   console.log("schoolUdise", data.filters.schoolUdise)
+  //   const schoolUdise = data.filters.schoolUdise;
+
+  //   console.log("groupid", data.filters.groupId)
+  //   const groupId = data.filters.groupId;
+
+  //   const decoded: any = jwt_decode(request.headers.authorization);
+  //   const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+  //   console.log("altUserId", altUserId);
+
+  //    return this.getPointsByBoard(request, board, startDate, endDate)
+
+  //   // return this.getPointsBySchoolId(request, schoolUdise, startDate, endDate)
+
+  //   // return this.getPointsByClassId(request, groupId, startDate, endDate)
+
+
+  // }
+
+  async leaderBoardPoints(request, data) {
+    console.log("timeframe", data.timeframe);
+  
+    const { startDate, endDate } = await this.getDateRange(data.timeframe);
+  
+    console.log("startDate", moment(startDate).format("DD-MM-YYYY"));
+    console.log("endDate", moment(endDate).format("DD-MM-YYYY"));
+  
+    const filters = data.filters || {};
+    const groupId = filters.groupId;
+    const schoolUdise = filters.schoolUdise;
+    const board = filters.board;
+  
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    console.log("altUserId", altUserId);
+  
+    if (groupId) {
+      console.log("Fetching data by Group ID:", groupId);
+      return this.getPointsByClassId(request, groupId, startDate, endDate);
+    } else if (schoolUdise) {
+      console.log("Fetching data by School UDISE:", schoolUdise);
+      return this.getPointsBySchoolId(request, schoolUdise, startDate, endDate);
+    } else if (board) {
+      console.log("Fetching data by Board:", board);
+      return this.getPointsByBoard(request, board, startDate, endDate);
+    } else {
+      throw new Error("Invalid filters: At least one of groupId, schoolUdise, or board is required.");
+    }
+  }
+  
+
+  async getDateRange(timeframes: string): Promise<{ startDate: string; endDate: string }> {
+    const today = moment(); // Get today's date
+  
+    switch (timeframes) {
+      case 'today':
+        return {
+          startDate: today.clone().startOf('day').toISOString(),
+          endDate: today.clone().endOf('day').toISOString(),
+        };
+      case 'last7days':
+        return {
+          startDate: moment().subtract(7, 'days').startOf('day').toISOString(),
+          endDate: today.clone().endOf('day').toISOString(),
+        };
+      case 'last30days':
+        return {
+          startDate: moment().subtract(30, 'days').startOf('day').toISOString(),
+          endDate: today.clone().endOf('day').toISOString(),
+        };
+      default:
+        throw new Error('Invalid timeframe');
+    }
+  }
+
+  async getPointsByClassId(request, groupId, startDate, endDate) {
+    // const checkGraphQLQuery = {
+    //   query: `
+    //   query MyQuery($groupId: uuid!, $startDate: timestamptz, $endDate: timestamptz) {
+    //     GroupMembership(where: { groupId: { _eq: $groupId } }) {
+    //       User {
+    //         name
+    //         email
+    //         mobile
+    //         gender
+    //         role
+    //         status
+    //         Points_aggregate(where: {created_at: {_gte: $startDate, _lte: $endDate}}) {
+    //           aggregate {
+    //             sum {
+    //               points
+    //             }
+    //           }
+    //         }
+    //       }
+    //     }
+    //   }
+    //   `,
+    //   variables: {
+    //     groupId: groupId,
+    //     startDate,
+    //     endDate,
+    //   },
+    // };
+
+    console.log("classId")
+
+    const checkGraphQLQuery = {
+      query: `
+      query MyQuery($groupId: uuid!, $startDate: timestamptz, $endDate: timestamptz) {
+        Group(where: { groupId: { _eq: $groupId } }) {
+          groupId
+          type
+          grade
+          name
+          
+        }
+        topUsers: GroupMembership(
+          where: { groupId: { _eq: $groupId } },
+          order_by: { User: { Points_aggregate: { sum: { points: asc } } } },
+          limit: 10
+        ) {
+          User {
+            name
+            email
+            role
+            status
+            totalPoints: Points_aggregate(where: { created_at: { _gte: $startDate, _lte: $endDate } }) {
+              aggregate {
+                sum {
+                  points
+                }
+              }
+            }
+          }
+        }
+      }
+      `,
+      variables: {
+        groupId: groupId,
+        startDate,
+        endDate,
+      },
+    };
+
+    const config_data = {
+      method: 'post',
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        'Content-Type': 'application/json',
+      },
+      data: checkGraphQLQuery,
+    };
+
+    try {
+      const checkResponse = await this.axios(config_data);
+      console.log("checkResponse", checkResponse.data);
+
+      if (checkResponse) {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: 'User Points fetched successfully.',
+          data: checkResponse?.data?.data,
+        });
+      } else {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: 'User Points not exists.',
+          data: [],
+        });
+      }
+    } catch (error) {
+      console.error('Axios Error:', error.message);
+      throw new ErrorResponse({
+        errorCode: 'AXIOS_ERROR',
+        errorMessage: 'Failed to execute the GraphQL mutation.',
+      });
+    }
+  }
+
+  async getPointsBySchoolId(request, schoolUdise, startDate, endDate) {
+
+    // const checkGraphQLQuery = {
+    //   query: `
+    //   query MyQuery($schoolUdise: String!, $startDate: timestamptz, $endDate: timestamptz) {
+    //     Group(where: {schoolUdise: {_eq: $schoolUdise}}) {
+    //       groupId
+    //       type
+    //       grade
+    //       name
+    //       GroupMemberships {
+    //         userId
+    //         User {
+    //           name
+    //           email
+    //           role
+    //           status
+    //           Points_aggregate(where: {created_at: {_gte: $startDate, _lte: $endDate}}) {
+    //             aggregate {
+    //               sum {
+    //                 points
+    //               }
+    //             }
+    //           }
+    //         }
+    //       }
+    //     }
+    //   }
+    //   `,
+    //   variables: {
+    //     schoolUdise: schoolUdise,
+    //     startDate,
+    //     endDate,
+    //   },
+    // };
+
+    const checkGraphQLQuery = {
+      query: `
+      query MyQuery($schoolUdise: String!, $startDate: timestamptz, $endDate: timestamptz) {
+        Group(where: { schoolUdise: { _eq: $schoolUdise } }) {
+          groupId
+          type
+          grade
+          name
+          topUsers: GroupMemberships(
+            order_by: { User: { Points_aggregate: { sum: { points: asc } } } },
+            limit: 10
+          ) {
+            userId
+            User {
+              name
+              email
+              role
+              status
+              totalPoints: Points_aggregate(where: { created_at: { _gte: $startDate, _lte: $endDate } }) {
+                aggregate {
+                  sum {
+                    points
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      `,
+      variables: {
+        schoolUdise: schoolUdise,
+        startDate,
+        endDate,
+      },
+    };
+
+    const config_data = {
+      method: 'post',
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        'Content-Type': 'application/json',
+      },
+      data: checkGraphQLQuery,
+    };
+
+    try {
+      const checkResponse = await this.axios(config_data);
+      console.log("checkResponse", checkResponse.data);
+
+      if (checkResponse) {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: 'User Points fetched successfully.',
+          data: checkResponse?.data?.data,
+        });
+      } else {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: 'User Points not exists.',
+          data: [],
+        });
+      }
+    } catch (error) {
+      console.error('Axios Error:', error.message);
+      throw new ErrorResponse({
+        errorCode: 'AXIOS_ERROR',
+        errorMessage: 'Failed to execute the GraphQL mutation.',
+      });
+    }
+  }
+
+  async getPointsByBoard(request, board, startDate, endDate) {
+
+    // const checkGraphQLQuery = {
+    //   query: `
+    //   query MyQuery($board: String!, $startDate: timestamptz, $endDate: timestamptz) {
+    //     School(where: {board: {_eq: $board}}) {
+    //       board
+    //       udiseCode
+    //       Groups {
+    //         schoolUdise
+    //         groupId
+    //         type
+    //         grade
+    //         name
+    //         GroupMemberships {
+    //           groupId
+    //           User {
+    //             name
+    //             email
+    //             role
+    //             status
+    //             Points_aggregate(where: {created_at: {_gte: $startDate, _lte: $endDate}}) {
+    //               aggregate {
+    //                 sum {
+    //                   points
+    //                 }
+    //               }
+    //             }
+    //           }
+    //         }
+    //       }
+    //     }
+    //   }
+    //   `,
+    //   variables: {
+    //     board: board,
+    //     startDate,
+    //     endDate,
+    //   },
+    // };
+
+    const checkGraphQLQuery = {
+      query: `
+      query MyQuery($board: String!, $startDate: timestamptz, $endDate: timestamptz) {
+        School(where: { board: { _eq: $board } }) {
+          board
+          udiseCode
+          Groups {
+            schoolUdise
+            groupId
+            type
+            grade
+            name
+            topUsers: GroupMemberships(
+              order_by: { User: { Points_aggregate: { sum: { points: asc } } } },
+              limit: 10
+            ) {
+              groupId
+              User {
+                name
+                email
+                role
+                status
+                totalPoints: Points_aggregate(where: { created_at: { _gte: $startDate, _lte: $endDate } }) {
+                  aggregate {
+                    sum {
+                      points
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      `,
+      variables: {
+        board: board,
+        startDate,
+        endDate,
+      },
+    };
+
+    const config_data = {
+      method: 'post',
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        'Content-Type': 'application/json',
+      },
+      data: checkGraphQLQuery,
+    };
+
+    try {
+      const checkResponse = await this.axios(config_data);
+      console.log("checkResponse", checkResponse.data);
+
+      if (checkResponse) {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: 'User Points fetched successfully.',
+          data: checkResponse?.data?.data,
+        });
+      } else {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: 'User Points not exists.',
+          data: [],
+        });
+      }
+    } catch (error) {
+      console.error('Axios Error:', error.message);
+      throw new ErrorResponse({
+        errorCode: 'AXIOS_ERROR',
+        errorMessage: 'Failed to execute the GraphQL mutation.',
+      });
+    }
+  }
 
 }
