@@ -586,20 +586,20 @@ export class ALTProgramAssociationService {
               criteria: item.criteria,
               contentSource: item.contentSource,
               lesson_questionset: item.lesson_questionset,
-              thumbnailUrl: item.thumbnailUrl
+              thumbnailUrl: item.thumbnailUrl,
             });
           });
         } else {
           return new ErrorResponse({
             errorCode: "500",
             errorMessage: `Invalid 'prog' format for programId: ${rule.programId}`,
-          })
+          });
         }
       } else {
         return new ErrorResponse({
           errorCode: "500",
           errorMessage: `Missing 'rules' for programId: ${rule.programId}`,
-        })
+        });
       }
     });
     const pageNumber = parseInt(body.pageNumber, 10) || 1;
@@ -669,7 +669,6 @@ export class ALTProgramAssociationService {
 
   // }
 
-
   // async likeContent(request, data: {
   //   programId: string;
   //   subject: string;
@@ -713,8 +712,6 @@ export class ALTProgramAssociationService {
   //     },
   //   };
 
-
-
   //   console.log('GraphQL Mutation:', graphqlMutation.query);
 
   //   const config_data = {
@@ -755,13 +752,15 @@ export class ALTProgramAssociationService {
   // }
 
   // Like content
-  async likeContent(request, data: {
-    programId: string;
-    subject: string;
-    contentId: string;
-    like: boolean;
-  }) {
-
+  async likeContent(
+    request,
+    data: {
+      programId: string;
+      subject: string;
+      contentId: string;
+      like: boolean;
+    }
+  ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
@@ -792,11 +791,11 @@ export class ALTProgramAssociationService {
     };
 
     const config_data = {
-      method: 'post',
+      method: "post",
       url: process.env.ALTHASURA,
       headers: {
         Authorization: request.headers.authorization,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       data: checkGraphQLQuery,
     };
@@ -804,13 +803,13 @@ export class ALTProgramAssociationService {
     try {
       // Check if the like entry already exists
       const checkResponse = await this.axios(config_data);
-      console.log("checkResponse", checkResponse.data.data)
+      console.log("checkResponse", checkResponse.data.data);
       const existingLike = checkResponse?.data?.data?.GlaLikedContents[0];
-      console.log("existingLike", existingLike)
+      console.log("existingLike", existingLike);
 
       if (existingLike) {
         // If entry exists, update the like status
-        console.log("entry exists")
+        console.log("entry exists");
         const updateGraphQLQuery = {
           query: `
             mutation UpdateLike($contentId: String!, $like: Boolean!, $programId: String!, $subject: String!, $userId: String!) {
@@ -850,12 +849,12 @@ export class ALTProgramAssociationService {
 
         return new SuccessResponse({
           statusCode: 200,
-          message: 'Content like status updated successfully.',
+          message: "Content like status updated successfully.",
           data: updateResponse.data.data,
         });
       } else {
         // If no entry exists, insert a new one
-        console.log("no entry exists")
+        console.log("no entry exists");
         const insertGraphQLQuery = {
           query: `
             mutation InsertLike($contentId: String!, $like: Boolean!, $programId: String!, $subject: String!, $userId: String!) {
@@ -893,26 +892,27 @@ export class ALTProgramAssociationService {
 
         return new SuccessResponse({
           statusCode: 200,
-          message: 'Content like status inserted successfully.',
+          message: "Content like status inserted successfully.",
           data: insertResponse.data.data,
         });
       }
-
     } catch (error) {
-      console.error('Axios Error:', error.message);
+      console.error("Axios Error:", error.message);
       throw new ErrorResponse({
-        errorCode: 'AXIOS_ERROR',
-        errorMessage: 'Failed to execute the GraphQL mutation.',
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
       });
     }
   }
 
-  async isContentLike(request, data: {
-    programId: string;
-    subject: string;
-    contentId: string;
-  }) {
-
+  async isContentLike(
+    request,
+    data: {
+      programId: string;
+      subject: string;
+      contentId: string;
+    }
+  ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
@@ -940,16 +940,16 @@ export class ALTProgramAssociationService {
       variables: {
         contentId: data.contentId,
         programId: data.programId,
-        subject: data.subject
+        subject: data.subject,
       },
     };
 
     const config_data = {
-      method: 'post',
+      method: "post",
       url: process.env.ALTHASURA,
       headers: {
         Authorization: request.headers.authorization,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       data: checkGraphQLQuery,
     };
@@ -957,48 +957,47 @@ export class ALTProgramAssociationService {
     try {
       // Check if the like entry already exists
       const checkResponse = await this.axios(config_data);
-      console.log("checkResponse", checkResponse.data)
+      console.log("checkResponse", checkResponse.data);
       const existingLike = checkResponse?.data?.data?.GlaLikedContents[0];
-      console.log("existingLike", existingLike)
+      console.log("existingLike", existingLike);
 
       if (existingLike) {
         // If entry exists, update the like status
 
-
         return new SuccessResponse({
           statusCode: 200,
-          message: 'Content fetched successfully.',
+          message: "Content fetched successfully.",
           data: checkResponse?.data?.data?.GlaLikedContents,
         });
       } else {
         // If no entry exists, insert a new one
-        console.log("no entry exists")
-
+        console.log("no entry exists");
 
         return new SuccessResponse({
           statusCode: 200,
-          message: 'Content not exists.',
+          message: "Content not exists.",
           data: [],
         });
       }
-
     } catch (error) {
-      console.error('Axios Error:', error.message);
+      console.error("Axios Error:", error.message);
       throw new ErrorResponse({
-        errorCode: 'AXIOS_ERROR',
-        errorMessage: 'Failed to execute the GraphQL mutation.',
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
       });
     }
   }
 
   // Rate Quiz
-  async rateQuiz(request, data: {
-    programId: string;
-    subject: string;
-    contentId: string;
-    rating: boolean;
-  }) {
-
+  async rateQuiz(
+    request,
+    data: {
+      programId: string;
+      subject: string;
+      contentId: string;
+      rating: boolean;
+    }
+  ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
@@ -1029,11 +1028,11 @@ export class ALTProgramAssociationService {
     };
 
     const config_data = {
-      method: 'post',
+      method: "post",
       url: process.env.ALTHASURA,
       headers: {
         Authorization: request.headers.authorization,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       data: checkGraphQLQuery,
     };
@@ -1041,13 +1040,13 @@ export class ALTProgramAssociationService {
     try {
       // Check if the like entry already exists
       const checkResponse = await this.axios(config_data);
-      console.log("checkResponse", checkResponse.data.data)
+      console.log("checkResponse", checkResponse.data.data);
       const existingLike = checkResponse?.data?.data?.GlaQuizRating[0];
-      console.log("existingLike", existingLike)
+      console.log("existingLike", existingLike);
 
       if (existingLike) {
         // If entry exists, update the like status
-        console.log("entry exists")
+        console.log("entry exists");
         const updateGraphQLQuery = {
           query: `
             mutation UpdateLike($contentId: String!, $rating: Int!, $programId: String!, $subject: String!, $userId: String!) {
@@ -1087,12 +1086,12 @@ export class ALTProgramAssociationService {
 
         return new SuccessResponse({
           statusCode: 200,
-          message: 'Content like status updated successfully.',
+          message: "Content like status updated successfully.",
           data: updateResponse.data.data,
         });
       } else {
         // If no entry exists, insert a new one
-        console.log("no entry exists")
+        console.log("no entry exists");
         const insertGraphQLQuery = {
           query: `
             mutation InsertLike($contentId: String!, $rating: Int!, $programId: String!, $subject: String!, $userId: String!) {
@@ -1130,26 +1129,27 @@ export class ALTProgramAssociationService {
 
         return new SuccessResponse({
           statusCode: 200,
-          message: 'Content like status inserted successfully.',
+          message: "Content like status inserted successfully.",
           data: insertResponse.data.data,
         });
       }
-
     } catch (error) {
-      console.error('Axios Error:', error.message);
+      console.error("Axios Error:", error.message);
       throw new ErrorResponse({
-        errorCode: 'AXIOS_ERROR',
-        errorMessage: 'Failed to execute the GraphQL mutation.',
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
       });
     }
   }
 
-  async isQuizRated(request, data: {
-    programId: string;
-    subject: string;
-    contentId: string;
-  }) {
-
+  async isQuizRated(
+    request,
+    data: {
+      programId: string;
+      subject: string;
+      contentId: string;
+    }
+  ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
@@ -1177,16 +1177,16 @@ export class ALTProgramAssociationService {
       variables: {
         contentId: data.contentId,
         programId: data.programId,
-        subject: data.subject
+        subject: data.subject,
       },
     };
 
     const config_data = {
-      method: 'post',
+      method: "post",
       url: process.env.ALTHASURA,
       headers: {
         Authorization: request.headers.authorization,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       data: checkGraphQLQuery,
     };
@@ -1194,44 +1194,41 @@ export class ALTProgramAssociationService {
     try {
       // Check if the like entry already exists
       const checkResponse = await this.axios(config_data);
-      console.log("checkResponse", checkResponse.data)
+      console.log("checkResponse", checkResponse.data);
       const existingLike = checkResponse?.data?.data?.GlaQuizRating[0];
-      console.log("existingLike", existingLike)
+      console.log("existingLike", existingLike);
 
       if (existingLike) {
         // If entry exists, update the like status
 
-
         return new SuccessResponse({
           statusCode: 200,
-          message: 'Content fetched successfully.',
+          message: "Content fetched successfully.",
           data: checkResponse?.data?.data?.GlaQuizRating,
         });
       } else {
         // If no entry exists, insert a new one
-        console.log("no entry exists")
-
+        console.log("no entry exists");
 
         return new SuccessResponse({
           statusCode: 200,
-          message: 'Content not exists.',
+          message: "Content not exists.",
           data: [],
         });
       }
-
     } catch (error) {
-      console.error('Axios Error:', error.message);
+      console.error("Axios Error:", error.message);
       throw new ErrorResponse({
-        errorCode: 'AXIOS_ERROR',
-        errorMessage: 'Failed to execute the GraphQL mutation.',
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
       });
     }
   }
 
-
   async getUserPoints(request) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
     console.log("altUserId", altUserId);
 
@@ -1259,11 +1256,11 @@ export class ALTProgramAssociationService {
     };
 
     const config_data = {
-      method: 'post',
+      method: "post",
       url: process.env.ALTHASURA,
       headers: {
         Authorization: request.headers.authorization,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       data: checkGraphQLQuery,
     };
@@ -1275,31 +1272,32 @@ export class ALTProgramAssociationService {
       if (checkResponse) {
         return new SuccessResponse({
           statusCode: 200,
-          message: 'User Points fetched successfully.',
+          message: "User Points fetched successfully.",
           data: checkResponse?.data?.data,
         });
       } else {
         return new SuccessResponse({
           statusCode: 200,
-          message: 'User Points not exists.',
+          message: "User Points not exists.",
           data: [],
         });
       }
     } catch (error) {
-      console.error('Axios Error:', error.message);
+      console.error("Axios Error:", error.message);
       throw new ErrorResponse({
-        errorCode: 'AXIOS_ERROR',
-        errorMessage: 'Failed to execute the GraphQL mutation.',
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
       });
     }
   }
 
   async addUserPoints(request, data) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
     console.log("altUserId", altUserId);
-    console.log("identifier", data.identifier)
+    console.log("identifier", data.identifier);
 
     // get the points to be allocated to the user for a given identifier
     const checkGraphQLQuery = {
@@ -1325,11 +1323,11 @@ export class ALTProgramAssociationService {
     };
 
     const config_data = {
-      method: 'post',
+      method: "post",
       url: process.env.ALTHASURA,
       headers: {
         Authorization: request.headers.authorization,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       data: checkGraphQLQuery,
     };
@@ -1337,18 +1335,20 @@ export class ALTProgramAssociationService {
     const checkResponse = await this.axios(config_data);
     console.log("checkResponse", checkResponse.data.data);
 
-    const points = checkResponse.data.data.PointsConfig[0].points || 0
+    const points = checkResponse.data.data.PointsConfig[0].points || 0;
 
-    // Add entry into user_points table againt the loggrd in user
+    // Create description with points value
+    const description = `${data.description} ${points} points`;
 
     const insertGraphQLQuery = {
       query: `
-        mutation InsertUserPoints($userId: String!, $identifier: String!, $points: Int!, $description: String!) {
+        mutation InsertUserPoints($userId: uuid!, $identifier: String!, $points: Int!, $description: String!, $earning_context: jsonb) {
           insert_UserPoints_one(object: {
             user_id: $userId,
             identifier: $identifier,
             points: $points,
-            description: $description
+            description: $description,
+            earning_context: $earning_context
           }) {
             id
             identifier
@@ -1357,6 +1357,7 @@ export class ALTProgramAssociationService {
             description
             created_at
             updated_at
+            earning_context
           }
         }
       `,
@@ -1364,9 +1365,12 @@ export class ALTProgramAssociationService {
         userId: altUserId,
         identifier: data.identifier,
         points: points,
-        description: data.description,
+        description: description, // Use the new description with points
+        earning_context: data.earning_context,
       },
     };
+    console.log(insertGraphQLQuery.query, insertGraphQLQuery.variables);
+    console.log();
 
     config_data.data = insertGraphQLQuery;
 
@@ -1375,11 +1379,8 @@ export class ALTProgramAssociationService {
 
     return new SuccessResponse({
       statusCode: 200,
-      message: 'User points added successfully.',
+      message: "User points added successfully.",
       data: insertResponse.data.data,
     });
-
   }
-
-
 }

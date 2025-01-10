@@ -970,7 +970,6 @@ export class ALTLessonTrackingService {
         break;
       }
     }
-    console.log("questionIdFlag->>>>>>>>>>>>.", questionIdFlag, courseId);
 
     if (!courseId) {
       return response.status(422).json(
@@ -1042,52 +1041,67 @@ export class ALTLessonTrackingService {
               //   false
               // );
             }
-            //ASSIGNING REWARD POINTS FOR ASSESSMENT OR LESSON COMPLETION
+            //ASSIGNING REWARD POINTS FOR ASSESSMENT OR LESSON COMPLETION OR SUBJECT COMPLETION
             let assignRewardPoints;
             //if the current do_id is the questionSetId
             if (!questionIdFlag) {
               assignRewardPoints =
                 await this.altProgramAssociationService.addUserPoints(request, {
                   identifier: "lesson_completion",
-                  description: "Student has completed lesson and earned", // Points will be added automatically
+                  description: "Student has completed lesson and earned",
+                  earning_context: {
+                    contentId: altLessonTrackingDto.lessonId,
+                    programId: altLessonTrackingDto.programId,
+                    subject: subject,
+                  },
                 });
             } else {
               //assign points for the first attempt of completion
               assignRewardPoints =
                 await this.altProgramAssociationService.addUserPoints(request, {
                   identifier: "assesment_completion",
-                  description: "Student has completed assessment and earned", // Points will be added automatically
+                  description: "Student has completed assessment and earned",
+                  earning_context: {
+                    contentId: altLessonTrackingDto.lessonId,
+                    programId: altLessonTrackingDto.programId,
+                    subject: subject,
+                  },
                 });
             }
+
             /*
-            CHECK IF THE EVERY CONTENT OF THE RULES OBJECT HAS BEEN COMPLETED 
+            CHECK IF EVERY CONTENT OF THE RULES OBJECT HAS BEEN COMPLETED 
               IF ALL CONTENT(LESSON AND QUESTION SET) HAS BEEN WATCHED -> ASSIGN SUBJECT COMPLETION POINTS FOR THE FIRST ATTEMPT ONLY 
             */
             const assignSubjectPoints = await this.checkContentCompletion(
               request,
               programRules,
-              altLessonTrackingDto.userId,
               altLessonTrackingDto.programId,
-              
+              subject
             );
-            console.log(
-              "assignSubjectPoints->>>>>>>>>>>>>",
-              assignSubjectPoints
-            );
-
-            const rewardPoints = {
-              user_id: assignRewardPoints.data?.insert_UserPoints_one?.user_id,
-              points: assignRewardPoints.data?.insert_UserPoints_one?.points,
-              description:
-                assignRewardPoints.data?.insert_UserPoints_one?.description,
-            };
+            if (assignSubjectPoints) {
+              assignRewardPoints =
+                await this.altProgramAssociationService.addUserPoints(request, {
+                  identifier: "subject_completion",
+                  description: "Student has completed subject and has earned",
+                  earning_context: {
+                    programId: altLessonTrackingDto.programId,
+                    subject: subject,
+                  },
+                });
+            }
+            const rewardPoints = assignSubjectPoints
+              ? {
+                  subjectCompletionPoints: assignSubjectPoints,
+                  contentCompletionPoints: assignRewardPoints,
+                }
+              : assignRewardPoints;
             // Log progress tracking after insertion
             const loggedAttempt = await this.logLessonAttemptProgressTracking(
               request,
               altLessonTrackingDto,
               lessonProgressId
             );
-
             return response.status(200).json({
               lessonTrack: lessonTrack,
               assignRewardPoints: rewardPoints,
@@ -1146,51 +1160,70 @@ export class ALTLessonTrackingService {
               }
               //ASSIGNING REWARD POINTS FOR ASSESSMENT OR LESSON COMPLETION
               let assignRewardPoints;
-              //if content is a questionSetId
+              //if content is a lesson
               if (!questionIdFlag) {
                 assignRewardPoints =
                   await this.altProgramAssociationService.addUserPoints(
                     request,
                     {
                       identifier: "lesson_completion",
-                      description: "Student has completed lesson and earned", // Points will be added automatically
+                      description: "Student has completed lesson and earned",
+                      earning_context: {
+                        contentId: altLessonTrackingDto.lessonId,
+                        programId: altLessonTrackingDto.programId,
+                        subject: subject,
+                      },
                     }
                   );
               } else {
-                //if content is a lesson
+                //if content is a assessment
                 assignRewardPoints =
                   await this.altProgramAssociationService.addUserPoints(
                     request,
                     {
                       identifier: "assesment_completion",
                       description:
-                        "Student has completed assessment and earned", // Points will be added automatically
+                        "Student has completed assessment and earned",
+                      earning_context: {
+                        contentId: altLessonTrackingDto.lessonId,
+                        programId: altLessonTrackingDto.programId,
+                        subject: subject,
+                      },
                     }
                   );
               }
+
               /*
-              CHECK IF THE EVERY CONTENT OF THE RULES OBJECT HAS BEEN MATCHED 
+              CHECK IF  EVERY CONTENT OF THE RULES OBJECT HAS BEEN MATCHED 
               IF ALL CONTENT(LESSON AND QUESTION SET) HAS BEEN WATCHED -> ASSIGN SUBJECT COMPLETION POINTS FOR THE FIRST ATTEMPT ONLY 
             */
               const assignSubjectPoints = await this.checkContentCompletion(
                 request,
                 programRules,
-                altLessonTrackingDto.userId,
                 altLessonTrackingDto.programId,
-                
+                subject
               );
-              console.log(
-                "assignSubjectPoints->>>>>>>>>>>>>",
-                assignSubjectPoints
-              );
-              const rewardPoints = {
-                user_id:
-                  assignRewardPoints.data?.insert_UserPoints_one?.user_id,
-                points: assignRewardPoints.data?.insert_UserPoints_one?.points,
-                description:
-                  assignRewardPoints.data?.insert_UserPoints_one?.description,
-              };
-
+              if (assignSubjectPoints) {
+                assignRewardPoints =
+                  await this.altProgramAssociationService.addUserPoints(
+                    request,
+                    {
+                      identifier: "subject_completion",
+                      description:
+                        "Student has completed subject and has earned",
+                      earning_context: {
+                        programId: altLessonTrackingDto.programId,
+                        subject: subject,
+                      },
+                    }
+                  );
+              }
+              const rewardPoints = assignSubjectPoints
+                ? {
+                    subjectCompletionPoints: assignSubjectPoints,
+                    contentCompletionPoints: assignRewardPoints,
+                  }
+                : assignRewardPoints;
               // Log progress tracking after insertion
               const loggedAttempt = await this.logLessonAttemptProgressTracking(
                 request,
@@ -1313,10 +1346,10 @@ export class ALTLessonTrackingService {
       url: `${currentUrl}/api/course/v1/hierarchy/${altLessonTrackingDto.courseId?.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`,
     };
 
-   // console.log("axiosherer-->>>", config.url);
+    // console.log("axiosherer-->>>", config.url);
     const courseHierarchy = await this.axios(config);
     const data = courseHierarchy?.data.result.content;
-   // console.log("axiosData-->>", data);
+    // console.log("axiosData-->>", data);
 
     let moduleId = null;
 
@@ -1428,85 +1461,129 @@ export class ALTLessonTrackingService {
   // }
   // Add this function to check content completion using counts
 
-
   public async checkContentCompletion(
     request,
     programRules,
-    userId,
-    programId
-  ) {
-    // Get unique content IDs from rules using Set for deduplication
-    const allContentIds = [
-      ...new Set(
-        programRules.prog.flatMap((rule) =>
-          [rule.contentId, rule.lesson_questionset].filter(Boolean)
-        )
-      ),
-    ];
+    programId,
+    subject
+  ): Promise<boolean> {
+    try {
+      // Decode userId from request headers
+      const decoded: any = jwt_decode(request.headers.authorization);
+      const userId =
+        decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
-    // Query to get completed content count
-    const completionQuery = {
-      query: `
-        query MyQuery($userId: uuid, $programId: uuid, $contentIds: [String!]) {
-          LessonProgressTracking_aggregate(
-            where: {
-              userId: {_eq: $userId}, 
-              programId: {_eq: $programId}, 
-              lessonId: {_in: $contentIds}, 
-              status: {_eq: "completed"}
-            }
-          ) {
-            aggregate {
-              count
+      // Check if the same userId, programId, and subject already exist in UserPoints table
+      const checkExistingPointsQuery = {
+        query: `
+          query CheckExistingPoints($userId: uuid!, $programId: uuid!, $subject: String!) {
+            UserPoints(
+              where: {
+                user_id: { _eq: $userId },
+                identifier: { _eq: "subject_completion" },
+                earning_context: { 
+                  _contains: { 
+                    programId: $programId,
+                    subject: $subject
+                  } 
+                }
+              }
+            ) {
+              user_id
+              points
+              earning_context
             }
           }
-        }
-      `,
-      variables: {
-        contentIds: allContentIds,
-        userId: userId,
-        programId: programId,
-      },
-    };
-
-    try {
-      const response = await this.axios({
+        `,
+        variables: {
+          userId: userId,
+          programId: programId,
+          subject: subject,
+        },
+      };
+      const config = {
         method: "post",
         url: process.env.ALTHASURA,
         headers: {
           Authorization: request.headers.authorization,
           "Content-Type": "application/json",
         },
-        data: completionQuery,
-      });
+        data: checkExistingPointsQuery,
+      };
+      const existingPointsResponse = await this.axios(config);
 
-      console.log(JSON.stringify(response.data));
-      
-      const completedCount = response.data.LessonProgressTracking_aggregate.aggregate.count;
-      const totalContent = allContentIds.length;
-
-      console.log({
-        totalContent,
-        completedCount,
-        allContentIds
-      });
-
-      // Return true only if all content is completed
-      const isComplete = completedCount === totalContent;
-
-      if (isComplete) {
-        // If all content is completed, assign subject completion points
-        await this.altProgramAssociationService.addUserPoints(request, {
-          identifier: "subject_completion",
-          description: "Student has completed all content in subject and earned"
-        });
+      if (existingPointsResponse.data.data.UserPoints.length > 0) {
+        console.log("Points already assigned for this user and program");
+        return false;
       }
-      return isComplete;
+      // Extract both contentIds and lesson_questionset IDs from programRules.prog
+      const lessonIdsToCheck = programRules.prog
+        .flatMap((rule) => [rule.contentId, rule.lesson_questionset])
+        .filter(Boolean); // Remove any null/undefined values
+
+      if (lessonIdsToCheck.length === 0) {
+        return false;
+      }
+
+      // Query to check completed lessons
+      const completedLessonsQuery = {
+        query: `
+          query GetCompletedLessons($userId: uuid!, $lessonIds: [String!]!, $programId: uuid!) {
+            LessonProgressTracking_aggregate(
+              where: {
+                userId: { _eq: $userId },
+                lessonId: { _in: $lessonIds },
+                status: { _eq: completed },
+                programId: { _eq: $programId }
+              }
+            ) {
+              aggregate{
+              count
+              }
+            }
+          }
+        `,
+        variables: {
+          userId: userId,
+          lessonIds: lessonIdsToCheck,
+          programId: programId,
+        },
+      };
+
+      const configData = {
+        method: "post",
+        url: process.env.ALTHASURA,
+        headers: {
+          Authorization: request.headers.authorization,
+          "Content-Type": "application/json",
+        },
+        data: completedLessonsQuery,
+      };
+
+      const response = await this.axios(configData);
+
+      if (response?.data?.errors) {
+        console.log(response?.data?.errors);
+
+        return false;
+      }
+
+      // Compare the number of completed lessons with the total required lessons
+      const completedLessonsCount =
+        response.data.data.LessonProgressTracking_aggregate.aggregate.count;
+      const requiredLessonsCount = lessonIdsToCheck.length;
+      console.log(
+        "completedLessonsCount === requiredLessonsCount->>>>>>.",
+        completedLessonsCount,
+        requiredLessonsCount
+      );
+
+      return completedLessonsCount === requiredLessonsCount;
     } catch (error) {
-      console.error("Error checking content completion:", error);
+      console.error("Error checking lesson completion:", error);
       throw new ErrorResponse({
         errorCode: "500",
-        errorMessage: "Failed to check content completion status",
+        errorMessage: "Failed to check lesson completion status",
       });
     }
   }
