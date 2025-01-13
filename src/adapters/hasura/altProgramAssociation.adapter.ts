@@ -1416,6 +1416,76 @@ export class ALTProgramAssociationService {
 
   // }
 
+  transformClassData(data: any) {
+    const result = {
+      group: data.Group.map((group: any) => ({
+        name: group.name || "",
+        class: group.grade || "",
+      }))[0], // Assuming there's only one group object
+  
+      topUsers: data.topUsers.map((userEntry: any, index: number) => {
+        const user = userEntry.User;
+        return {
+          name: user.name || "",
+          class: data.Group[0]?.grade || "", // Assuming all users belong to the same group
+          className: data.Group[0]?.name || "",
+          rank: index + 1, // Assuming rank is the index+1 in the topUsers array
+          points: user.totalPoints?.aggregate?.sum?.points || 0,
+        };
+      }),
+    };
+  
+    return result;
+  }
+
+  transformSchoolData(data: any) {
+    const result = data.Group.map((group: any) => ({
+      groupName: group.name || "",
+      grade: group.grade || "",
+      topUsers: group.topUsers.map((userEntry: any, index: number) => {
+        const user = userEntry.User;
+        return {
+          name: user.name || "",
+          class: data.Group[0]?.grade || "",
+          className: data.Group[0]?.name || "",
+          rank: index + 1,
+          points: user.totalPoints?.aggregate?.sum?.points || 0,
+        };
+      }),
+    }));
+  
+    return result;
+  }
+
+  transformBoardData(data: any) {
+    const result = data.School.map((school: any) => {
+      // Collect all topUsers across all groups
+      const allTopUsers = school.Groups.flatMap((group: any) => 
+        group.topUsers.map((userEntry: any, index: number) => {
+          const user = userEntry.User;
+          return {
+            name: user.name || "",
+            class: group.grade || "",
+            className: group.name || "",
+            rank: index + 1,
+            points: user.totalPoints?.aggregate?.sum?.points || 0,
+          };
+        })
+      );
+  
+      return {
+        board: school.board || "",
+        udiseCode: school.udiseCode || "",
+        topUsers: allTopUsers, // Unified array of all topUsers
+      };
+    });
+  
+    return result;
+  }
+  
+
+  
+
   async leaderBoardPoints(request, data) {
     console.log("timeframe", data.timeframe);
   
@@ -1446,61 +1516,9 @@ export class ALTProgramAssociationService {
       throw new Error("Invalid filters: At least one of groupId, schoolUdise, or board is required.");
     }
   }
-  
-
-  async getDateRange(timeframes: string): Promise<{ startDate: string; endDate: string }> {
-    const today = moment(); // Get today's date
-  
-    switch (timeframes) {
-      case 'today':
-        return {
-          startDate: today.clone().startOf('day').toISOString(),
-          endDate: today.clone().endOf('day').toISOString(),
-        };
-      case 'last7days':
-        return {
-          startDate: moment().subtract(7, 'days').startOf('day').toISOString(),
-          endDate: today.clone().endOf('day').toISOString(),
-        };
-      case 'last30days':
-        return {
-          startDate: moment().subtract(30, 'days').startOf('day').toISOString(),
-          endDate: today.clone().endOf('day').toISOString(),
-        };
-      default:
-        throw new Error('Invalid timeframe');
-    }
-  }
 
   async getPointsByClassId(request, groupId, startDate, endDate) {
-    // const checkGraphQLQuery = {
-    //   query: `
-    //   query MyQuery($groupId: uuid!, $startDate: timestamptz, $endDate: timestamptz) {
-    //     GroupMembership(where: { groupId: { _eq: $groupId } }) {
-    //       User {
-    //         name
-    //         email
-    //         mobile
-    //         gender
-    //         role
-    //         status
-    //         Points_aggregate(where: {created_at: {_gte: $startDate, _lte: $endDate}}) {
-    //           aggregate {
-    //             sum {
-    //               points
-    //             }
-    //           }
-    //         }
-    //       }
-    //     }
-    //   }
-    //   `,
-    //   variables: {
-    //     groupId: groupId,
-    //     startDate,
-    //     endDate,
-    //   },
-    // };
+    
 
     console.log("classId")
 
@@ -1556,11 +1574,19 @@ export class ALTProgramAssociationService {
       const checkResponse = await this.axios(config_data);
       console.log("checkResponse", checkResponse.data);
 
-      if (checkResponse) {
+      if (checkResponse?.data?.errors) {
+        return new SuccessResponse({
+          statusCode: 401,
+          message: checkResponse?.data?.errors,
+          data: checkResponse?.data?.data,
+        });
+      } else if (checkResponse?.data?.data) {
+
+        const formattedData = this.transformClassData(checkResponse?.data?.data)
         return new SuccessResponse({
           statusCode: 200,
           message: 'User Points fetched successfully.',
-          data: checkResponse?.data?.data,
+          data: formattedData,
         });
       } else {
         return new SuccessResponse({
@@ -1580,39 +1606,6 @@ export class ALTProgramAssociationService {
 
   async getPointsBySchoolId(request, schoolUdise, startDate, endDate) {
 
-    // const checkGraphQLQuery = {
-    //   query: `
-    //   query MyQuery($schoolUdise: String!, $startDate: timestamptz, $endDate: timestamptz) {
-    //     Group(where: {schoolUdise: {_eq: $schoolUdise}}) {
-    //       groupId
-    //       type
-    //       grade
-    //       name
-    //       GroupMemberships {
-    //         userId
-    //         User {
-    //           name
-    //           email
-    //           role
-    //           status
-    //           Points_aggregate(where: {created_at: {_gte: $startDate, _lte: $endDate}}) {
-    //             aggregate {
-    //               sum {
-    //                 points
-    //               }
-    //             }
-    //           }
-    //         }
-    //       }
-    //     }
-    //   }
-    //   `,
-    //   variables: {
-    //     schoolUdise: schoolUdise,
-    //     startDate,
-    //     endDate,
-    //   },
-    // };
 
     const checkGraphQLQuery = {
       query: `
@@ -1665,11 +1658,19 @@ export class ALTProgramAssociationService {
       const checkResponse = await this.axios(config_data);
       console.log("checkResponse", checkResponse.data);
 
-      if (checkResponse) {
+      if (checkResponse?.data?.errors) {
+        return new SuccessResponse({
+          statusCode: 401,
+          message: checkResponse?.data?.errors,
+          data: checkResponse?.data?.data,
+        });
+      } else if (checkResponse?.data?.data) {
+
+        const formattedData = this.transformSchoolData(checkResponse?.data?.data)
         return new SuccessResponse({
           statusCode: 200,
           message: 'User Points fetched successfully.',
-          data: checkResponse?.data?.data,
+          data: formattedData,
         });
       } else {
         return new SuccessResponse({
@@ -1688,45 +1689,6 @@ export class ALTProgramAssociationService {
   }
 
   async getPointsByBoard(request, board, startDate, endDate) {
-
-    // const checkGraphQLQuery = {
-    //   query: `
-    //   query MyQuery($board: String!, $startDate: timestamptz, $endDate: timestamptz) {
-    //     School(where: {board: {_eq: $board}}) {
-    //       board
-    //       udiseCode
-    //       Groups {
-    //         schoolUdise
-    //         groupId
-    //         type
-    //         grade
-    //         name
-    //         GroupMemberships {
-    //           groupId
-    //           User {
-    //             name
-    //             email
-    //             role
-    //             status
-    //             Points_aggregate(where: {created_at: {_gte: $startDate, _lte: $endDate}}) {
-    //               aggregate {
-    //                 sum {
-    //                   points
-    //                 }
-    //               }
-    //             }
-    //           }
-    //         }
-    //       }
-    //     }
-    //   }
-    //   `,
-    //   variables: {
-    //     board: board,
-    //     startDate,
-    //     endDate,
-    //   },
-    // };
 
     const checkGraphQLQuery = {
       query: `
@@ -1784,11 +1746,18 @@ export class ALTProgramAssociationService {
       const checkResponse = await this.axios(config_data);
       console.log("checkResponse", checkResponse.data);
 
-      if (checkResponse) {
+      if (checkResponse?.data?.errors) {
+        return new SuccessResponse({
+          statusCode: 401,
+          message: checkResponse?.data?.errors,
+          data: checkResponse?.data?.data,
+        });
+      }else if (checkResponse?.data?.data) {
+        const formattedData = this.transformBoardData(checkResponse?.data?.data)
         return new SuccessResponse({
           statusCode: 200,
           message: 'User Points fetched successfully.',
-          data: checkResponse?.data?.data,
+          data: formattedData,
         });
       } else {
         return new SuccessResponse({
@@ -1804,6 +1773,212 @@ export class ALTProgramAssociationService {
         errorMessage: 'Failed to execute the GraphQL mutation.',
       });
     }
+  } 
+  
+
+  async getDateRange(timeframes: string): Promise<{ startDate: string; endDate: string }> {
+    const today = moment(); // Get today's date
+  
+    switch (timeframes) {
+      case 'today':
+        return {
+          startDate: today.clone().startOf('day').toISOString(),
+          endDate: today.clone().endOf('day').toISOString(),
+        };
+      case 'last7days':
+        return {
+          startDate: moment().subtract(7, 'days').startOf('day').toISOString(),
+          endDate: today.clone().endOf('day').toISOString(),
+        };
+      case 'last30days':
+        return {
+          startDate: moment().subtract(30, 'days').startOf('day').toISOString(),
+          endDate: today.clone().endOf('day').toISOString(),
+        };
+      default:
+        throw new Error('Invalid timeframe');
+    }
   }
+
+  //////
+
+  // Utility function to format user data
+  // formatUserData(users, groupName) {
+
+  //   return users.map((user, index) => ({
+  //     name: user.User.name || "",
+  //     class: groupName || "",
+  //     rank: (index + 1).toString(), // Ranks start from 1
+  //     points: user.User.totalPoints.aggregate.sum.points || "0",
+  //   }));
+  // }
+
+  // async leaderBoardPoints(request, data) {
+  //   console.log("timeframe", data.timeframe);
+
+  //   const { startDate, endDate } = await this.getDateRange(data.timeframe);
+
+  //   console.log("startDate", moment(startDate).format("DD-MM-YYYY"));
+  //   console.log("endDate", moment(endDate).format("DD-MM-YYYY"));
+
+  //   const filters = data.filters || {};
+  //   const groupId = filters.groupId;
+  //   const schoolUdise = filters.schoolUdise;
+  //   const board = filters.board;
+
+  //   const decoded: any = jwt_decode(request.headers.authorization);
+  //   const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+  //   console.log("altUserId", altUserId);
+
+  //   if (groupId) {
+  //     console.log("Fetching data by Group ID:", groupId);
+  //     return this.getPointsByClassId(request, groupId, startDate, endDate);
+  //   } else if (schoolUdise) {
+  //     console.log("Fetching data by School UDISE:", schoolUdise);
+  //     return this.getPointsBySchoolId(request, schoolUdise, startDate, endDate);
+  //   } else if (board) {
+  //     console.log("Fetching data by Board:", board);
+  //     return this.getPointsByBoard(request, board, startDate, endDate);
+  //   } else {
+  //     throw new Error("Invalid filters: At least one of groupId, schoolUdise, or board is required.");
+  //   }
+  // }
+
+  // async getPointsByClassId(request, groupId, startDate, endDate) {
+  //   const query = {
+  //     query: `
+  //       query MyQuery($groupId: uuid!, $startDate: timestamptz, $endDate: timestamptz) {
+  //         Group(where: { groupId: { _eq: $groupId } }) {
+  //           name
+  //         }
+  //         topUsers: GroupMembership(
+  //           where: { groupId: { _eq: $groupId } },
+  //           order_by: { User: { Points_aggregate: { sum: { points: desc } } } },
+  //           limit: 10
+  //         ) {
+  //           User {
+  //             name
+  //             totalPoints: Points_aggregate(where: { created_at: { _gte: $startDate, _lte: $endDate } }) {
+  //               aggregate {
+  //                 sum {
+  //                   points
+  //                 }
+  //               }
+  //             }
+  //           }
+  //         }
+  //       }
+  //     `,
+  //     variables: { groupId, startDate, endDate },
+  //   };
+
+  //   const response = await this.executeQuery(request, query);
+  //   const groupName = response.Group?.[0]?.name || "";
+  //   const formattedData = this.formatUserData(response.topUsers || [], groupName);
+
+  //   return new SuccessResponse({
+  //     statusCode: 200,
+  //     message: "User Points fetched successfully.",
+  //     data: formattedData,
+  //   });
+  // }
+
+  // async getPointsBySchoolId(request, schoolUdise, startDate, endDate) {
+  //   const query = {
+  //     query: `
+  //       query MyQuery($schoolUdise: String!, $startDate: timestamptz, $endDate: timestamptz) {
+  //         Group(where: { schoolUdise: { _eq: $schoolUdise } }) {
+  //           name
+  //           topUsers: GroupMemberships(
+  //             order_by: { User: { Points_aggregate: { sum: { points: desc } } } },
+  //             limit: 10
+  //           ) {
+  //             User {
+  //               name
+  //               totalPoints: Points_aggregate(where: { created_at: { _gte: $startDate, _lte: $endDate } }) {
+  //                 aggregate {
+  //                   sum {
+  //                     points
+  //                   }
+  //                 }
+  //               }
+  //             }
+  //           }
+  //         }
+  //       }
+  //     `,
+  //     variables: { schoolUdise, startDate, endDate },
+  //   };
+
+  //   const response = await this.executeQuery(request, query);
+  //   const groupName = response.Group?.[0]?.name || "";
+  //   const formattedData = this.formatUserData(response.Group?.[0]?.topUsers || [], groupName);
+
+  //   return new SuccessResponse({
+  //     statusCode: 200,
+  //     message: "User Points fetched successfully.",
+  //     data: formattedData,
+  //   });
+  // }
+
+  // async getPointsByBoard(request, board, startDate, endDate) {
+  //   const query = {
+  //     query: `
+  //       query MyQuery($board: String!, $startDate: timestamptz, $endDate: timestamptz) {
+  //         School(where: { board: { _eq: $board } }) {
+  //           Groups {
+  //             name
+  //             topUsers: GroupMemberships(
+  //               order_by: { User: { Points_aggregate: { sum: { points: desc } } } },
+  //               limit: 10
+  //             ) {
+  //               User {
+  //                 name
+  //                 totalPoints: Points_aggregate(where: { created_at: { _gte: $startDate, _lte: $endDate } }) {
+  //                   aggregate {
+  //                     sum {
+  //                       points
+  //                     }
+  //                   }
+  //                 }
+  //               }
+  //             }
+  //           }
+  //         }
+  //       }
+  //     `,
+  //     variables: { board, startDate, endDate },
+  //   };
+
+  //   const response = await this.executeQuery(request, query);
+  //   const groupName = response.School?.[0]?.Groups?.[0]?.name || "";
+  //   const formattedData = this.formatUserData(response.School?.[0]?.Groups?.[0]?.topUsers || [], groupName);
+
+  //   return new SuccessResponse({
+  //     statusCode: 200,
+  //     message: "User Points fetched successfully.",
+  //     data: formattedData,
+  //   });
+  // }
+
+  // async executeQuery(request, query) {
+  //   const config = {
+  //     method: "post",
+  //     url: process.env.ALTHASURA,
+  //     headers: {
+  //       Authorization: request.headers.authorization,
+  //       "Content-Type": "application/json",
+  //     },
+  //     data: query,
+  //   };
+
+  //   const response = await this.axios(config);
+  //   if (response?.data?.errors) {
+  //     throw new Error("Failed to execute the query.");
+  //   }
+  //   return response.data.data;
+  // }
+
+  
 
 }
