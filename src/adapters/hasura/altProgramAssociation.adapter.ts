@@ -1415,27 +1415,27 @@ export class ALTProgramAssociationService {
 
 
   // }
-  
 
-  
+
+
 
   async leaderBoardPoints(request, data) {
     console.log("timeframe", data.timeframe);
-  
+
     const { startDate, endDate } = await this.getDateRange(data.timeframe);
-  
+
     console.log("startDate", moment(startDate).format("DD-MM-YYYY"));
     console.log("endDate", moment(endDate).format("DD-MM-YYYY"));
-  
+
     const filters = data.filters || {};
     const groupId = filters.groupId;
     const schoolUdise = filters.schoolUdise;
     const board = filters.board;
-  
+
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
     console.log("altUserId", altUserId);
-  
+
     if (groupId) {
       console.log("Fetching data by Group ID:", groupId);
       return this.getPointsByClassId(request, groupId, startDate, endDate);
@@ -1450,10 +1450,100 @@ export class ALTProgramAssociationService {
     }
   }
 
-  async getPointsByClassId(request, groupId, startDate, endDate) {
-    
+  // async getPointsByClassId(request, groupId, startDate, endDate) {
 
-    console.log("classId")
+
+  //   console.log("classId")
+
+  //   const checkGraphQLQuery = {
+  //     query: `
+  //     query MyQuery($groupId: uuid!, $startDate: timestamptz, $endDate: timestamptz) {
+  //       Group(where: { groupId: { _eq: $groupId } }) {
+  //         groupId
+  //         type
+  //         grade
+  //         name
+
+  //       }
+  //       topUsers: GroupMembership(
+  //         where: { groupId: { _eq: $groupId } },
+  //         order_by: { User: { Points_aggregate: { sum: { points: asc } } } },
+  //         limit: 10
+  //       ) {
+  //         User {
+  //           name
+  //           email
+  //           role
+  //           status
+  //           totalPoints: Points_aggregate(where: { created_at: { _gte: $startDate, _lte: $endDate } }) {
+  //             aggregate {
+  //               sum {
+  //                 points
+  //               }
+  //             }
+  //           }
+  //         }
+  //       }
+  //     }
+  //     `,
+  //     variables: {
+  //       groupId: groupId,
+  //       startDate,
+  //       endDate,
+  //     },
+  //   };
+
+  //   const config_data = {
+  //     method: 'post',
+  //     url: process.env.ALTHASURA,
+  //     headers: {
+  //       Authorization: request.headers.authorization,
+  //       'Content-Type': 'application/json',
+  //     },
+  //     data: checkGraphQLQuery,
+  //   };
+
+  //   try {
+  //     const checkResponse = await this.axios(config_data);
+  //     console.log("checkResponse", checkResponse.data);
+
+  //     if (checkResponse?.data?.errors) {
+  //       return new SuccessResponse({
+  //         statusCode: 401,
+  //         message: checkResponse?.data?.errors,
+  //         data: checkResponse?.data?.data,
+  //       });
+  //     } else if (checkResponse?.data?.data) {
+
+  //       const formattedData = this.transformClassData(checkResponse?.data?.data)
+  //       return new SuccessResponse({
+  //         statusCode: 200,
+  //         message: 'User Points fetched successfully.',
+  //         data: formattedData,
+  //       });
+  //     } else {
+  //       return new SuccessResponse({
+  //         statusCode: 200,
+  //         message: 'User Points not exists.',
+  //         data: [],
+  //       });
+  //     }
+  //   } catch (error) {
+  //     console.error('Axios Error:', error.message);
+  //     throw new ErrorResponse({
+  //       errorCode: 'AXIOS_ERROR',
+  //       errorMessage: 'Failed to execute the GraphQL mutation.',
+  //     });
+  //   }
+  // }
+
+  async getPointsByClassId(request, groupId, startDate, endDate) {
+
+    const variables: any = { groupId };
+    if (startDate && endDate) {
+      variables.startDate = startDate;
+      variables.endDate = endDate;
+    }
 
     const checkGraphQLQuery = {
       query: `
@@ -1463,7 +1553,6 @@ export class ALTProgramAssociationService {
           type
           grade
           name
-          
         }
         topUsers: GroupMembership(
           where: { groupId: { _eq: $groupId } },
@@ -1475,7 +1564,9 @@ export class ALTProgramAssociationService {
             email
             role
             status
-            totalPoints: Points_aggregate(where: { created_at: { _gte: $startDate, _lte: $endDate } }) {
+            totalPoints: Points_aggregate(
+              ${startDate && endDate ? 'where: { created_at: { _gte: $startDate, _lte: $endDate } }' : ''}
+            ) {
               aggregate {
                 sum {
                   points
@@ -1486,12 +1577,10 @@ export class ALTProgramAssociationService {
         }
       }
       `,
-      variables: {
-        groupId: groupId,
-        startDate,
-        endDate,
-      },
+      variables,
     };
+
+    console.log("checkGraphQLQuery", checkGraphQLQuery)
 
     const config_data = {
       method: 'post',
@@ -1685,7 +1774,7 @@ export class ALTProgramAssociationService {
           message: checkResponse?.data?.errors,
           data: checkResponse?.data?.data,
         });
-      }else if (checkResponse?.data?.data) {
+      } else if (checkResponse?.data?.data) {
         const formattedData = this.transformBoardData(checkResponse?.data?.data)
         return new SuccessResponse({
           statusCode: 200,
@@ -1706,12 +1795,12 @@ export class ALTProgramAssociationService {
         errorMessage: 'Failed to execute the GraphQL mutation.',
       });
     }
-  } 
-  
+  }
+
 
   async getDateRange(timeframes: string): Promise<{ startDate: string; endDate: string }> {
     const today = moment(); // Get today's date
-  
+
     switch (timeframes) {
       case 'today':
         return {
@@ -1728,8 +1817,12 @@ export class ALTProgramAssociationService {
           startDate: moment().subtract(30, 'days').startOf('day').toISOString(),
           endDate: today.clone().endOf('day').toISOString(),
         };
-      default:
-        throw new Error('Invalid timeframe');
+        default:
+          // Infinite time range for default
+          return {
+            startDate: '1900-01-01T00:00:00Z',
+            endDate: '9999-12-31T23:59:59Z',
+          };
     }
   }
 
@@ -1739,7 +1832,7 @@ export class ALTProgramAssociationService {
         name: group.name || "",
         class: group.grade || "",
       }))[0], // Assuming there's only one group object
-  
+
       topUsers: data.topUsers.map((userEntry: any, index: number) => {
         const user = userEntry.User;
         return {
@@ -1751,7 +1844,7 @@ export class ALTProgramAssociationService {
         };
       }),
     };
-  
+
     return result;
   }
 
@@ -1770,14 +1863,14 @@ export class ALTProgramAssociationService {
         };
       }),
     }));
-  
+
     return result;
   }
 
   transformBoardData(data: any) {
     const result = data.School.map((school: any) => {
       // Collect all topUsers across all groups
-      const allTopUsers = school.Groups.flatMap((group: any) => 
+      const allTopUsers = school.Groups.flatMap((group: any) =>
         group.topUsers.map((userEntry: any, index: number) => {
           const user = userEntry.User;
           return {
@@ -1789,14 +1882,14 @@ export class ALTProgramAssociationService {
           };
         })
       );
-  
+
       return {
         board: school.board || "",
         udiseCode: school.udiseCode || "",
         topUsers: allTopUsers, // Unified array of all topUsers
       };
     });
-  
+
     return result;
   }
 
