@@ -8,16 +8,15 @@ import { UpdateALTProgramAssociationDto } from "src/altProgramAssociation/dto/up
 import { ErrorResponse } from "src/error-response";
 import { ALTProgramAssociationSearch } from "src/altProgramAssociation/dto/searchAltProgramAssociation.dto";
 import jwt_decode from "jwt-decode";
-import { firstValueFrom } from 'rxjs';
-import moment from 'moment';
-import { lastValueFrom } from 'rxjs';
-
+import { firstValueFrom } from "rxjs";
+import moment from "moment";
+import { lastValueFrom } from "rxjs";
 
 Injectable();
 export class ALTProgramAssociationService {
   axios = require("axios");
 
-  constructor(private readonly httpService: HttpService) { }
+  constructor(private readonly httpService: HttpService) {}
 
   public async mappedResponse(data: any) {
     const programResponse = data.map((item: any) => {
@@ -1228,35 +1227,47 @@ export class ALTProgramAssociationService {
     }
   }
 
-  async getUserPoints(request) {
+  async getUserPoints(request, page: number = 1, limit: number = 10) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
+    // Calculate offset based on page and limit
+    const offset = (page - 1) * limit;
+    // Ensure limit and offset are numbers
+    const numericLimit = Number(limit);
+    const numericOffset = Number(offset);
+
     console.log("altUserId", altUserId);
 
-    const checkGraphQLQuery = {
+    const getUserPointsQuery = {
       query: `
-      query MyQuery($userId: uuid!) {
-        UserPoints(
-          where: { user_id: { _eq: $userId } }
-          order_by: { created_at: desc }
+      query MyQuery($userId: uuid!, $limit: Int, $offset: Int) {
+            UserPoints(where: {user_id: {_eq: $userId}}, order_by: {created_at: desc}, limit: $limit, offset: $offset) {
+              id
+              identifier
+              points
+              description
+              user_id
+              created_at
+              updated_at
+            }
+            total: UserPoints_aggregate(where: {user_id: {_eq: $userId}}, order_by: {created_at: desc}, limit: $limit, offset: $offset) {
+              aggregate {
+                count
+              }
+            }
+          }
 
-        ) {
-          id
-          identifier
-          points
-          description
-          user_id
-          created_at
-          updated_at
-        }
-      }
+
       `,
       variables: {
         userId: altUserId,
+        limit: numericLimit,
+        offset: numericOffset,
       },
     };
+    console.log();
 
     const config_data = {
       method: "post",
@@ -1265,18 +1276,26 @@ export class ALTProgramAssociationService {
         Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
-      data: checkGraphQLQuery,
+      data: getUserPointsQuery,
     };
 
     try {
-      const checkResponse = await this.axios(config_data);
-      console.log("checkResponse", checkResponse.data);
-
-      if (checkResponse) {
+      const response = await this.axios(config_data);
+      console.log("checkResponse", response.data);
+      const points = response.data.data.UserPoints;
+      const totalCount = response.data.data.total.aggregate.count;
+      const totalPages = Math.ceil(totalCount / limit);
+      if (response) {
         return new SuccessResponse({
           statusCode: 200,
           message: "User Points fetched successfully.",
-          data: checkResponse?.data?.data,
+          data: {
+            points,
+            currentPage: page,
+            totalPages: totalPages,
+            totalRecords: totalCount,
+            limit: limit,
+          },
         });
       } else {
         return new SuccessResponse({
@@ -1416,11 +1435,7 @@ export class ALTProgramAssociationService {
 
   //   // return this.getPointsByClassId(request, groupId, startDate, endDate)
 
-
   // }
-
-
-
 
   async leaderBoardPoints(request, data) {
     console.log("timeframe", data.timeframe);
@@ -1436,25 +1451,27 @@ export class ALTProgramAssociationService {
     const board = filters.board;
 
     const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
     console.log("altUserId", altUserId);
 
     if (groupId) {
       console.log("Fetching data by Group ID:", groupId);
-      return this.getPointsByClassId(request, groupId, startDate, endDate);
+      return this.getPointsByClassId(request, altUserId, groupId, startDate, endDate);
     } else if (schoolUdise) {
       console.log("Fetching data by School UDISE:", schoolUdise);
-      return this.getPointsBySchoolId(request, schoolUdise, startDate, endDate);
+      return this.getPointsBySchoolId(request, altUserId, schoolUdise, startDate, endDate);
     } else if (board) {
       console.log("Fetching data by Board:", board);
-      return this.getPointsByBoard(request, board, startDate, endDate);
+      return this.getPointsByBoard(request, altUserId, board, startDate, endDate);
     } else {
-      throw new Error("Invalid filters: At least one of groupId, schoolUdise, or board is required.");
+      throw new Error(
+        "Invalid filters: At least one of groupId, schoolUdise, or board is required."
+      );
     }
   }
 
   // async getPointsByClassId(request, groupId, startDate, endDate) {
-
 
   //   console.log("classId")
 
@@ -1540,7 +1557,9 @@ export class ALTProgramAssociationService {
   //   }
   // }
 
-  async getPointsByClassId(request, groupId, startDate, endDate) {
+
+  async getPointsByClassId(request, userId, groupId, startDate, endDate) {
+
 
     const variables: any = { groupId };
     if (startDate && endDate) {
@@ -1564,11 +1583,13 @@ export class ALTProgramAssociationService {
         ) {
           User {
             name
-            email
-            role
-            status
+            userId
             totalPoints: Points_aggregate(
-              ${startDate && endDate ? 'where: { created_at: { _gte: $startDate, _lte: $endDate } }' : ''}
+              ${
+                startDate && endDate
+                  ? "where: { created_at: { _gte: $startDate, _lte: $endDate } }"
+                  : ""
+              }
             ) {
               aggregate {
                 sum {
@@ -1583,14 +1604,14 @@ export class ALTProgramAssociationService {
       variables,
     };
 
-    console.log("checkGraphQLQuery", checkGraphQLQuery)
+    console.log("checkGraphQLQuery", checkGraphQLQuery);
 
     const config_data = {
-      method: 'post',
+      method: "post",
       url: process.env.ALTHASURA,
       headers: {
         Authorization: request.headers.authorization,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       data: checkGraphQLQuery,
     };
@@ -1601,35 +1622,39 @@ export class ALTProgramAssociationService {
 
       if (checkResponse?.data?.errors) {
         return new SuccessResponse({
-          statusCode: 401,
+          statusCode: 400,
           message: checkResponse?.data?.errors,
           data: checkResponse?.data?.data,
         });
       } else if (checkResponse?.data?.data) {
 
-        const formattedData = this.transformClassData(checkResponse?.data?.data)
+
+        const formattedData = this.transformClassData(checkResponse?.data?.data, userId)
+
         return new SuccessResponse({
           statusCode: 200,
-          message: 'User Points fetched successfully.',
+          message: "User Points fetched successfully.",
           data: formattedData,
         });
       } else {
         return new SuccessResponse({
           statusCode: 200,
-          message: 'User Points not exists.',
+          message: "User Points not exists.",
           data: [],
         });
       }
     } catch (error) {
-      console.error('Axios Error:', error.message);
+      console.error("Axios Error:", error.message);
       throw new ErrorResponse({
-        errorCode: 'AXIOS_ERROR',
-        errorMessage: 'Failed to execute the GraphQL mutation.',
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
       });
     }
   }
 
-  async getPointsBySchoolId(request, schoolUdise, startDate, endDate) {
+
+  async getPointsBySchoolId(request, userId, schoolUdise, startDate, endDate) {
+
 
 
     const checkGraphQLQuery = {
@@ -1647,9 +1672,7 @@ export class ALTProgramAssociationService {
             userId
             User {
               name
-              email
-              role
-              status
+              userId
               totalPoints: Points_aggregate(where: { created_at: { _gte: $startDate, _lte: $endDate } }) {
                 aggregate {
                   sum {
@@ -1670,11 +1693,11 @@ export class ALTProgramAssociationService {
     };
 
     const config_data = {
-      method: 'post',
+      method: "post",
       url: process.env.ALTHASURA,
       headers: {
         Authorization: request.headers.authorization,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       data: checkGraphQLQuery,
     };
@@ -1685,35 +1708,39 @@ export class ALTProgramAssociationService {
 
       if (checkResponse?.data?.errors) {
         return new SuccessResponse({
-          statusCode: 401,
+          statusCode: 400,
           message: checkResponse?.data?.errors,
           data: checkResponse?.data?.data,
         });
       } else if (checkResponse?.data?.data) {
 
-        const formattedData = this.transformSchoolData(checkResponse?.data?.data)
+
+        const formattedData = this.transformSchoolData(checkResponse?.data?.data, userId)
+
         return new SuccessResponse({
           statusCode: 200,
-          message: 'User Points fetched successfully.',
+          message: "User Points fetched successfully.",
           data: formattedData,
         });
       } else {
         return new SuccessResponse({
           statusCode: 200,
-          message: 'User Points not exists.',
+          message: "User Points not exists.",
           data: [],
         });
       }
     } catch (error) {
-      console.error('Axios Error:', error.message);
+      console.error("Axios Error:", error.message);
       throw new ErrorResponse({
-        errorCode: 'AXIOS_ERROR',
-        errorMessage: 'Failed to execute the GraphQL mutation.',
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
       });
     }
   }
 
-  async getPointsByBoard(request, board, startDate, endDate) {
+
+  async getPointsByBoard(request, userId, board, startDate, endDate) {
+
 
     const checkGraphQLQuery = {
       query: `
@@ -1734,9 +1761,7 @@ export class ALTProgramAssociationService {
               groupId
               User {
                 name
-                email
-                role
-                status
+                userId
                 totalPoints: Points_aggregate(where: { created_at: { _gte: $startDate, _lte: $endDate } }) {
                   aggregate {
                     sum {
@@ -1758,11 +1783,11 @@ export class ALTProgramAssociationService {
     };
 
     const config_data = {
-      method: 'post',
+      method: "post",
       url: process.env.ALTHASURA,
       headers: {
         Authorization: request.headers.authorization,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       data: checkGraphQLQuery,
     };
@@ -1778,24 +1803,26 @@ export class ALTProgramAssociationService {
           data: checkResponse?.data?.data,
         });
       } else if (checkResponse?.data?.data) {
-        const formattedData = this.transformBoardData(checkResponse?.data?.data)
+
+        const formattedData = this.transformBoardData(checkResponse?.data?.data, userId)
+
         return new SuccessResponse({
           statusCode: 200,
-          message: 'User Points fetched successfully.',
+          message: "User Points fetched successfully.",
           data: formattedData,
         });
       } else {
         return new SuccessResponse({
           statusCode: 200,
-          message: 'User Points not exists.',
+          message: "User Points not exists.",
           data: [],
         });
       }
     } catch (error) {
-      console.error('Axios Error:', error.message);
+      console.error("Axios Error:", error.message);
       throw new ErrorResponse({
-        errorCode: 'AXIOS_ERROR',
-        errorMessage: 'Failed to execute the GraphQL mutation.',
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
       });
     }
   }
@@ -1805,96 +1832,101 @@ export class ALTProgramAssociationService {
     const today = moment(); // Get today's date
 
     switch (timeframes) {
-      case 'today':
+      case "today":
         return {
-          startDate: today.clone().startOf('day').toISOString(),
-          endDate: today.clone().endOf('day').toISOString(),
+          startDate: today.clone().startOf("day").toISOString(),
+          endDate: today.clone().endOf("day").toISOString(),
         };
-      case 'last7days':
+      case "last7days":
         return {
-          startDate: moment().subtract(7, 'days').startOf('day').toISOString(),
-          endDate: today.clone().endOf('day').toISOString(),
+          startDate: moment().subtract(7, "days").startOf("day").toISOString(),
+          endDate: today.clone().endOf("day").toISOString(),
         };
-      case 'last30days':
+      case "last30days":
         return {
-          startDate: moment().subtract(30, 'days').startOf('day').toISOString(),
-          endDate: today.clone().endOf('day').toISOString(),
+          startDate: moment().subtract(30, "days").startOf("day").toISOString(),
+          endDate: today.clone().endOf("day").toISOString(),
         };
-        default:
-          // Infinite time range for default
-          return {
-            startDate: '1900-01-01T00:00:00Z',
-            endDate: '9999-12-31T23:59:59Z',
-          };
+      default:
+        // Infinite time range for default
+        return {
+          startDate: "1900-01-01T00:00:00Z",
+          endDate: "9999-12-31T23:59:59Z",
+        };
+
     }
   }
 
-  transformClassData(data: any) {
-    const result = {
-      group: data.Group.map((group: any) => ({
-        name: group.name || "",
-        class: group.grade || "",
-      }))[0], // Assuming there's only one group object
+  transformClassData(data: any, userId: string) {
+    console.log("userId", userId);
 
-      topUsers: data.topUsers.map((userEntry: any, index: number) => {
-        const user = userEntry.User;
-        return {
-          name: user.name || "",
-          class: data.Group[0]?.grade || "", // Assuming all users belong to the same group
-          className: data.Group[0]?.name || "",
-          rank: index + 1, // Assuming rank is the index+1 in the topUsers array
-          points: user.totalPoints?.aggregate?.sum?.points || 0,
-        };
-      }),
+    const topUsers = data.topUsers.map((userEntry: any, index: number) => ({
+      name: userEntry.User.name || "",
+      userId: userEntry.User.userId || "",
+      class: data.Group[0]?.grade || "",
+      className: data.Group[0]?.name || "",
+      rank: index + 1,
+      points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
+    }));
+
+    const currentUser = topUsers.find(user => user.userId === userId) || null;
+
+    const result = {
+      topUsers,
+      currentUser,
     };
 
     return result;
   }
 
-  transformSchoolData(data: any) {
-    const result = data.Group.map((group: any) => ({
-      groupName: group.name || "",
-      grade: group.grade || "",
-      topUsers: group.topUsers.map((userEntry: any, index: number) => {
-        const user = userEntry.User;
-        return {
-          name: user.name || "",
-          class: data.Group[0]?.grade || "",
-          className: data.Group[0]?.name || "",
-          rank: index + 1,
-          points: user.totalPoints?.aggregate?.sum?.points || 0,
-        };
-      }),
-    }));
+  transformSchoolData(data: any, userId) {
+    // Unified topUsers array for all groups
+    const topUsers = data.Group.flatMap((group: any) =>
+      group.topUsers.map((userEntry: any, index: number) => ({
+        name: userEntry.User.name || "",
+        userId: userEntry.User.userId || "",
+        class: group.grade || "",
+        className: group.name || "",
+        rank: index + 1,
+        points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
+      }))
+    );
+
+    const currentUser = topUsers.find(user => user.userId === userId) || null;
+
+    const result = {
+      topUsers, // Unified array of top users
+      currentUser, // Data for the current user if found
+    };
 
     return result;
   }
 
-  transformBoardData(data: any) {
-    const result = data.School.map((school: any) => {
-      // Collect all topUsers across all groups
-      const allTopUsers = school.Groups.flatMap((group: any) =>
-        group.topUsers.map((userEntry: any, index: number) => {
-          const user = userEntry.User;
-          return {
-            name: user.name || "",
-            class: group.grade || "",
-            className: group.name || "",
-            rank: index + 1,
-            points: user.totalPoints?.aggregate?.sum?.points || 0,
-          };
-        })
-      );
 
-      return {
-        board: school.board || "",
-        udiseCode: school.udiseCode || "",
-        topUsers: allTopUsers, // Unified array of all topUsers
-      };
+  transformBoardData(data: any, userId: string) {
+    return data.School.map((school: any) => {
+      // Combine and sort topUsers across all groups
+      const topUsers = school.Groups.flatMap((group: any) =>
+        group.topUsers.map((userEntry: any) => ({
+          name: userEntry.User.name || "",
+          userId: userEntry.User.userId,
+          class: group.grade || "",
+          className: group.name || "",
+          rank: 0, // Temporary; rank will be updated after sorting
+          points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
+        }))
+      ).sort((a: any, b: any) => b.points - a.points); // Sort by points in descending order
+  
+      // Update ranks based on sorted order
+      topUsers.forEach((user, index) => {
+        user.rank = index + 1;
+      });
+  
+      console.log("topUsers", topUsers);
+  
+      // Return the sorted topUsers array
+      return topUsers;
     });
-
-    return result;
   }
-
 
 }
