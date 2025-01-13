@@ -1237,7 +1237,7 @@ export class ALTProgramAssociationService {
 
     const checkGraphQLQuery = {
       query: `
-      query MyQuery($userId: String!) {
+      query MyQuery($userId: uuid!) {
         UserPoints(
           where: { user_id: { _eq: $userId } }
           order_by: { created_at: desc }
