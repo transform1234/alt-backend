@@ -1853,13 +1853,6 @@ export class ALTProgramAssociationService {
           endDate: "9999-12-31T23:59:59Z",
         };
 
-      default:
-        // Infinite time range for default
-        return {
-          startDate: '1900-01-01T00:00:00Z',
-          endDate: '9999-12-31T23:59:59Z',
-        };
-
     }
   }
 
