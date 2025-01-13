@@ -269,6 +269,18 @@ export class ALTProgramAssociationController {
 
   }
 
+  @Post('leaderBoardPoints')
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "ALT Rules" })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  async leaderBoardPoints(@Body() body: any, @Req() request: Request,) {
+
+    const {filters, timeframe} = body
+
+    return this.altProgramAssociationService.leaderBoardPoints(request, {filters, timeframe});
+
+  }
+
 
 
 }
