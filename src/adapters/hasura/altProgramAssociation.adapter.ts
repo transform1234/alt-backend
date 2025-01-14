@@ -1874,6 +1874,7 @@ export class ALTProgramAssociationService {
         className: data.Group[0]?.name || "",
         points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
       }))
+      .filter(user => user.points > 0) 
       .sort((a, b) => b.points - a.points) // Sort by points in descending order
       .map((user, index) => ({
         ...user,
@@ -1903,6 +1904,9 @@ export class ALTProgramAssociationService {
         points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
       }))
     );
+
+    // Remove users with 0 points
+    topUsers = topUsers.filter(user => user.points > 0);
   
     // Sort topUsers by points in descending order
     topUsers = topUsers.sort((a, b) => b.points - a.points);
