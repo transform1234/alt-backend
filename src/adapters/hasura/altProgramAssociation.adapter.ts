@@ -1282,10 +1282,17 @@ export class ALTProgramAssociationService {
     try {
       const response = await this.axios(config_data);
       console.log("checkResponse", response.data);
+      if(response.data.errors){
+        return new SuccessResponse({
+          statusCode: 400,
+          message: response.data.errors[0].message,
+          data: response.data.errors,
+        });
+      }
       const points = response.data.data.UserPoints;
       const totalCount = response.data.data.total.aggregate.count;
       const totalPages = Math.ceil(totalCount / limit);
-      if (response) {
+      if (points.length>0) {
         return new SuccessResponse({
           statusCode: 200,
           message: "User Points fetched successfully.",
