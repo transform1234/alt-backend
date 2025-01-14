@@ -1155,6 +1155,8 @@ export class ALTHasuraUserService {
       // Fetch user points
       const userPoints = await this.getUserPoints(request, token);
 
+      console.log("userPoints", userPoints)
+
       // Append points to user data if available
       if (userPoints?.length > 0) {
         userData[0].points = userPoints;
@@ -1247,7 +1249,7 @@ export class ALTHasuraUserService {
 
     const query = {
       query: `
-      query MyQuery($userId: String!) {
+      query MyQuery($userId: uuid!) {
         UserPoints(
           where: { user_id: { _eq: $userId } }
           order_by: { created_at: desc }
@@ -1278,6 +1280,7 @@ export class ALTHasuraUserService {
 
     try {
       const response = await this.axios(config);
+      console.log("response", response.data)
       return response.data.data.UserPoints || [];
     } catch (error) {
       console.error("Error fetching user points:", error.message);
