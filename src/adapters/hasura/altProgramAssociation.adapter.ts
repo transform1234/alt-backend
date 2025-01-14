@@ -1585,8 +1585,7 @@ export class ALTProgramAssociationService {
         }
         topUsers: GroupMembership(
           where: { groupId: { _eq: $groupId } },
-          order_by: { User: { Points_aggregate: { sum: { points: asc } } } },
-          limit: 10
+          order_by: { User: { Points_aggregate: { sum: { points: asc } } } }
         ) {
           User {
             name
@@ -1673,8 +1672,7 @@ export class ALTProgramAssociationService {
           grade
           name
           topUsers: GroupMemberships(
-            order_by: { User: { Points_aggregate: { sum: { points: asc } } } },
-            limit: 10
+            order_by: { User: { Points_aggregate: { sum: { points: asc } } } }
           ) {
             userId
             User {
@@ -1866,48 +1864,67 @@ export class ALTProgramAssociationService {
 
   transformClassData(data: any, userId: string) {
     console.log("userId", userId);
-
-    const topUsers = data.topUsers.map((userEntry: any, index: number) => ({
-      name: userEntry.User.name || "",
-      userId: userEntry.User.userId || "",
-      class: data.Group[0]?.grade || "",
-      className: data.Group[0]?.name || "",
-      rank: index + 1,
-      points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
-    }));
-
+  
+    // Map and sort topUsers based on points
+    const topUsers = data.topUsers
+      .map((userEntry: any) => ({
+        name: userEntry.User.name || "",
+        userId: userEntry.User.userId || "",
+        class: data.Group[0]?.grade || "",
+        className: data.Group[0]?.name || "",
+        points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
+      }))
+      .sort((a, b) => b.points - a.points) // Sort by points in descending order
+      .map((user, index) => ({
+        ...user,
+        rank: index + 1, // Assign rank after sorting
+      }));
+  
+    // Find the current user based on userId
     const currentUser = topUsers.find(user => user.userId === userId) || null;
-
+  
     const result = {
       topUsers,
       currentUser,
     };
-
+  
     return result;
   }
+  
 
-  transformSchoolData(data: any, userId) {
-    // Unified topUsers array for all groups
-    const topUsers = data.Group.flatMap((group: any) =>
-      group.topUsers.map((userEntry: any, index: number) => ({
+  transformSchoolData(data: any, userId: string) {
+    // Create a unified topUsers array for all groups
+    let topUsers = data.Group.flatMap((group: any) =>
+      group.topUsers.map((userEntry: any) => ({
         name: userEntry.User.name || "",
         userId: userEntry.User.userId || "",
         class: group.grade || "",
         className: group.name || "",
-        rank: index + 1,
         points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
       }))
     );
-
+  
+    // Sort topUsers by points in descending order
+    topUsers = topUsers.sort((a, b) => b.points - a.points);
+  
+    // Assign rank after sorting
+    topUsers = topUsers.map((user, index) => ({
+      ...user,
+      rank: index + 1,
+    }));
+  
+    // Find the current user based on userId
     const currentUser = topUsers.find(user => user.userId === userId) || null;
-
+  
+    // Prepare the result
     const result = {
-      topUsers, // Unified array of top users
+      topUsers, // Unified array of top users with ranks assigned by points
       currentUser, // Data for the current user if found
     };
-
+  
     return result;
   }
+  
 
 
   transformBoardData(data: any, userId: string) {
