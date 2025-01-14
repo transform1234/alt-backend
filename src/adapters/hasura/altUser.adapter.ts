@@ -1158,8 +1158,10 @@ export class ALTHasuraUserService {
       console.log("userPoints", userPoints)
 
       // Append points to user data if available
-      if (userPoints?.length > 0) {
-        userData[0].points = userPoints;
+      if (userPoints) {
+        userData[0].points = userPoints.aggregate.sum.points
+      } else {
+        userData[0].points = 0
       }
 
       // Send success response
@@ -1250,18 +1252,12 @@ export class ALTHasuraUserService {
     const query = {
       query: `
       query MyQuery($userId: uuid!) {
-        UserPoints(
-          where: { user_id: { _eq: $userId } }
-          order_by: { created_at: desc }
-          limit: 1
-        ) {
-          id
-          identifier
-          points
-          description
-          user_id
-          created_at
-          updated_at
+        UserPoints_aggregate(where: {user_id: {_eq: $userId}}) {
+          aggregate {
+            sum {
+              points
+            }
+          }
         }
       }
     `,
@@ -1281,7 +1277,7 @@ export class ALTHasuraUserService {
     try {
       const response = await this.axios(config);
       console.log("response", response.data)
-      return response.data.data.UserPoints || [];
+      return response.data.data.UserPoints_aggregate || {};
     } catch (error) {
       console.error("Error fetching user points:", error.message);
       return [];
