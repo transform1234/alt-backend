@@ -512,9 +512,6 @@ export class ALTProgramAssociationService {
     const subjectCondition = body.subject
       ? `subject: {_eq: "${body.subject}"}, `
       : "";
-    const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserId =
-      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
     const data = {
       query: `
@@ -1904,7 +1901,7 @@ export class ALTProgramAssociationService {
 
   transformClassData(data: any, userId: string) {
     console.log("userId", userId);
-  
+
     // Map and sort topUsers based on points
     const topUsers = data.topUsers
       .map((userEntry: any) => ({
@@ -1914,24 +1911,23 @@ export class ALTProgramAssociationService {
         className: data.Group[0]?.name || "",
         points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
       }))
-      .filter(user => user.points > 0) 
+      .filter((user) => user.points > 0)
       .sort((a, b) => b.points - a.points) // Sort by points in descending order
       .map((user, index) => ({
         ...user,
         rank: index + 1, // Assign rank after sorting
       }));
-  
+
     // Find the current user based on userId
-    const currentUser = topUsers.find(user => user.userId === userId) || null;
-  
+    const currentUser = topUsers.find((user) => user.userId === userId) || null;
+
     const result = {
       topUsers,
       currentUser,
     };
-  
+
     return result;
   }
-  
 
   transformSchoolData(data: any, userId: string) {
     // Create a unified topUsers array for all groups
@@ -1946,29 +1942,28 @@ export class ALTProgramAssociationService {
     );
 
     // Remove users with 0 points
-    topUsers = topUsers.filter(user => user.points > 0);
-  
+    topUsers = topUsers.filter((user) => user.points > 0);
+
     // Sort topUsers by points in descending order
     topUsers = topUsers.sort((a, b) => b.points - a.points);
-  
+
     // Assign rank after sorting
     topUsers = topUsers.map((user, index) => ({
       ...user,
       rank: index + 1,
     }));
-  
+
     // Find the current user based on userId
-    const currentUser = topUsers.find(user => user.userId === userId) || null;
-  
+    const currentUser = topUsers.find((user) => user.userId === userId) || null;
+
     // Prepare the result
     const result = {
       topUsers, // Unified array of top users with ranks assigned by points
       currentUser, // Data for the current user if found
     };
-  
+
     return result;
   }
-  
 
   transformBoardData(data: any, userId: string) {
     return data.School.map((school: any) => {
