@@ -8,9 +8,8 @@ import { UpdateALTProgramAssociationDto } from "src/altProgramAssociation/dto/up
 import { ErrorResponse } from "src/error-response";
 import { ALTProgramAssociationSearch } from "src/altProgramAssociation/dto/searchAltProgramAssociation.dto";
 import jwt_decode from "jwt-decode";
-import { firstValueFrom } from "rxjs";
 import moment from "moment";
-import { lastValueFrom } from "rxjs";
+
 
 Injectable();
 export class ALTProgramAssociationService {
@@ -200,75 +199,6 @@ export class ALTProgramAssociationService {
     });
   }
 
-  // public async updateProgramAssociation(
-  //   request: any,
-  //   programAssocNo: string,
-  //   updateProgramAssociationDto: UpdateALTProgramAssociationDto
-  // ) {
-  //   const updateAltProgramAssoc = new UpdateALTProgramAssociationDto(
-  //     updateProgramAssociationDto
-  //   );
-
-  //   console.log(updateAltProgramAssoc,"update 1");
-  //   console.log(updateProgramAssociationDto, "update2");
-
-  //   let newUpdateAltProgram = "";
-  //   Object.keys(updateProgramAssociationDto).forEach((key) => {
-  //     if (
-  //       updateProgramAssociationDto[key] &&
-  //       updateProgramAssociationDto[key] != "" &&
-  //       Object.keys(updateAltProgramAssoc).includes(key)
-  //     ) {
-  //       console.log(key);
-
-  //       newUpdateAltProgram += `${key}: ${JSON.stringify(
-  //         updateProgramAssociationDto[key]
-  //       )}, `;
-  //     }
-
-  //   });
-
-  //   console.log(newUpdateAltProgram,"newUpdateAltProgram");
-
-  //   const altProgramUpdateData = {
-  //     query: `mutation UpdateProgram($programAssocNo:uuid!) {
-  //       update_AssessProgram_by_pk(pk_columns: {programAssocNo: $programAssocNo}, _set: {${newUpdateAltProgram}}) {
-  //         updated_at
-  //       }
-  //     }`,
-  //     variables: {
-  //       programAssocNo: programAssocNo,
-  //     },
-  //   };
-
-  //   const configData = {
-  //     method: "post",
-  //     url: process.env.ALTHASURA,
-  //     headers: {
-  //       "Authorization": request.headers.authorization,
-  //       "Content-Type": "application/json",
-  //     },
-  //     altProgramUpdateData,
-  //   };
-
-  //   const response = await this.axios(configData);
-
-  //   if (response?.data?.errors) {
-  //     console.log(response?.data?.errors);
-  //     return new ErrorResponse({
-  //       errorCode: response.data.errors[0].extensions,
-  //       errorMessage: response.data.errors[0].message,
-  //     });
-  //   }
-
-  //   const result = response.data.data.AssessProgram_by_pk;
-
-  //   return new SuccessResponse({
-  //     statusCode: 200,
-  //     message: "Ok.",
-  //     data: result,
-  //   });
-  // }
 
   public async searchALTProgramAssociation(
     request: any,
@@ -507,6 +437,7 @@ export class ALTProgramAssociationService {
 
     return data.slice(startIndex, endIndex);
   }
+
   public async contentSearch(request, body) {
     const programId = body.programId;
     const subjectCondition = body.subject
@@ -653,130 +584,6 @@ export class ALTProgramAssociationService {
       data: { paginatedData, meta },
     });
   }
-  // async likeContent(request, data: {
-  //   programId: string;
-  //   subject: string;
-  //   userId: string;
-  //   contentId: string;
-  //   like: boolean;
-  // }) {
-  //   const graphqlMutation = {
-  //     query: `
-  //       mutation ($input: GlaLikedContents_insert_input!) {
-  //         insert_GlaLikedContents_one(object: $input) {
-  //           id
-  //         }
-  //       }
-  //     `,
-  //     variables: {
-  //       input: data,
-  //     },
-  //   };
-
-  //   console.log(graphqlMutation.query);
-
-  //   const config_data = {
-  //     method: "post",
-  //     url: process.env.ALTHASURA,
-  //     headers: {
-  //       Authorization: request.headers.authorization,
-  //       "Content-Type": "application/json",
-  //     },
-  //     data: graphqlMutation,
-  //   };
-  //   const response = await this.axios(config_data);
-
-  //   if (response?.data?.errors) {
-  //     return new ErrorResponse({
-  //       errorCode: response.data.errors[0].extensions,
-  //       errorMessage: response.data.errors[0].message,
-  //     });
-  //   }
-  //   return response
-
-  // }
-
-  // async likeContent(request, data: {
-  //   programId: string;
-  //   subject: string;
-  //   contentId: string;
-  //   like: boolean;
-  // }) {
-
-  //   const decoded: any = jwt_decode(request.headers.authorization);
-  //   const altUserId =
-  //     decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-
-  //   console.log("altUserId", altUserId);
-  //   //console.log("altTermsProgramDto", altTermsProgramDto);
-  //   const graphqlMutation = {
-  //     query: `
-  //       mutation InsertLike($contentId: String!, $like: Boolean!, $programId: String!, $subject: String!, $userId: String!) {
-  //         insert_GlaLikedContents_one(object: {
-  //           contentId: $contentId,
-  //           like: $like,
-  //           programId: $programId,
-  //           subject: $subject,
-  //           userId: $userId
-  //         }) {
-  //           id
-  //           like
-  //           programId
-  //           subject
-  //           userId
-  //           contentId
-  //           created_at
-  //           updated_at
-  //         }
-  //       }
-  //     `,
-  //     variables: {
-  //       contentId: data.contentId,
-  //       like: data.like,
-  //       programId: data.programId,
-  //       subject: data.subject,
-  //       userId: altUserId,
-  //     },
-  //   };
-
-  //   console.log('GraphQL Mutation:', graphqlMutation.query);
-
-  //   const config_data = {
-  //     method: 'post',
-  //     url: process.env.ALTHASURA,
-  //     headers: {
-  //       Authorization: request.headers.authorization,
-  //       'Content-Type': 'application/json',
-  //     },
-  //     data: graphqlMutation,
-  //   };
-
-  //   try {
-  //     const response = await this.axios(config_data);
-
-  //     console.log("response", response.data.data)
-
-  //     if (response?.data?.errors) {
-  //       console.error('GraphQL Errors:', response.data.errors);
-  //       return new ErrorResponse({
-  //         errorCode: response.data.errors[0]?.extensions?.code || 'UNKNOWN_ERROR',
-  //         errorMessage: response.data.errors[0]?.message || 'An unknown error occurred.',
-  //       });
-  //     }
-
-  //     return new SuccessResponse({
-  //       statusCode: 200,
-  //       message: 'Content like status updated successfully.',
-  //       data: response.data.data,
-  //     });
-  //   } catch (error) {
-  //     console.error('Axios Error:', error.message);
-  //     throw new ErrorResponse({
-  //       errorCode: 'AXIOS_ERROR',
-  //       errorMessage: 'Failed to execute the GraphQL mutation.',
-  //     });
-  //   }
-  // }
 
   // Like content
   async likeContent(
@@ -1438,37 +1245,6 @@ export class ALTProgramAssociationService {
     });
   }
 
-  // async leaderBoardPoints(request, data) {
-
-  //   console.log("timeframe", data.timeframe)
-
-  //   const { startDate, endDate } = await this.getDateRange(data.timeframe);
-
-  //   console.log("startDate", moment(startDate).format("DD-MM-YYYY"))
-  //   console.log("endDate", moment(endDate).format("DD-MM-YYYY"))
-
-  //   console.log("board", data.filters.board)
-  //   const board = data.filters.board;
-
-  //   console.log("schoolUdise", data.filters.schoolUdise)
-  //   const schoolUdise = data.filters.schoolUdise;
-
-  //   console.log("groupid", data.filters.groupId)
-  //   const groupId = data.filters.groupId;
-
-  //   const decoded: any = jwt_decode(request.headers.authorization);
-  //   const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-
-  //   console.log("altUserId", altUserId);
-
-  //    return this.getPointsByBoard(request, board, startDate, endDate)
-
-  //   // return this.getPointsBySchoolId(request, schoolUdise, startDate, endDate)
-
-  //   // return this.getPointsByClassId(request, groupId, startDate, endDate)
-
-  // }
-
   async leaderBoardPoints(request, data) {
     console.log("timeframe", data.timeframe);
 
@@ -1520,92 +1296,6 @@ export class ALTProgramAssociationService {
       );
     }
   }
-
-  // async getPointsByClassId(request, groupId, startDate, endDate) {
-
-  //   console.log("classId")
-
-  //   const checkGraphQLQuery = {
-  //     query: `
-  //     query MyQuery($groupId: uuid!, $startDate: timestamptz, $endDate: timestamptz) {
-  //       Group(where: { groupId: { _eq: $groupId } }) {
-  //         groupId
-  //         type
-  //         grade
-  //         name
-
-  //       }
-  //       topUsers: GroupMembership(
-  //         where: { groupId: { _eq: $groupId } },
-  //         order_by: { User: { Points_aggregate: { sum: { points: asc } } } },
-  //         limit: 10
-  //       ) {
-  //         User {
-  //           name
-  //           email
-  //           role
-  //           status
-  //           totalPoints: Points_aggregate(where: { created_at: { _gte: $startDate, _lte: $endDate } }) {
-  //             aggregate {
-  //               sum {
-  //                 points
-  //               }
-  //             }
-  //           }
-  //         }
-  //       }
-  //     }
-  //     `,
-  //     variables: {
-  //       groupId: groupId,
-  //       startDate,
-  //       endDate,
-  //     },
-  //   };
-
-  //   const config_data = {
-  //     method: 'post',
-  //     url: process.env.ALTHASURA,
-  //     headers: {
-  //       Authorization: request.headers.authorization,
-  //       'Content-Type': 'application/json',
-  //     },
-  //     data: checkGraphQLQuery,
-  //   };
-
-  //   try {
-  //     const checkResponse = await this.axios(config_data);
-  //     console.log("checkResponse", checkResponse.data);
-
-  //     if (checkResponse?.data?.errors) {
-  //       return new SuccessResponse({
-  //         statusCode: 401,
-  //         message: checkResponse?.data?.errors,
-  //         data: checkResponse?.data?.data,
-  //       });
-  //     } else if (checkResponse?.data?.data) {
-
-  //       const formattedData = this.transformClassData(checkResponse?.data?.data)
-  //       return new SuccessResponse({
-  //         statusCode: 200,
-  //         message: 'User Points fetched successfully.',
-  //         data: formattedData,
-  //       });
-  //     } else {
-  //       return new SuccessResponse({
-  //         statusCode: 200,
-  //         message: 'User Points not exists.',
-  //         data: [],
-  //       });
-  //     }
-  //   } catch (error) {
-  //     console.error('Axios Error:', error.message);
-  //     throw new ErrorResponse({
-  //       errorCode: 'AXIOS_ERROR',
-  //       errorMessage: 'Failed to execute the GraphQL mutation.',
-  //     });
-  //   }
-  // }
 
   async getPointsByClassId(request, userId, groupId, startDate, endDate) {
     const variables: any = { groupId };
@@ -1805,8 +1495,7 @@ export class ALTProgramAssociationService {
             grade
             name
             topUsers: GroupMemberships(
-              order_by: { User: { Points_aggregate: { sum: { points: asc } } } },
-              limit: 10
+              order_by: { User: { Points_aggregate: { sum: { points: asc } } } }
             ) {
               groupId
               User {
@@ -1818,6 +1507,11 @@ export class ALTProgramAssociationService {
                       points
                     }
                   }
+                }
+                Points(order_by: {created_at: desc}, limit: 1) {
+                  points
+                  created_at
+                  description
                 }
               }
             }
@@ -1977,12 +1671,10 @@ export class ALTProgramAssociationService {
     return result;
   }
   
-
-
   transformBoardData(data: any, userId: string) {
-    return data.School.map((school: any) => {
+    let topUsers = data.School.map((school: any) => {
       // Combine and sort topUsers across all groups
-      const topUsers = school.Groups.flatMap((group: any) =>
+      const Users = school.Groups.flatMap((group: any) =>
         group.topUsers.map((userEntry: any) => ({
           name: userEntry.User.name || "",
           userId: userEntry.User.userId,
@@ -1990,18 +1682,37 @@ export class ALTProgramAssociationService {
           className: group.name || "",
           rank: 0, // Temporary; rank will be updated after sorting
           points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
+          lastEarnedPoints: userEntry.User.Points
         }))
-      ).sort((a: any, b: any) => b.points - a.points); // Sort by points in descending order
+      )
 
-      // Update ranks based on sorted order
-      topUsers.forEach((user, index) => {
-        user.rank = index + 1;
-      });
-
-      console.log("topUsers", topUsers);
-
-      // Return the sorted topUsers array
-      return topUsers;
+      return Users;
     });
+
+    topUsers = topUsers.flat()
+
+    // Remove users with 0 points
+    topUsers = topUsers.filter((user) => user.points > 0);
+
+    // Sort topUsers by points in descending order
+    topUsers = topUsers.sort((a, b) => b.points - a.points);
+
+    // Assign rank after sorting
+    topUsers = topUsers.map((user, index) => ({
+      ...user,
+      rank: index + 1,
+    }));
+
+    // Find the current user based on userId
+    const currentUser = topUsers.find((user) => user.userId === userId) || null;
+
+    // Prepare the result
+    const result = {
+      topUsers, // Unified array of top users with ranks assigned by points
+      currentUser, // Data for the current user if found
+    };
+
+    return result;
   }
+  
 }
