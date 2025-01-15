@@ -1603,6 +1603,11 @@ export class ALTProgramAssociationService {
                 }
               }
             }
+            Points(order_by: {created_at: desc}, limit: 1) {
+              points
+              created_at
+              description
+            }
           }
         }
       }
@@ -1684,6 +1689,11 @@ export class ALTProgramAssociationService {
                     points
                   }
                 }
+              }
+              Points(order_by: {created_at: desc}, limit: 1) {
+                points
+                created_at
+                description
               }
             }
           }
@@ -1873,6 +1883,7 @@ export class ALTProgramAssociationService {
         class: data.Group[0]?.grade || "",
         className: data.Group[0]?.name || "",
         points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
+        lastEarnedPoints: userEntry.User.Points
       }))
       .filter(user => user.points > 0) 
       .sort((a, b) => b.points - a.points) // Sort by points in descending order
@@ -1892,7 +1903,6 @@ export class ALTProgramAssociationService {
     return result;
   }
   
-
   transformSchoolData(data: any, userId: string) {
     // Create a unified topUsers array for all groups
     let topUsers = data.Group.flatMap((group: any) =>
@@ -1902,6 +1912,7 @@ export class ALTProgramAssociationService {
         class: group.grade || "",
         className: group.name || "",
         points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
+        lastEarnedPoints: userEntry.User.Points
       }))
     );
 
@@ -1929,8 +1940,6 @@ export class ALTProgramAssociationService {
     return result;
   }
   
-
-
   transformBoardData(data: any, userId: string) {
     return data.School.map((school: any) => {
       // Combine and sort topUsers across all groups
