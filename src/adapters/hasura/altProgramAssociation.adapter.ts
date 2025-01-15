@@ -512,34 +512,36 @@ export class ALTProgramAssociationService {
     const subjectCondition = body.subject
       ? `subject: {_eq: "${body.subject}"}, `
       : "";
-    console.log(programId);
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
-    //get the programData from programTermAssoc
     const data = {
-      query: `query MyQuery{
-                ProgramTermAssoc(where: {programId: {_eq: "${programId}"}, ${subjectCondition}}) {
-                  programId
-                  rules
-                  subject
-                  medium
-                  grade
-                  board
-                }
-              }
-            `,
+      query: `
+        query MyQuery {
+          ProgramTermAssoc(where: {programId: {_eq: "${programId}"}, ${subjectCondition}}) {
+            programId
+            rules
+            subject
+            medium
+            grade
+            board
+          }
+        }
+      `,
     };
-    console.log(data.query);
 
-    const config_data = {
+    const configData = {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
         Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
-      data: data,
+      data,
     };
-    const response = await this.axios(config_data);
+
+    const response = await this.axios(configData);
 
     if (response?.data?.errors) {
       return new ErrorResponse({
@@ -547,8 +549,9 @@ export class ALTProgramAssociationService {
         errorMessage: response.data.errors[0].message,
       });
     }
+
     const rulesData = response.data.data.ProgramTermAssoc;
-    // Validate rulesData and log errors for missing or malformed data
+
     if (!rulesData || rulesData.length === 0) {
       return new ErrorResponse({
         errorCode: "404",
@@ -556,62 +559,89 @@ export class ALTProgramAssociationService {
       });
     }
 
-    //  Process each rule and match contentId
-    const responseData = [];
-
-    rulesData.forEach((rule) => {
+    const filteredProg = rulesData.flatMap((rule) => {
       if (rule.rules) {
         try {
-          rule.rules = JSON.parse(rule.rules); // Parse the rules
+          const parsedRules = JSON.parse(rule.rules);
+
+          if (Array.isArray(parsedRules.prog)) {
+            return parsedRules.prog.filter((item) =>
+              item.name?.toLowerCase().includes(body.searchQuery.toLowerCase())
+            );
+          }
         } catch (error) {
-          return new ErrorResponse({
-            errorCode: "500",
-            errorMessage: `Failed to parse rules for programId: ${rule.programId}`,
-          });
-        }
-
-        // Ensure `prog` exists and is an array
-        if (Array.isArray(rule.rules.prog)) {
-          const filteredProg = rule.rules.prog.filter((item) =>
-            item.name?.toLowerCase().includes(body.searchQuery.toLowerCase())
+          // Log error for invalid rules format
+          console.error(
+            `Failed to parse rules for programId: ${rule.programId}`
           );
-
-          filteredProg.forEach((item) => {
-            responseData.push({
-              contentId: item.contentId,
-              name: item.name,
-              subject: rule.subject,
-              courseId: item.courseId,
-              contentType: item.contentType,
-              order: item.order,
-              allowedAttempts: item.allowedAttempts,
-              criteria: item.criteria,
-              contentSource: item.contentSource,
-              lesson_questionset: item.lesson_questionset,
-              thumbnailUrl: item.thumbnailUrl,
-            });
-          });
-        } else {
-          return new ErrorResponse({
-            errorCode: "500",
-            errorMessage: `Invalid 'prog' format for programId: ${rule.programId}`,
-          });
         }
-      } else {
-        return new ErrorResponse({
-          errorCode: "500",
-          errorMessage: `Missing 'rules' for programId: ${rule.programId}`,
-        });
       }
+
+      return [];
     });
+
+    const lessonIds = filteredProg.flatMap((item) => [
+      item.contentId,
+      item.lesson_questionset,
+    ]);
+
+    const lessonStatusQuery = {
+      query: `
+        query GetLessonStatuses($lessonIds: [String!]!) {
+          LessonProgressTracking(where: {lessonId: {_in: $lessonIds}}, distinct_on: lessonId) {
+            lessonId
+            status
+          }
+        }
+      `,
+      variables: {
+        lessonIds,
+      },
+    };
+
+    const lessonStatusResponse = await this.axios({
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: lessonStatusQuery,
+    });
+
+    if (lessonStatusResponse?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: lessonStatusResponse.data.errors[0].extensions,
+        errorMessage: lessonStatusResponse.data.errors[0].message,
+      });
+    }
+
+    const lessonStatuses =
+      lessonStatusResponse.data.data.LessonProgressTracking;
+
+    const responseData = filteredProg.map((item) => {
+      const lessonStatus = lessonStatuses.find(
+        (status) => status.lessonId === item.contentId
+      );
+
+      const lessonQuestionsetStatus = lessonStatuses.find(
+        (status) => status.lessonId === item.lesson_questionset
+      );
+
+      return {
+        ...item,
+        subject: body.subject,
+        lesson_status: lessonStatus?.status || "pending",
+        lesson_questionset_status: lessonQuestionsetStatus?.status || "pending",
+      };
+    });
+
     const pageNumber = parseInt(body.pageNumber, 10) || 1;
     const limit = parseInt(body.limit, 10) || 10;
     const offset = (pageNumber - 1) * limit;
 
-    // Paginate the responseData
     const paginatedData = responseData.slice(offset, offset + limit);
 
-    // Add metadata for pagination
     const meta = {
       total: responseData.length,
       limit,
@@ -620,14 +650,12 @@ export class ALTProgramAssociationService {
       totalPages: Math.ceil(responseData.length / limit),
     };
 
-    // Create the final response
     return new SuccessResponse({
       statusCode: 200,
       message: "Ok.",
       data: { paginatedData, meta },
     });
   }
-
   // async likeContent(request, data: {
   //   programId: string;
   //   subject: string;
@@ -1282,7 +1310,7 @@ export class ALTProgramAssociationService {
     try {
       const response = await this.axios(config_data);
       console.log("checkResponse", response.data);
-      if(response.data.errors){
+      if (response.data.errors) {
         return new SuccessResponse({
           statusCode: 400,
           message: response.data.errors[0].message,
@@ -1292,7 +1320,7 @@ export class ALTProgramAssociationService {
       const points = response.data.data.UserPoints;
       const totalCount = response.data.data.total.aggregate.count;
       const totalPages = Math.ceil(totalCount / limit);
-      if (points.length>0) {
+      if (points.length > 0) {
         return new SuccessResponse({
           statusCode: 200,
           message: "User Points fetched successfully.",
@@ -1464,13 +1492,31 @@ export class ALTProgramAssociationService {
 
     if (groupId) {
       console.log("Fetching data by Group ID:", groupId);
-      return this.getPointsByClassId(request, altUserId, groupId, startDate, endDate);
+      return this.getPointsByClassId(
+        request,
+        altUserId,
+        groupId,
+        startDate,
+        endDate
+      );
     } else if (schoolUdise) {
       console.log("Fetching data by School UDISE:", schoolUdise);
-      return this.getPointsBySchoolId(request, altUserId, schoolUdise, startDate, endDate);
+      return this.getPointsBySchoolId(
+        request,
+        altUserId,
+        schoolUdise,
+        startDate,
+        endDate
+      );
     } else if (board) {
       console.log("Fetching data by Board:", board);
-      return this.getPointsByBoard(request, altUserId, board, startDate, endDate);
+      return this.getPointsByBoard(
+        request,
+        altUserId,
+        board,
+        startDate,
+        endDate
+      );
     } else {
       throw new Error(
         "Invalid filters: At least one of groupId, schoolUdise, or board is required."
@@ -1564,10 +1610,7 @@ export class ALTProgramAssociationService {
   //   }
   // }
 
-
   async getPointsByClassId(request, userId, groupId, startDate, endDate) {
-
-
     const variables: any = { groupId };
     if (startDate && endDate) {
       variables.startDate = startDate;
@@ -1634,9 +1677,10 @@ export class ALTProgramAssociationService {
           data: checkResponse?.data?.data,
         });
       } else if (checkResponse?.data?.data) {
-
-
-        const formattedData = this.transformClassData(checkResponse?.data?.data, userId)
+        const formattedData = this.transformClassData(
+          checkResponse?.data?.data,
+          userId
+        );
 
         return new SuccessResponse({
           statusCode: 200,
@@ -1659,11 +1703,7 @@ export class ALTProgramAssociationService {
     }
   }
 
-
   async getPointsBySchoolId(request, userId, schoolUdise, startDate, endDate) {
-
-
-
     const checkGraphQLQuery = {
       query: `
       query MyQuery($schoolUdise: String!, $startDate: timestamptz, $endDate: timestamptz) {
@@ -1720,9 +1760,10 @@ export class ALTProgramAssociationService {
           data: checkResponse?.data?.data,
         });
       } else if (checkResponse?.data?.data) {
-
-
-        const formattedData = this.transformSchoolData(checkResponse?.data?.data, userId)
+        const formattedData = this.transformSchoolData(
+          checkResponse?.data?.data,
+          userId
+        );
 
         return new SuccessResponse({
           statusCode: 200,
@@ -1745,10 +1786,7 @@ export class ALTProgramAssociationService {
     }
   }
 
-
   async getPointsByBoard(request, userId, board, startDate, endDate) {
-
-
     const checkGraphQLQuery = {
       query: `
       query MyQuery($board: String!, $startDate: timestamptz, $endDate: timestamptz) {
@@ -1810,8 +1848,10 @@ export class ALTProgramAssociationService {
           data: checkResponse?.data?.data,
         });
       } else if (checkResponse?.data?.data) {
-
-        const formattedData = this.transformBoardData(checkResponse?.data?.data, userId)
+        const formattedData = this.transformBoardData(
+          checkResponse?.data?.data,
+          userId
+        );
 
         return new SuccessResponse({
           statusCode: 200,
@@ -1834,8 +1874,9 @@ export class ALTProgramAssociationService {
     }
   }
 
-
-  async getDateRange(timeframes: string): Promise<{ startDate: string; endDate: string }> {
+  async getDateRange(
+    timeframes: string
+  ): Promise<{ startDate: string; endDate: string }> {
     const today = moment(); // Get today's date
 
     switch (timeframes) {
@@ -1860,7 +1901,6 @@ export class ALTProgramAssociationService {
           startDate: "1900-01-01T00:00:00Z",
           endDate: "9999-12-31T23:59:59Z",
         };
-
     }
   }
 
@@ -1876,7 +1916,7 @@ export class ALTProgramAssociationService {
       points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
     }));
 
-    const currentUser = topUsers.find(user => user.userId === userId) || null;
+    const currentUser = topUsers.find((user) => user.userId === userId) || null;
 
     const result = {
       topUsers,
@@ -1899,7 +1939,7 @@ export class ALTProgramAssociationService {
       }))
     );
 
-    const currentUser = topUsers.find(user => user.userId === userId) || null;
+    const currentUser = topUsers.find((user) => user.userId === userId) || null;
 
     const result = {
       topUsers, // Unified array of top users
@@ -1908,7 +1948,6 @@ export class ALTProgramAssociationService {
 
     return result;
   }
-
 
   transformBoardData(data: any, userId: string) {
     return data.School.map((school: any) => {
@@ -1923,17 +1962,16 @@ export class ALTProgramAssociationService {
           points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
         }))
       ).sort((a: any, b: any) => b.points - a.points); // Sort by points in descending order
-  
+
       // Update ranks based on sorted order
       topUsers.forEach((user, index) => {
         user.rank = index + 1;
       });
-  
+
       console.log("topUsers", topUsers);
-  
+
       // Return the sorted topUsers array
       return topUsers;
     });
   }
-
 }
