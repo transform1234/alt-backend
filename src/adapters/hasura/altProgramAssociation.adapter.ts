@@ -10,7 +10,6 @@ import { ALTProgramAssociationSearch } from "src/altProgramAssociation/dto/searc
 import jwt_decode from "jwt-decode";
 import moment from "moment";
 
-
 Injectable();
 export class ALTProgramAssociationService {
   axios = require("axios");
@@ -198,7 +197,6 @@ export class ALTProgramAssociationService {
       data: result,
     });
   }
-
 
   public async searchALTProgramAssociation(
     request: any,
@@ -439,6 +437,11 @@ export class ALTProgramAssociationService {
   }
 
   public async contentSearch(request, body) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    console.log("altUserId", altUserId);
     const programId = body.programId;
     const subjectCondition = body.subject
       ? `subject: {_eq: "${body.subject}"}, `
@@ -515,15 +518,17 @@ export class ALTProgramAssociationService {
 
     const lessonStatusQuery = {
       query: `
-        query GetLessonStatuses($lessonIds: [String!]!) {
-          LessonProgressTracking(where: {lessonId: {_in: $lessonIds}}, distinct_on: lessonId) {
-            lessonId
-            status
+        query GetLessonStatuses($lessonIds: [String!]!, $userId: uuid) {
+            LessonProgressTracking(where: {lessonId: {_in: $lessonIds}, userId: {_eq: $userId}}, distinct_on: lessonId) {
+              lessonId
+              status
+            }
           }
-        }
+
       `,
       variables: {
         lessonIds,
+        userId: altUserId,
       },
     };
 
@@ -1614,7 +1619,7 @@ export class ALTProgramAssociationService {
         class: data.Group[0]?.grade || "",
         className: data.Group[0]?.name || "",
         points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
-        lastEarnedPoints: userEntry.User.Points
+        lastEarnedPoints: userEntry.User.Points,
       }))
       .filter((user) => user.points > 0)
       .sort((a, b) => b.points - a.points) // Sort by points in descending order
@@ -1633,7 +1638,7 @@ export class ALTProgramAssociationService {
 
     return result;
   }
-  
+
   transformSchoolData(data: any, userId: string) {
     // Create a unified topUsers array for all groups
     let topUsers = data.Group.flatMap((group: any) =>
@@ -1643,7 +1648,7 @@ export class ALTProgramAssociationService {
         class: group.grade || "",
         className: group.name || "",
         points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
-        lastEarnedPoints: userEntry.User.Points
+        lastEarnedPoints: userEntry.User.Points,
       }))
     );
 
@@ -1670,7 +1675,7 @@ export class ALTProgramAssociationService {
 
     return result;
   }
-  
+
   transformBoardData(data: any, userId: string) {
     let topUsers = data.School.map((school: any) => {
       // Combine and sort topUsers across all groups
@@ -1682,14 +1687,14 @@ export class ALTProgramAssociationService {
           className: group.name || "",
           rank: 0, // Temporary; rank will be updated after sorting
           points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
-          lastEarnedPoints: userEntry.User.Points
+          lastEarnedPoints: userEntry.User.Points,
         }))
-      )
+      );
 
       return Users;
     });
 
-    topUsers = topUsers.flat()
+    topUsers = topUsers.flat();
 
     // Remove users with 0 points
     topUsers = topUsers.filter((user) => user.points > 0);
@@ -1714,5 +1719,4 @@ export class ALTProgramAssociationService {
 
     return result;
   }
-  
 }

@@ -1414,7 +1414,7 @@ export class ALTStudentService {
 
     const matchedContent: any[] = [];
     let totalLessonsCount = 0; // Total number of lessons
-    let matchedContentCount = 0; // Count of matched content
+    let completedContentCount = 0; // Count of matched content
     for (const programTerm of programData) {
       const rules = JSON.parse(programTerm.rules).prog || [];
 
@@ -1433,7 +1433,7 @@ export class ALTStudentService {
         );
 
         // Add all matched lessons to matchedContent array
-        matchedContentCount += matchedLessons.length; // Increment matched content count
+        completedContentCount += matchedLessons.length; // Increment matched content count
         matchedContent.push(...matchedLessons); // Add matched lessons to matchedContent array
       }
     }
@@ -1441,7 +1441,7 @@ export class ALTStudentService {
     // Calculate percentage of matched content
     const percentage =
       totalLessonsCount > 0
-        ? ((matchedContentCount / totalLessonsCount) * 100).toFixed(2)
+        ? ((completedContentCount / totalLessonsCount) * 100).toFixed(2)
         : "0.00";
 
     // Return the results including percentage, matched content count, total lessons count, and matched content
@@ -1450,7 +1450,7 @@ export class ALTStudentService {
       message: "Success",
       data: {
         percentage,
-        matchedContentCount,
+        completedContentCount,
         totalLessonsCount,
         matchedContent,
       },
