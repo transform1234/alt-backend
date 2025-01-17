@@ -438,15 +438,14 @@ export class ALTProgramAssociationService {
 
   public async contentSearch(request, body) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserId =
-      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-
+    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+  
     console.log("altUserId", altUserId);
     const programId = body.programId;
     const subjectCondition = body.subject
       ? `subject: {_eq: "${body.subject}"}, `
       : "";
-
+  
     const data = {
       query: `
         query MyQuery {
@@ -461,7 +460,7 @@ export class ALTProgramAssociationService {
         }
       `,
     };
-
+  
     const configData = {
       method: "post",
       url: process.env.ALTHASURA,
@@ -471,67 +470,67 @@ export class ALTProgramAssociationService {
       },
       data,
     };
-
+  
     const response = await this.axios(configData);
-
+  
     if (response?.data?.errors) {
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
         errorMessage: response.data.errors[0].message,
       });
     }
-
+  
     const rulesData = response.data.data.ProgramTermAssoc;
-
+  
     if (!rulesData || rulesData.length === 0) {
       return new ErrorResponse({
         errorCode: "404",
         errorMessage: "No data found.",
       });
     }
-
+  
     const filteredProg = rulesData.flatMap((rule) => {
       if (rule.rules) {
         try {
           const parsedRules = JSON.parse(rule.rules);
-
+  
           if (Array.isArray(parsedRules.prog)) {
-            return parsedRules.prog.filter((item) =>
-              item.name?.toLowerCase().includes(body.searchQuery.toLowerCase())
-            );
+            return parsedRules.prog
+              .filter((item) =>
+                item.name?.toLowerCase().includes(body.searchQuery.toLowerCase())
+              )
+              .map((item) => ({
+                ...item,
+                subject: rule.subject, // Include the subject from rulesData
+              }));
           }
         } catch (error) {
-          // Log error for invalid rules format
-          console.error(
-            `Failed to parse rules for programId: ${rule.programId}`
-          );
+          console.error(`Failed to parse rules for programId: ${rule.programId}`, error);
         }
       }
-
       return [];
     });
-
+  
     const lessonIds = filteredProg.flatMap((item) => [
       item.contentId,
       item.lesson_questionset,
     ]);
-
+  
     const lessonStatusQuery = {
       query: `
         query GetLessonStatuses($lessonIds: [String!]!, $userId: uuid) {
-            LessonProgressTracking(where: {lessonId: {_in: $lessonIds}, userId: {_eq: $userId}}, distinct_on: lessonId) {
-              lessonId
-              status
-            }
+          LessonProgressTracking(where: {lessonId: {_in: $lessonIds}, userId: {_eq: $userId}}, distinct_on: lessonId) {
+            lessonId
+            status
           }
-
+        }
       `,
       variables: {
         lessonIds,
         userId: altUserId,
       },
     };
-
+  
     const lessonStatusResponse = await this.axios({
       method: "post",
       url: process.env.ALTHASURA,
@@ -541,40 +540,39 @@ export class ALTProgramAssociationService {
       },
       data: lessonStatusQuery,
     });
-
+  
     if (lessonStatusResponse?.data?.errors) {
       return new ErrorResponse({
         errorCode: lessonStatusResponse.data.errors[0].extensions,
         errorMessage: lessonStatusResponse.data.errors[0].message,
       });
     }
-
+  
     const lessonStatuses =
       lessonStatusResponse.data.data.LessonProgressTracking;
-
+  
     const responseData = filteredProg.map((item) => {
       const lessonStatus = lessonStatuses.find(
         (status) => status.lessonId === item.contentId
       );
-
+  
       const lessonQuestionsetStatus = lessonStatuses.find(
         (status) => status.lessonId === item.lesson_questionset
       );
-
+  
       return {
         ...item,
-        subject: rulesData.find((rule) => rule.programId === programId)?.subject,
         lesson_status: lessonStatus?.status || "pending",
         lesson_questionset_status: lessonQuestionsetStatus?.status || "pending",
       };
     });
-
+  
     const pageNumber = parseInt(body.pageNumber, 10) || 1;
     const limit = parseInt(body.limit, 10) || 10;
     const offset = (pageNumber - 1) * limit;
-
+  
     const paginatedData = responseData.slice(offset, offset + limit);
-
+  
     const meta = {
       total: responseData.length,
       limit,
@@ -582,13 +580,173 @@ export class ALTProgramAssociationService {
       currentPage: pageNumber,
       totalPages: Math.ceil(responseData.length / limit),
     };
-
+  
     return new SuccessResponse({
       statusCode: 200,
       message: "Ok.",
       data: { paginatedData, meta },
     });
   }
+  
+
+  // public async contentSearch(request, body) {
+  //   const decoded: any = jwt_decode(request.headers.authorization);
+  //   const altUserId =
+  //     decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+  //   console.log("altUserId", altUserId);
+  //   const programId = body.programId;
+  //   const subjectCondition = body.subject
+  //     ? `subject: {_eq: "${body.subject}"}, `
+  //     : "";
+
+  //   const data = {
+  //     query: `
+  //       query MyQuery {
+  //         ProgramTermAssoc(where: {programId: {_eq: "${programId}"}, ${subjectCondition}}) {
+  //           programId
+  //           rules
+  //           subject
+  //           medium
+  //           grade
+  //           board
+  //         }
+  //       }
+  //     `,
+  //   };
+
+  //   const configData = {
+  //     method: "post",
+  //     url: process.env.ALTHASURA,
+  //     headers: {
+  //       Authorization: request.headers.authorization,
+  //       "Content-Type": "application/json",
+  //     },
+  //     data,
+  //   };
+
+  //   const response = await this.axios(configData);
+
+  //   if (response?.data?.errors) {
+  //     return new ErrorResponse({
+  //       errorCode: response.data.errors[0].extensions,
+  //       errorMessage: response.data.errors[0].message,
+  //     });
+  //   }
+
+  //   const rulesData = response.data.data.ProgramTermAssoc;
+
+  //   if (!rulesData || rulesData.length === 0) {
+  //     return new ErrorResponse({
+  //       errorCode: "404",
+  //       errorMessage: "No data found.",
+  //     });
+  //   }
+
+  //   const filteredProg = rulesData.flatMap((rule) => {
+  //     if (rule.rules) {
+  //       try {
+  //         const parsedRules = JSON.parse(rule.rules);
+
+  //         if (Array.isArray(parsedRules.prog)) {
+  //           return parsedRules.prog.filter((item) =>
+  //             item.name?.toLowerCase().includes(body.searchQuery.toLowerCase())
+  //           );
+  //         }
+  //       } catch (error) {
+  //         // Log error for invalid rules format
+  //         console.error(
+  //           `Failed to parse rules for programId: ${rule.programId}`
+  //         );
+  //       }
+  //     }
+
+  //     return [];
+  //   });
+
+    
+
+  //   // return filteredProg
+    
+
+  //   const lessonIds = filteredProg.flatMap((item) => [
+  //     item.contentId,
+  //     item.lesson_questionset,
+  //   ]);
+
+  //   const lessonStatusQuery = {
+  //     query: `
+  //       query GetLessonStatuses($lessonIds: [String!]!, $userId: uuid) {
+  //           LessonProgressTracking(where: {lessonId: {_in: $lessonIds}, userId: {_eq: $userId}}, distinct_on: lessonId) {
+  //             lessonId
+  //             status
+  //           }
+  //         }
+
+  //     `,
+  //     variables: {
+  //       lessonIds,
+  //       userId: altUserId,
+  //     },
+  //   };
+
+  //   const lessonStatusResponse = await this.axios({
+  //     method: "post",
+  //     url: process.env.ALTHASURA,
+  //     headers: {
+  //       Authorization: request.headers.authorization,
+  //       "Content-Type": "application/json",
+  //     },
+  //     data: lessonStatusQuery,
+  //   });
+
+  //   if (lessonStatusResponse?.data?.errors) {
+  //     return new ErrorResponse({
+  //       errorCode: lessonStatusResponse.data.errors[0].extensions,
+  //       errorMessage: lessonStatusResponse.data.errors[0].message,
+  //     });
+  //   }
+
+  //   const lessonStatuses =
+  //     lessonStatusResponse.data.data.LessonProgressTracking;
+
+  //   const responseData = filteredProg.map((item) => {
+  //     const lessonStatus = lessonStatuses.find(
+  //       (status) => status.lessonId === item.contentId
+  //     );
+
+  //     const lessonQuestionsetStatus = lessonStatuses.find(
+  //       (status) => status.lessonId === item.lesson_questionset
+  //     );
+
+  //     return {
+  //       ...item,
+  //       subject: rulesData.find((rule) => rule.programId === programId)?.subject,
+  //       lesson_status: lessonStatus?.status || "pending",
+  //       lesson_questionset_status: lessonQuestionsetStatus?.status || "pending",
+  //     };
+  //   });
+
+  //   const pageNumber = parseInt(body.pageNumber, 10) || 1;
+  //   const limit = parseInt(body.limit, 10) || 10;
+  //   const offset = (pageNumber - 1) * limit;
+
+  //   const paginatedData = responseData.slice(offset, offset + limit);
+
+  //   const meta = {
+  //     total: responseData.length,
+  //     limit,
+  //     offset,
+  //     currentPage: pageNumber,
+  //     totalPages: Math.ceil(responseData.length / limit),
+  //   };
+
+  //   return new SuccessResponse({
+  //     statusCode: 200,
+  //     message: "Ok.",
+  //     data: { paginatedData, meta },
+  //   });
+  // }
 
   // Like content
   async likeContent(
