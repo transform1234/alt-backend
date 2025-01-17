@@ -1091,12 +1091,18 @@ export class ALTLessonTrackingService {
                   },
                 });
             }
+
             const rewardPoints = assignSubjectPoints
               ? {
-                  subjectCompletionPoints: subjectAssignRewardPoints,
-                  contentCompletionPoints: assignRewardPoints,
+                  subject_completion:
+                    subjectAssignRewardPoints.data.insert_UserPoints_one || {},
+                  lesson_completion:
+                    assignRewardPoints.data.insert_UserPoints_one || {},
                 }
-              : assignRewardPoints;
+              : {
+                  lesson_completion:
+                    assignRewardPoints.data.insert_UserPoints_one || {},
+                };
             // Log progress tracking after insertion
             const loggedAttempt = await this.logLessonAttemptProgressTracking(
               request,
@@ -1220,18 +1226,26 @@ export class ALTLessonTrackingService {
                     }
                   );
               }
+
               const rewardPoints = assignSubjectPoints
                 ? {
-                    subjectCompletionPoints: subjectAssignRewardPoints,
-                    contentCompletionPoints: assignRewardPoints,
+                    subject_completion:
+                      subjectAssignRewardPoints.data.insert_UserPoints_one ||
+                      {},
+                    lesson_completion:
+                      assignRewardPoints.data.insert_UserPoints_one || {},
                   }
-                : assignRewardPoints;
+                : {
+                    lesson_completion:
+                      assignRewardPoints.data.insert_UserPoints_one || {},
+                  };
               // Log progress tracking after insertion
               const loggedAttempt = await this.logLessonAttemptProgressTracking(
                 request,
                 altLessonTrackingDto,
                 lessonProgressId
               );
+
               return response.status(201).json({
                 lessonTrack: lessonTrack,
                 assignedRewardPoints: rewardPoints,
