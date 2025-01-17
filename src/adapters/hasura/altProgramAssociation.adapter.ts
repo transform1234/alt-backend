@@ -558,7 +558,7 @@ export class ALTProgramAssociationService {
 
       return {
         ...item,
-        subject: body.subject,
+        subject: rulesData.find((rule) => rule.programId === programId)?.subject,
         lesson_status: lessonStatus?.status || "pending",
         lesson_questionset_status: lessonQuestionsetStatus?.status || "pending",
       };
