@@ -1,5 +1,5 @@
 name: Sonar-cloud Analysis-main
-on:  
+on:   
   push: 
     branches:
       - main
