@@ -438,14 +438,15 @@ export class ALTProgramAssociationService {
 
   public async contentSearch(request, body) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-  
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
     console.log("altUserId", altUserId);
     const programId = body.programId;
     const subjectCondition = body.subject
       ? `subject: {_eq: "${body.subject}"}, `
       : "";
-  
+
     const data = {
       query: `
         query MyQuery {
@@ -460,7 +461,7 @@ export class ALTProgramAssociationService {
         }
       `,
     };
-  
+
     const configData = {
       method: "post",
       url: process.env.ALTHASURA,
@@ -470,34 +471,36 @@ export class ALTProgramAssociationService {
       },
       data,
     };
-  
+
     const response = await this.axios(configData);
-  
+
     if (response?.data?.errors) {
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
         errorMessage: response.data.errors[0].message,
       });
     }
-  
+
     const rulesData = response.data.data.ProgramTermAssoc;
-  
+
     if (!rulesData || rulesData.length === 0) {
       return new ErrorResponse({
         errorCode: "404",
         errorMessage: "No data found.",
       });
     }
-  
+
     const filteredProg = rulesData.flatMap((rule) => {
       if (rule.rules) {
         try {
           const parsedRules = JSON.parse(rule.rules);
-  
+
           if (Array.isArray(parsedRules.prog)) {
             return parsedRules.prog
               .filter((item) =>
-                item.name?.toLowerCase().includes(body.searchQuery.toLowerCase())
+                item.name
+                  ?.toLowerCase()
+                  .includes(body.searchQuery.toLowerCase())
               )
               .map((item) => ({
                 ...item,
@@ -505,17 +508,20 @@ export class ALTProgramAssociationService {
               }));
           }
         } catch (error) {
-          console.error(`Failed to parse rules for programId: ${rule.programId}`, error);
+          console.error(
+            `Failed to parse rules for programId: ${rule.programId}`,
+            error
+          );
         }
       }
       return [];
     });
-  
+
     const lessonIds = filteredProg.flatMap((item) => [
       item.contentId,
       item.lesson_questionset,
     ]);
-  
+
     const lessonStatusQuery = {
       query: `
         query GetLessonStatuses($lessonIds: [String!]!, $userId: uuid) {
@@ -530,7 +536,7 @@ export class ALTProgramAssociationService {
         userId: altUserId,
       },
     };
-  
+
     const lessonStatusResponse = await this.axios({
       method: "post",
       url: process.env.ALTHASURA,
@@ -540,39 +546,39 @@ export class ALTProgramAssociationService {
       },
       data: lessonStatusQuery,
     });
-  
+
     if (lessonStatusResponse?.data?.errors) {
       return new ErrorResponse({
         errorCode: lessonStatusResponse.data.errors[0].extensions,
         errorMessage: lessonStatusResponse.data.errors[0].message,
       });
     }
-  
+
     const lessonStatuses =
       lessonStatusResponse.data.data.LessonProgressTracking;
-  
+
     const responseData = filteredProg.map((item) => {
       const lessonStatus = lessonStatuses.find(
         (status) => status.lessonId === item.contentId
       );
-  
+
       const lessonQuestionsetStatus = lessonStatuses.find(
         (status) => status.lessonId === item.lesson_questionset
       );
-  
+
       return {
         ...item,
         lesson_status: lessonStatus?.status || "pending",
         lesson_questionset_status: lessonQuestionsetStatus?.status || "pending",
       };
     });
-  
+
     const pageNumber = parseInt(body.pageNumber, 10) || 1;
     const limit = parseInt(body.limit, 10) || 10;
     const offset = (pageNumber - 1) * limit;
-  
+
     const paginatedData = responseData.slice(offset, offset + limit);
-  
+
     const meta = {
       total: responseData.length,
       limit,
@@ -580,14 +586,13 @@ export class ALTProgramAssociationService {
       currentPage: pageNumber,
       totalPages: Math.ceil(responseData.length / limit),
     };
-  
+
     return new SuccessResponse({
       statusCode: 200,
       message: "Ok.",
       data: { paginatedData, meta },
     });
   }
-  
 
   // public async contentSearch(request, body) {
   //   const decoded: any = jwt_decode(request.headers.authorization);
@@ -664,10 +669,7 @@ export class ALTProgramAssociationService {
   //     return [];
   //   });
 
-    
-
   //   // return filteredProg
-    
 
   //   const lessonIds = filteredProg.flatMap((item) => [
   //     item.contentId,
@@ -991,15 +993,63 @@ export class ALTProgramAssociationService {
     data: {
       programId: string;
       subject: string;
-      contentId: string;
-      rating: boolean;
+      assessmentId: string;
+      rating: number;
     }
   ) {
+    if (!data.rating || data.rating < 1 || data.rating > 5) {
+      return new ErrorResponse({
+        errorCode: "Invalid Rating",
+        errorMessage: "Rating should be between 1 and 5.",
+      });
+    }
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
     console.log("altUserId", altUserId);
+
+    //fetch the rules
+    const getRulesQuery = {
+      query: `query MyQuery($programId: uuid, $subject: String) {
+                    ProgramTermAssoc(where: {programId: {_eq: $programId}, subject: {_eq: $subject}}){
+                      rules
+                    }
+                  }
+              `,
+      variables: {
+        programId: data.programId,
+        subject: data.subject,
+      },
+    };
+    let config = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: getRulesQuery,
+    };
+    const rulesResponse = await this.axios(config);
+    if (rulesResponse?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: rulesResponse.data.errors[0].extensions,
+        errorMessage: rulesResponse.data.errors[0].message,
+      });
+    }
+    const rules = rulesResponse?.data?.data?.ProgramTermAssoc[0].rules;
+    const rulesData = JSON.parse(rules);
+    const assessmentExists = rulesData.prog.some(
+      (rule) => rule.lesson_questionset === data.assessmentId
+    );
+
+    if (!assessmentExists) {
+      return new ErrorResponse({
+        errorCode: "404",
+        errorMessage: "AssessmentId not found in the program rules",
+      });
+    }
 
     // First, check if the combination exists
     const checkGraphQLQuery = {
@@ -1017,7 +1067,7 @@ export class ALTProgramAssociationService {
         }
       `,
       variables: {
-        contentId: data.contentId,
+        contentId: data.assessmentId,
         programId: data.programId,
         subject: data.subject,
         userId: altUserId,
@@ -1068,7 +1118,7 @@ export class ALTProgramAssociationService {
             }
           `,
           variables: {
-            contentId: data.contentId,
+            contentId: data.assessmentId,
             rating: data.rating,
             programId: data.programId,
             subject: data.subject,
@@ -1084,7 +1134,7 @@ export class ALTProgramAssociationService {
         return new SuccessResponse({
           statusCode: 200,
           message: "Content like status updated successfully.",
-          data: updateResponse.data.data,
+          data: updateResponse.data.data.update_GlaQuizRating,
         });
       } else {
         // If no entry exists, insert a new one
@@ -1111,7 +1161,7 @@ export class ALTProgramAssociationService {
             }
           `,
           variables: {
-            contentId: data.contentId,
+            contentId: data.assessmentId,
             rating: data.rating,
             programId: data.programId,
             subject: data.subject,
@@ -1127,7 +1177,7 @@ export class ALTProgramAssociationService {
         return new SuccessResponse({
           statusCode: 200,
           message: "Content like status inserted successfully.",
-          data: insertResponse.data.data,
+          data: insertResponse.data.data.insert_GlaQuizRating_one,
         });
       }
     } catch (error) {
