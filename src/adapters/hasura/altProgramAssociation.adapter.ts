@@ -438,14 +438,15 @@ export class ALTProgramAssociationService {
 
   public async contentSearch(request, body) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-  
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
     console.log("altUserId", altUserId);
     const programId = body.programId;
     const subjectCondition = body.subject
       ? `subject: {_eq: "${body.subject}"}, `
       : "";
-  
+
     const data = {
       query: `
         query MyQuery {
@@ -460,7 +461,7 @@ export class ALTProgramAssociationService {
         }
       `,
     };
-  
+
     const configData = {
       method: "post",
       url: process.env.ALTHASURA,
@@ -470,34 +471,36 @@ export class ALTProgramAssociationService {
       },
       data,
     };
-  
+
     const response = await this.axios(configData);
-  
+
     if (response?.data?.errors) {
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
         errorMessage: response.data.errors[0].message,
       });
     }
-  
+
     const rulesData = response.data.data.ProgramTermAssoc;
-  
+
     if (!rulesData || rulesData.length === 0) {
       return new ErrorResponse({
         errorCode: "404",
         errorMessage: "No data found.",
       });
     }
-  
+
     const filteredProg = rulesData.flatMap((rule) => {
       if (rule.rules) {
         try {
           const parsedRules = JSON.parse(rule.rules);
-  
+
           if (Array.isArray(parsedRules.prog)) {
             return parsedRules.prog
               .filter((item) =>
-                item.name?.toLowerCase().includes(body.searchQuery.toLowerCase())
+                item.name
+                  ?.toLowerCase()
+                  .includes(body.searchQuery.toLowerCase())
               )
               .map((item) => ({
                 ...item,
@@ -505,17 +508,20 @@ export class ALTProgramAssociationService {
               }));
           }
         } catch (error) {
-          console.error(`Failed to parse rules for programId: ${rule.programId}`, error);
+          console.error(
+            `Failed to parse rules for programId: ${rule.programId}`,
+            error
+          );
         }
       }
       return [];
     });
-  
+
     const lessonIds = filteredProg.flatMap((item) => [
       item.contentId,
       item.lesson_questionset,
     ]);
-  
+
     const lessonStatusQuery = {
       query: `
         query GetLessonStatuses($lessonIds: [String!]!, $userId: uuid) {
@@ -530,7 +536,7 @@ export class ALTProgramAssociationService {
         userId: altUserId,
       },
     };
-  
+
     const lessonStatusResponse = await this.axios({
       method: "post",
       url: process.env.ALTHASURA,
@@ -540,39 +546,39 @@ export class ALTProgramAssociationService {
       },
       data: lessonStatusQuery,
     });
-  
+
     if (lessonStatusResponse?.data?.errors) {
       return new ErrorResponse({
         errorCode: lessonStatusResponse.data.errors[0].extensions,
         errorMessage: lessonStatusResponse.data.errors[0].message,
       });
     }
-  
+
     const lessonStatuses =
       lessonStatusResponse.data.data.LessonProgressTracking;
-  
+
     const responseData = filteredProg.map((item) => {
       const lessonStatus = lessonStatuses.find(
         (status) => status.lessonId === item.contentId
       );
-  
+
       const lessonQuestionsetStatus = lessonStatuses.find(
         (status) => status.lessonId === item.lesson_questionset
       );
-  
+
       return {
         ...item,
         lesson_status: lessonStatus?.status || "pending",
         lesson_questionset_status: lessonQuestionsetStatus?.status || "pending",
       };
     });
-  
+
     const pageNumber = parseInt(body.pageNumber, 10) || 1;
     const limit = parseInt(body.limit, 10) || 10;
     const offset = (pageNumber - 1) * limit;
-  
+
     const paginatedData = responseData.slice(offset, offset + limit);
-  
+
     const meta = {
       total: responseData.length,
       limit,
@@ -580,14 +586,13 @@ export class ALTProgramAssociationService {
       currentPage: pageNumber,
       totalPages: Math.ceil(responseData.length / limit),
     };
-  
+
     return new SuccessResponse({
       statusCode: 200,
       message: "Ok.",
       data: { paginatedData, meta },
     });
   }
-  
 
   // public async contentSearch(request, body) {
   //   const decoded: any = jwt_decode(request.headers.authorization);
@@ -664,10 +669,7 @@ export class ALTProgramAssociationService {
   //     return [];
   //   });
 
-    
-
   //   // return filteredProg
-    
 
   //   const lessonIds = filteredProg.flatMap((item) => [
   //     item.contentId,
@@ -1410,6 +1412,19 @@ export class ALTProgramAssociationService {
 
   async leaderBoardPoints(request, data) {
     console.log("timeframe", data.timeframe);
+    if (
+      !data.timeframe ||
+      (data.timeframe !== "last30days" &&
+        data.timeframe !== "allday" &&
+        data.timeframe !== "last7days" &&
+        data.timeframe !== "today")
+    ) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage:
+          "Invalid timeframe. Must be one of: today, last7days, last30days, allday",
+      });
+    }
 
     const { startDate, endDate } = await this.getDateRange(data.timeframe);
 
@@ -1618,6 +1633,17 @@ export class ALTProgramAssociationService {
           data: checkResponse?.data?.data,
         });
       } else if (checkResponse?.data?.data) {
+        //checkResponse { data: { Group: [] } }
+        if (
+          !checkResponse.data.data.Group ||
+          checkResponse.data.data.Group.length === 0
+        ) {
+          return new SuccessResponse({
+            statusCode: 404,
+            message: `No data found for board: ${schoolUdise}`,
+            data: [],
+          });
+        }
         const formattedData = this.transformSchoolData(
           checkResponse?.data?.data,
           userId
@@ -1648,7 +1674,7 @@ export class ALTProgramAssociationService {
     const checkGraphQLQuery = {
       query: `
       query MyQuery($board: String!, $startDate: timestamptz, $endDate: timestamptz) {
-        School(where: { board: { _eq: $board } }) {
+        School(where: { board: { _ilike: $board } }) {
           board
           udiseCode
           Groups {
@@ -1710,6 +1736,16 @@ export class ALTProgramAssociationService {
           data: checkResponse?.data?.data,
         });
       } else if (checkResponse?.data?.data) {
+        if (
+          !checkResponse.data.data?.School ||
+          checkResponse.data.data.School.length === 0
+        ) {
+          return new ErrorResponse({
+            errorCode: "404",
+            errorMessage: `No data found for board: ${board}`,
+          });
+        }
+
         const formattedData = this.transformBoardData(
           checkResponse?.data?.data,
           userId
