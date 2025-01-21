@@ -1412,6 +1412,19 @@ export class ALTProgramAssociationService {
 
   async leaderBoardPoints(request, data) {
     console.log("timeframe", data.timeframe);
+    if (
+      !data.timeframe ||
+      (data.timeframe !== "last30days" &&
+        data.timeframe !== "allday" &&
+        data.timeframe !== "last7days" &&
+        data.timeframe !== "today")
+    ) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage:
+          "Invalid timeframe. Must be one of: today, last7days, last30days, allday",
+      });
+    }
 
     const { startDate, endDate } = await this.getDateRange(data.timeframe);
 
@@ -1622,6 +1635,17 @@ export class ALTProgramAssociationService {
           data: checkResponse?.data?.data,
         });
       } else if (checkResponse?.data?.data) {
+        //checkResponse { data: { Group: [] } }
+        if (
+          !checkResponse.data.data.Group ||
+          checkResponse.data.data.Group.length === 0
+        ) {
+          return new SuccessResponse({
+            statusCode: 204,
+            message: `No data found for board: ${schoolUdise}`,
+            data: [],
+          });
+        }
         const formattedData = this.transformSchoolData(
           checkResponse?.data?.data,
           userId
@@ -1652,7 +1676,7 @@ export class ALTProgramAssociationService {
     const checkGraphQLQuery = {
       query: `
       query MyQuery($board: String!, $startDate: timestamptz, $endDate: timestamptz) {
-        School(where: { board: { _eq: $board } }) {
+        School(where: { board: { _ilike: $board } }) {
           board
           udiseCode
           Groups {
@@ -1715,6 +1739,16 @@ export class ALTProgramAssociationService {
           data: checkResponse?.data?.data,
         });
       } else if (checkResponse?.data?.data) {
+        if (
+          !checkResponse.data.data?.School ||
+          checkResponse.data.data.School.length === 0
+        ) {
+          return new SuccessResponse({
+            statusCode: 204,
+            message: `No data found for board: ${board}`,
+          });
+        }
+
         const formattedData = this.transformBoardData(
           checkResponse?.data?.data,
           userId
