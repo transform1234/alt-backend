@@ -993,15 +993,63 @@ export class ALTProgramAssociationService {
     data: {
       programId: string;
       subject: string;
-      contentId: string;
-      rating: boolean;
+      assessmentId: string;
+      rating: number;
     }
   ) {
+    if (!data.rating || data.rating < 1 || data.rating > 5) {
+      return new ErrorResponse({
+        errorCode: "Invalid Rating",
+        errorMessage: "Rating should be between 1 and 5.",
+      });
+    }
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
     console.log("altUserId", altUserId);
+
+    //fetch the rules
+    const getRulesQuery = {
+      query: `query MyQuery($programId: uuid, $subject: String) {
+                    ProgramTermAssoc(where: {programId: {_eq: $programId}, subject: {_eq: $subject}}){
+                      rules
+                    }
+                  }
+              `,
+      variables: {
+        programId: data.programId,
+        subject: data.subject,
+      },
+    };
+    let config = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: getRulesQuery,
+    };
+    const rulesResponse = await this.axios(config);
+    if (rulesResponse?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: rulesResponse.data.errors[0].extensions,
+        errorMessage: rulesResponse.data.errors[0].message,
+      });
+    }
+    const rules = rulesResponse?.data?.data?.ProgramTermAssoc[0].rules;
+    const rulesData = JSON.parse(rules);
+    const assessmentExists = rulesData.prog.some(
+      (rule) => rule.lesson_questionset === data.assessmentId
+    );
+
+    if (!assessmentExists) {
+      return new ErrorResponse({
+        errorCode: "404",
+        errorMessage: "AssessmentId not found in the program rules",
+      });
+    }
 
     // First, check if the combination exists
     const checkGraphQLQuery = {
@@ -1019,7 +1067,7 @@ export class ALTProgramAssociationService {
         }
       `,
       variables: {
-        contentId: data.contentId,
+        contentId: data.assessmentId,
         programId: data.programId,
         subject: data.subject,
         userId: altUserId,
@@ -1070,7 +1118,7 @@ export class ALTProgramAssociationService {
             }
           `,
           variables: {
-            contentId: data.contentId,
+            contentId: data.assessmentId,
             rating: data.rating,
             programId: data.programId,
             subject: data.subject,
@@ -1086,7 +1134,7 @@ export class ALTProgramAssociationService {
         return new SuccessResponse({
           statusCode: 200,
           message: "Content like status updated successfully.",
-          data: updateResponse.data.data,
+          data: updateResponse.data.data.update_GlaQuizRating,
         });
       } else {
         // If no entry exists, insert a new one
@@ -1113,7 +1161,7 @@ export class ALTProgramAssociationService {
             }
           `,
           variables: {
-            contentId: data.contentId,
+            contentId: data.assessmentId,
             rating: data.rating,
             programId: data.programId,
             subject: data.subject,
@@ -1129,7 +1177,7 @@ export class ALTProgramAssociationService {
         return new SuccessResponse({
           statusCode: 200,
           message: "Content like status inserted successfully.",
-          data: insertResponse.data.data,
+          data: insertResponse.data.data.insert_GlaQuizRating_one,
         });
       }
     } catch (error) {
