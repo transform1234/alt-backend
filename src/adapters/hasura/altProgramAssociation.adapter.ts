@@ -1515,6 +1515,7 @@ export class ALTProgramAssociationService {
               points
               created_at
               description
+              identifier
             }
           }
         }
@@ -1599,6 +1600,7 @@ export class ALTProgramAssociationService {
                 points
                 created_at
                 description
+                identifier
               }
             }
           }
@@ -1701,6 +1703,7 @@ export class ALTProgramAssociationService {
                   points
                   created_at
                   description
+                  identifier
                 }
               }
             }
