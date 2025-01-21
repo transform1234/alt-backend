@@ -1641,7 +1641,7 @@ export class ALTProgramAssociationService {
           checkResponse.data.data.Group.length === 0
         ) {
           return new SuccessResponse({
-            statusCode: 404,
+            statusCode: 204,
             message: `No data found for board: ${schoolUdise}`,
             data: [],
           });
@@ -1743,9 +1743,9 @@ export class ALTProgramAssociationService {
           !checkResponse.data.data?.School ||
           checkResponse.data.data.School.length === 0
         ) {
-          return new ErrorResponse({
-            errorCode: "404",
-            errorMessage: `No data found for board: ${board}`,
+          return new SuccessResponse({
+            statusCode: 204,
+            message: `No data found for board: ${board}`,
           });
         }
 
