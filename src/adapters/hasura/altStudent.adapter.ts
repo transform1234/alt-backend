@@ -1414,30 +1414,34 @@ export class ALTStudentService {
 
     const matchedContent: any[] = [];
     let totalLessonsCount = 0; // Total number of lessons
-    let matchedContentCount = 0; // Count of matched content
-
+    let completedContentCount = 0; // Count of matched content
     for (const programTerm of programData) {
       const rules = JSON.parse(programTerm.rules).prog || [];
 
       // Iterate over rules and find matched content based on lessonId and contentId
       for (const rule of rules) {
-        totalLessonsCount++; // Increment total lessons count
-
+        // Increment total lessons count
+        totalLessonsCount += rule.contentId ? 1 : 0;
+        totalLessonsCount += rule.lesson_questionset ? 1 : 0;
         // Find lessons that match contentId
         const matchedLessons = lessonResult.filter(
           (lesson) =>
-            lesson.lessonId === rule.contentId && lesson.status === "completed"
+            (lesson.lessonId === rule.contentId &&
+              lesson.status === "completed") ||
+            (lesson.lessonId === rule.lesson_questionset &&
+              lesson.status === "completed")
         );
 
         // Add all matched lessons to matchedContent array
-        matchedContentCount += matchedLessons.length; // Increment matched content count
+        completedContentCount += matchedLessons.length; // Increment matched content count
         matchedContent.push(...matchedLessons); // Add matched lessons to matchedContent array
       }
     }
+
     // Calculate percentage of matched content
     const percentage =
       totalLessonsCount > 0
-        ? ((matchedContentCount / totalLessonsCount) * 100).toFixed(2)
+        ? ((completedContentCount / totalLessonsCount) * 100).toFixed(2)
         : "0.00";
 
     // Return the results including percentage, matched content count, total lessons count, and matched content
@@ -1446,7 +1450,7 @@ export class ALTStudentService {
       message: "Success",
       data: {
         percentage,
-        matchedContentCount,
+        completedContentCount,
         totalLessonsCount,
         matchedContent,
       },

@@ -21,7 +21,7 @@ import { ALTUserUpdateDto } from "src/altUser/dto/alt-user-update.dto";
 export class ALTHasuraUserService {
   axios = require("axios");
 
-  constructor(private httpService: HttpService) {}
+  constructor(private httpService: HttpService) { }
 
   public async getUser(userId: string, request: any) {
     const decoded: any = jwt_decode(request.headers.authorization);
@@ -892,9 +892,8 @@ export class ALTHasuraUserService {
     const [firstName, lastName] = obj.name.split(" ");
 
     // Step 1: Extract initials
-    const initials = `${firstName[0].toLowerCase()}${
-      lastName ? lastName[0].toLowerCase() : ""
-    }`;
+    const initials = `${firstName[0].toLowerCase()}${lastName ? lastName[0].toLowerCase() : ""
+      }`;
 
     const dob = obj.dateOfBirth
       .trim()
@@ -953,129 +952,356 @@ export class ALTHasuraUserService {
     const response = await this.axios(config);
     return response.data.data.Users.length > 0; // Returns true if username is taken
   }
-  public async validateToken(request: any, res: any) {
-    // Check if Authorization header exists
-    const authToken = request.headers.authorization;
-    if (!authToken) {
-      return res.status(400).send({
-        success: false,
-        status: "Unauthorized",
-        message: "Authorization header is missing",
-        data: null,
-      });
-    }
+  // public async validateToken(request: any, res: any) {
+  //   // Check if Authorization header exists
+  //   const authToken = request.headers.authorization;
+  //   if (!authToken) {
+  //     return res.status(400).send({
+  //       success: false,
+  //       status: "Unauthorized",
+  //       message: "Authorization header is missing",
+  //       data: null,
+  //     });
+  //   }
 
-    // Check if token starts with 'Bearer' and has a token
-    if (!authToken.startsWith("Bearer ")) {
-      return res.status(400).send({
-        success: false,
-        status: "Unauthorized",
-        message:
-          "Authorization token must be in the form of 'Bearer <token>' in the headers",
-        data: null,
-      });
-    }
+  //   // Check if token starts with 'Bearer' and has a token
+  //   if (!authToken.startsWith("Bearer ")) {
+  //     return res.status(400).send({
+  //       success: false,
+  //       status: "Unauthorized",
+  //       message:
+  //         "Authorization token must be in the form of 'Bearer <token>' in the headers",
+  //       data: null,
+  //     });
+  //   }
 
-    const token = authToken.split(" ")[1]; // Extract the token part
+  //   const token = authToken.split(" ")[1]; // Extract the token part
 
+  //   try {
+  //     //Keycloak api to validate token
+  //     const keycloakResponse = await this.axios({
+  //       method: "GET",
+  //       url: `${process.env.URL}/auth/realms/${process.env.KEYCLOAK_REALM}/protocol/openid-connect/userinfo`,
+  //       headers: {
+  //         Authorization: `Bearer ${token}`,
+  //       },
+  //     });
+
+  //     // If the token is valid, process the response
+  //     const userInfo = keycloakResponse.data;
+  //     console.log("userInfo", userInfo)
+
+  //     if(!userInfo) {
+  //       return res.status(400).send({
+  //         success: false,
+  //         status: "Unauthorized",
+  //         message: "Invalid token",
+  //         data: null,
+  //       });
+  //     }
+
+  //     // Extract roles and username from the Keycloak response
+  //     // const altUserRoles = userInfo["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+  //     // const username = userInfo.preferred_username;
+
+
+
+
+  //     // Decode the token
+  //     const decoded: any = jwt_decode(token);
+  //     //Check if token has expired
+  //     const currentTimestamp = Math.floor(Date.now() / 1000); // Get current timestamp in seconds
+  //     if (decoded.exp && decoded.exp < currentTimestamp) {
+  //       return res.status(401).send({
+  //         success: false,
+  //         status: "Unauthorized",
+  //         message: "Token has expired",
+  //         data: null,
+  //       });
+  //     }
+
+  //     // Extract roles and username
+  //     const altUserRoles =
+  //       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+  //     const username = decoded.preferred_username;
+
+  //     //  Prepare GraphQL request data
+  //     const data = {
+  //       query: `query searchUser($username: String) {
+  //                   Users(where: {username: {_eq: $username}, status: {_eq: true}}) {
+  //                     userId
+  //                     name
+  //                     username
+  //                     email
+  //                     mobile
+  //                     gender
+  //                     dateOfBirth
+  //                     role
+  //                     status
+  //                     createdAt
+  //                     updatedAt
+  //                     createdBy
+  //                     updatedBy
+  //                     GroupMemberships(where: {status: {_eq: true}}) {
+  //                       Group {
+  //                         board
+  //                         medium
+  //                         grade
+  //                         groupId
+  //                       }
+  //                     }
+  //                     Student {
+  //                       School {
+  //                         name
+  //                         udiseCode
+  //                       }
+  //                     }
+  //                   }
+  //                 }
+  // `,
+  //       variables: { username: username },
+  //     };
+
+  //     const config = {
+  //       method: "post",
+  //       url: process.env.ALTHASURA,
+  //       headers: {
+  //         Authorization: `Bearer ${token}`,
+  //         "x-hasura-role": getUserRole(altUserRoles),
+  //         "Content-Type": "application/json",
+  //       },
+  //       data: data,
+  //     };
+
+  //     console.log(altUserRoles);
+
+  //     //  Send GraphQL request
+  //     const response = await this.axios(config);
+
+  //     // Handle errors in the response
+  //     if (response?.data?.errors) {
+  //       return res.status(401).send({
+  //         success: false,
+  //         status: "Unauthorized",
+  //         message: "INVALID",
+  //         data: response.data.errors.data[0].message,
+  //       });
+  //     } else {
+  //       // Return successful response
+  //       const result = response.data.data.Users;
+  //       return res.status(200).send({
+  //         success: true,
+  //         status: "Authenticated",
+  //         message: "SUCCESS",
+  //         data: result,
+  //       });
+  //     }
+  //   } catch (error) {
+  //     // Handle any errors, including invalid token
+  //     return res.status(400).send({
+  //       success: false,
+  //       status: "Unauthorized",
+  //       message: "Invalid token",
+  //       data: null,
+  //     });
+  //   }
+  // }
+
+
+
+  async validateToken(request: any, res: any) {
     try {
+      // Extract the Authorization header
+      const authToken = request.headers.authorization;
+      if (!authToken) {
+        return this.sendErrorResponse(res, 400, "Authorization header is missing");
+      }
+
+      // Ensure token starts with "Bearer "
+      if (!authToken.startsWith("Bearer ")) {
+        return this.sendErrorResponse(
+          res,
+          400,
+          "Authorization token must be in the form of 'Bearer <token>'"
+        );
+      }
+
+      // Extract token
+      const token = authToken.split(" ")[1];
+
+      // Validate token using Keycloak
+      const userInfo = await this.validateWithKeycloak(token);
+      if (!userInfo) {
+        return this.sendErrorResponse(res, 401, "Invalid token");
+      }
+
       // Decode the token
       const decoded: any = jwt_decode(token);
-      //Check if token has expired
-      const currentTimestamp = Math.floor(Date.now() / 1000); // Get current timestamp in seconds
+      const currentTimestamp = Math.floor(Date.now() / 1000);
       if (decoded.exp && decoded.exp < currentTimestamp) {
-        return res.status(401).send({
-          success: false,
-          status: "Unauthorized",
-          message: "Token has expired",
-          data: null,
-        });
+        return this.sendErrorResponse(res, 401, "Token has expired");
       }
 
-      // Extract roles and username
-      const altUserRoles =
-        decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+      // Extract user roles and username
+      const roles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
       const username = decoded.preferred_username;
 
-      //  Prepare GraphQL request data
-      const data = {
-        query: `query searchUser($username: String) {
-                    Users(where: {username: {_eq: $username}, status: {_eq: true}}) {
-                      userId
-                      name
-                      username
-                      email
-                      mobile
-                      gender
-                      dateOfBirth
-                      role
-                      status
-                      createdAt
-                      updatedAt
-                      createdBy
-                      updatedBy
-                      GroupMemberships(where: {status: {_eq: true}}) {
-                        Group {
-                          board
-                          medium
-                          grade
-                          groupId
-                        }
-                      }
-                      Student {
-                        School {
-                          name
-                          udiseCode
-                        }
-                      }
-                    }
-                  }
-  `,
-        variables: { username: username },
-      };
-
-      const config = {
-        method: "post",
-        url: process.env.ALTHASURA,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "x-hasura-role": getUserRole(altUserRoles),
-          "Content-Type": "application/json",
-        },
-        data: data,
-      };
-
-      console.log(altUserRoles);
-
-      //  Send GraphQL request
-      const response = await this.axios(config);
-
-      // Handle errors in the response
-      if (response?.data?.errors) {
-        return res.status(401).send({
-          success: false,
-          status: "Unauthorized",
-          message: "INVALID",
-          data: response.data.errors.data[0].message,
-        });
-      } else {
-        // Return successful response
-        const result = response.data.data.Users;
-        return res.status(200).send({
-          success: true,
-          status: "Authenticated",
-          message: "SUCCESS",
-          data: result,
-        });
+      // Fetch user details from GraphQL
+      const userData = await this.fetchUserData(username, token, roles);
+      if (!userData) {
+        return this.sendErrorResponse(res, 404, "User not found or inactive");
       }
+
+      // Fetch user points
+      const userPoints = await this.getUserPoints(request, token);
+
+      console.log("userPoints", userPoints)
+
+      // Append points to user data if available
+      if (userPoints) {
+        userData[0].points = userPoints.aggregate.sum.points
+      } else {
+        userData[0].points = 0
+      }
+
+      // Send success response
+      return this.sendSuccessResponse(res, 200, "Authenticated", userData);
+
     } catch (error) {
-      // Handle any errors, including invalid token
-      return res.status(400).send({
-        success: false,
-        status: "Unauthorized",
-        message: "Invalid token",
-        data: null,
-      });
+      console.error("Error validating token:", error.message);
+      return this.sendErrorResponse(res, 400, "Invalid token");
     }
   }
+
+  async validateWithKeycloak(token: string) {
+    try {
+      const response = await this.axios({
+        method: "GET",
+        url: `${process.env.URL}/auth/realms/hasura-app/protocol/openid-connect/userinfo`,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Keycloak validation error:", error.message);
+      return null;
+    }
+  }
+
+  async fetchUserData(username: string, token: string, roles: string[]) {
+    const query = {
+      query: `
+      query searchUser($username: String!) {
+        Users(where: {username: {_eq: $username}, status: {_eq: true}}) {
+          userId
+          name
+          username
+          email
+          mobile
+          gender
+          dateOfBirth
+          role
+          status
+          createdAt
+          updatedAt
+          GroupMemberships(where: {status: {_eq: true}}) {
+            Group {
+              board
+              medium
+              grade
+              groupId
+            }
+          }
+          Student {
+            School {
+              name
+              udiseCode
+            }
+          }
+        }
+      }
+    `,
+      variables: { username },
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "x-hasura-role": getUserRole(roles),
+        "Content-Type": "application/json",
+      },
+      data: query,
+    };
+
+    try {
+      const response = await this.axios(config);
+      return response.data.data.Users || null;
+    } catch (error) {
+      console.error("GraphQL fetch error:", error.message);
+      return null;
+    }
+  }
+
+  async getUserPoints(request: any, token: string) {
+    const decoded: any = jwt_decode(token);
+    const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    const query = {
+      query: `
+      query MyQuery($userId: uuid!) {
+        UserPoints_aggregate(where: {user_id: {_eq: $userId}}) {
+          aggregate {
+            sum {
+              points
+            }
+          }
+        }
+      }
+    `,
+      variables: { userId },
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      data: query,
+    };
+
+    try {
+      const response = await this.axios(config);
+      console.log("response", response.data)
+      return response.data.data.UserPoints_aggregate || {};
+    } catch (error) {
+      console.error("Error fetching user points:", error.message);
+      return [];
+    }
+  }
+
+  sendErrorResponse(res: any, statusCode: number, message: string) {
+    return res.status(statusCode).send({
+      success: false,
+      status: "Unauthorized",
+      message,
+      data: null,
+    });
+  }
+
+  sendSuccessResponse(res: any, statusCode: number, message: string, data: any) {
+    return res.status(statusCode).send({
+      success: true,
+      status: "Authenticated",
+      message,
+      data,
+    });
+  }
+
+
+
 }

@@ -960,7 +960,7 @@ export class ALTLessonTrackingService {
     //  Check lessonId and courseId in programRules
     const currentLessonId = altLessonTrackingDto.lessonId;
     let courseId;
-
+    let questionIdFlag; //to identify if the do_id is lesson or questionSet
     for (const program of programRules.prog) {
       if (
         program.contentId === currentLessonId ||
@@ -1005,7 +1005,7 @@ export class ALTLessonTrackingService {
     altLessonTrackingDto.moduleId = moduleId;
 
     let flag = false;
-    let tracklessonModule;
+    // let tracklessonModule;
 
     if (altLessonTrackingDto.userId) {
       for (const course of programRules?.prog) {
@@ -1016,12 +1016,12 @@ export class ALTLessonTrackingService {
           course.lesson_questionset == altLessonTrackingDto.lessonId
         ) {
           flag = true;
-
+          questionIdFlag = course.lesson_questionset === currentLessonId; //if current content is questionSet
           // if course content handling creation and updation of lesson with module
 
           if (numberOfRecords === 0) {
             altLessonTrackingDto.attempts = 1;
-            altLessonTrackingDto.score = altLessonTrackingDto?.score; // keeping it one
+            altLessonTrackingDto.score = altLessonTrackingDto?.score;
             const lessonTrack: any = await this.createALTLessonTracking(
               request,
               altLessonTrackingDto
@@ -1033,24 +1033,86 @@ export class ALTLessonTrackingService {
               altLessonTrackingDto.status === "completed" &&
               lessonTrack?.statusCode === 200
             ) {
-              tracklessonModule = await this.glalessonToModuleTracking(
-                request,
-                altLessonTrackingDto,
-                programId,
-                subject,
-                false
-              );
+              // tracklessonModule = await this.glalessonToModuleTracking(
+              //   request,
+              //   altLessonTrackingDto,
+              //   programId,
+              //   subject,
+              //   false
+              // );
             }
+            //ASSIGNING REWARD POINTS FOR ASSESSMENT OR LESSON COMPLETION OR SUBJECT COMPLETION
+            let assignRewardPoints;
+            let subjectAssignRewardPoints;
+            //if the current do_id is the questionSetId
+            if (!questionIdFlag) {
+              assignRewardPoints =
+                await this.altProgramAssociationService.addUserPoints(request, {
+                  identifier: "lesson_completion",
+                  description: "Student has completed lesson and earned",
+                  earning_context: {
+                    contentId: altLessonTrackingDto.lessonId,
+                    programId: altLessonTrackingDto.programId,
+                    subject: subject,
+                  },
+                });
+            } else {
+              //assign points for the first attempt of completion
+              assignRewardPoints =
+                await this.altProgramAssociationService.addUserPoints(request, {
+                  identifier: "assesment_completion",
+                  description: "Student has completed assessment and earned",
+                  earning_context: {
+                    contentId: altLessonTrackingDto.lessonId,
+                    programId: altLessonTrackingDto.programId,
+                    subject: subject,
+                  },
+                });
+            }
+
+            /*
+            CHECK IF EVERY CONTENT OF THE RULES OBJECT HAS BEEN COMPLETED 
+              IF ALL CONTENT(LESSON AND QUESTION SET) HAS BEEN WATCHED -> ASSIGN SUBJECT COMPLETION POINTS FOR THE FIRST ATTEMPT ONLY 
+            */
+            const assignSubjectPoints = await this.checkContentCompletion(
+              request,
+              programRules,
+              altLessonTrackingDto.programId,
+              subject
+            );
+            if (assignSubjectPoints) {
+              subjectAssignRewardPoints =
+                await this.altProgramAssociationService.addUserPoints(request, {
+                  identifier: "subject_completion",
+                  description: "Student has completed subject and has earned",
+                  earning_context: {
+                    programId: altLessonTrackingDto.programId,
+                    subject: subject,
+                  },
+                });
+            }
+
+            const rewardPoints = assignSubjectPoints
+              ? {
+                  subject_completion:
+                    subjectAssignRewardPoints.data.insert_UserPoints_one || {},
+                  lesson_completion:
+                    assignRewardPoints.data.insert_UserPoints_one || {},
+                }
+              : {
+                  lesson_completion:
+                    assignRewardPoints.data.insert_UserPoints_one || {},
+                };
             // Log progress tracking after insertion
             const loggedAttempt = await this.logLessonAttemptProgressTracking(
               request,
               altLessonTrackingDto,
               lessonProgressId
             );
-
             return response.status(200).json({
               lessonTrack: lessonTrack,
-              tracking: tracklessonModule,
+              assignRewardPoints: rewardPoints,
+              //tracking: tracklessonModule,
               loggedAttempt: loggedAttempt,
             });
           } else if (numberOfRecords >= 1) {
@@ -1095,14 +1157,88 @@ export class ALTLessonTrackingService {
                 altLessonTrackingDto.status === "completed" &&
                 lessonTrack?.statusCode === 200
               ) {
-                tracklessonModule = await this.glalessonToModuleTracking(
-                  request,
-                  altLessonTrackingDto,
-                  programId,
-                  subject,
-                  false
-                );
+                // tracklessonModule = await this.glalessonToModuleTracking(
+                //   request,
+                //   altLessonTrackingDto,
+                //   programId,
+                //   subject,
+                //   false
+                // );
               }
+              //ASSIGNING REWARD POINTS FOR ASSESSMENT OR LESSON COMPLETION
+              let assignRewardPoints;
+              let subjectAssignRewardPoints;
+              //if content is a lesson
+              if (!questionIdFlag) {
+                assignRewardPoints =
+                  await this.altProgramAssociationService.addUserPoints(
+                    request,
+                    {
+                      identifier: "lesson_completion",
+                      description: "Student has completed lesson and earned",
+                      earning_context: {
+                        contentId: altLessonTrackingDto.lessonId,
+                        programId: altLessonTrackingDto.programId,
+                        subject: subject,
+                      },
+                    }
+                  );
+              } else {
+                //if content is a assessment
+                assignRewardPoints =
+                  await this.altProgramAssociationService.addUserPoints(
+                    request,
+                    {
+                      identifier: "assesment_completion",
+                      description:
+                        "Student has completed assessment and earned",
+                      earning_context: {
+                        contentId: altLessonTrackingDto.lessonId,
+                        programId: altLessonTrackingDto.programId,
+                        subject: subject,
+                      },
+                    }
+                  );
+              }
+
+              /*
+              CHECK IF  EVERY CONTENT OF THE RULES OBJECT HAS BEEN MATCHED 
+              IF ALL CONTENT(LESSON AND QUESTION SET) HAS BEEN WATCHED -> ASSIGN SUBJECT COMPLETION POINTS FOR THE FIRST ATTEMPT ONLY 
+            */
+              const assignSubjectPoints = await this.checkContentCompletion(
+                request,
+                programRules,
+                altLessonTrackingDto.programId,
+                subject
+              );
+              if (assignSubjectPoints) {
+                assignRewardPoints =
+                  await this.altProgramAssociationService.addUserPoints(
+                    request,
+                    {
+                      identifier: "subject_completion",
+                      description:
+                        "Student has completed subject and has earned",
+                      earning_context: {
+                        programId: altLessonTrackingDto.programId,
+                        subject: subject,
+                      },
+                    }
+                  );
+              }
+
+              const rewardPoints = assignSubjectPoints
+                ? {
+                    subject_completion:
+                      subjectAssignRewardPoints.data.insert_UserPoints_one ||
+                      {},
+                    lesson_completion:
+                      assignRewardPoints.data.insert_UserPoints_one || {},
+                  }
+                : {
+                    lesson_completion:
+                      assignRewardPoints.data.insert_UserPoints_one || {},
+                  };
               // Log progress tracking after insertion
               const loggedAttempt = await this.logLessonAttemptProgressTracking(
                 request,
@@ -1110,17 +1246,21 @@ export class ALTLessonTrackingService {
                 lessonProgressId
               );
 
-              return {
+              return response.status(201).json({
                 lessonTrack: lessonTrack,
-                tracking: tracklessonModule,
+                assignedRewardPoints: rewardPoints,
+                // tracking: tracklessonModule,
                 loggedAttempt: loggedAttempt,
-              };
+              });
             } else if (lastRecord[0]?.status === "completed") {
+              const { status, ...altLessonTrackingDtoWithoutStatus } =
+                altLessonTrackingDto;
+
               altLessonTrackingDto.score = altLessonTrackingDto.score;
               const lessonTrack: any = await this.updateALTLessonTracking(
                 request,
                 altLessonTrackingDto.lessonId,
-                altLessonTrackingDto,
+                altLessonTrackingDtoWithoutStatus,
                 lastRecord[0]?.attempts,
                 {
                   courseId: altLessonTrackingDto.courseId,
@@ -1132,9 +1272,10 @@ export class ALTLessonTrackingService {
                 altLessonTrackingDto,
                 lessonProgressId
               );
+
               return response.status(201).json({
                 lessonTrack: lessonTrack,
-                tracking: tracklessonModule,
+                // tracking: tracklessonModule,
                 loggedAttempt: loggedAttempt,
               });
             } else {
@@ -1221,10 +1362,10 @@ export class ALTLessonTrackingService {
       url: `${currentUrl}/api/course/v1/hierarchy/${altLessonTrackingDto.courseId?.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`,
     };
 
-    console.log("axiosherer-->>>", config.url);
+    // console.log("axiosherer-->>>", config.url);
     const courseHierarchy = await this.axios(config);
     const data = courseHierarchy?.data.result.content;
-    console.log("axiosData-->>", data);
+    // console.log("axiosData-->>", data);
 
     let moduleId = null;
 
@@ -1257,81 +1398,209 @@ export class ALTLessonTrackingService {
       data: moduleId,
     });
   }
-  public async glalessonToModuleTracking(
-    request: any,
-    altLessonTrackingDto: ALTLessonTrackingDto,
-    programId: string,
-    subject: string,
-    repeatAttempt: boolean
-  ) {
-    //add or update the recond in the moduleTRacking table
-    const currentUrl = process.env.SUNBIRDURL;
+  // public async glalessonToModuleTracking(
+  //   request: any,
+  //   altLessonTrackingDto: ALTLessonTrackingDto,
+  //   programId: string,
+  //   subject: string,
+  //   repeatAttempt: boolean
+  // ) {
+  //   //add or update the recond in the moduleTRacking table
+  //   const currentUrl = process.env.SUNBIRDURL;
 
-    let config = {
-      method: "get",
-      url:
-        currentUrl +
-        `/api/course/v1/hierarchy/${altLessonTrackingDto.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`,
-    };
+  //   let config = {
+  //     method: "get",
+  //     url:
+  //       currentUrl +
+  //       `/api/course/v1/hierarchy/${altLessonTrackingDto.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`,
+  //   };
 
-    const courseHierarchy = await this.axios(config);
-    const data = courseHierarchy?.data.result.content;
-    let noOfModules = data.children.length;
+  //   const courseHierarchy = await this.axios(config);
+  //   const data = courseHierarchy?.data.result.content;
+  //   let noOfModules = data.children.length;
 
-    let currentModule = data.children.find((item) => {
-      return item.identifier === altLessonTrackingDto.moduleId;
-    });
+  //   let currentModule = data.children.find((item) => {
+  //     return item.identifier === altLessonTrackingDto.moduleId;
+  //   });
 
-    let altModuleTracking = {
-      userId: altLessonTrackingDto.userId,
-      courseId: altLessonTrackingDto.courseId,
-      moduleId: altLessonTrackingDto.moduleId,
-      status: "ongoing",
-      totalNumberOfLessonsCompleted: 1,
-      totalNumberOfLessons: currentModule.children.length,
-      timeSpent: altLessonTrackingDto.timeSpent,
-      createdBy: altLessonTrackingDto.userId,
-      updatedBy: altLessonTrackingDto.userId,
-    };
+  //   let altModuleTracking = {
+  //     userId: altLessonTrackingDto.userId,
+  //     courseId: altLessonTrackingDto.courseId,
+  //     moduleId: altLessonTrackingDto.moduleId,
+  //     status: "ongoing",
+  //     totalNumberOfLessonsCompleted: 1,
+  //     totalNumberOfLessons: currentModule.children.length,
+  //     timeSpent: altLessonTrackingDto.timeSpent,
+  //     createdBy: altLessonTrackingDto.userId,
+  //     updatedBy: altLessonTrackingDto.userId,
+  //   };
 
-    const altModuleTrackingDto = new ALTModuleTrackingDto(altModuleTracking);
-    let moduleTracking: any;
-    moduleTracking =
-      await this.altModuleTrackingService.glaCheckAndAddALTModuleTracking(
-        request,
-        programId,
-        subject,
-        noOfModules,
-        repeatAttempt,
-        altModuleTrackingDto
+  //   const altModuleTrackingDto = new ALTModuleTrackingDto(altModuleTracking);
+  //   let moduleTracking: any;
+  //   moduleTracking =
+  //     await this.altModuleTrackingService.glaCheckAndAddALTModuleTracking(
+  //       request,
+  //       programId,
+  //       subject,
+  //       noOfModules,
+  //       repeatAttempt,
+  //       altModuleTrackingDto
+  //     );
+
+  //   if (moduleTracking?.statusCode != 200) {
+  //     return new ErrorResponse({
+  //       errorCode: moduleTracking?.statusCode,
+  //       errorMessage:
+  //         moduleTracking?.errorMessage + "Could not create Module Tracking",
+  //     });
+  //   } else {
+  //     if (moduleTracking.data.moduleProgressId) {
+  //       return new SuccessResponse({
+  //         statusCode: moduleTracking?.statusCode,
+  //         message: "Ok.",
+  //         data: { ack: "Module and Course Tracking created" },
+  //       });
+  //     } else if (moduleTracking.data.affected_rows) {
+  //       return new SuccessResponse({
+  //         statusCode: moduleTracking?.statusCode,
+  //         message: "Ok.",
+  //         data: { ack: "Module and Course Tracking updated" },
+  //       });
+  //     } else {
+  //       return new SuccessResponse({
+  //         statusCode: moduleTracking?.statusCode,
+  //         message: "Ok.",
+  //         data: { ack: "Course completed" },
+  //       });
+  //     }
+  //   }
+  // }
+  // Add this function to check content completion using counts
+
+  public async checkContentCompletion(
+    request,
+    programRules,
+    programId,
+    subject
+  ): Promise<boolean> {
+    try {
+      // Decode userId from request headers
+      const decoded: any = jwt_decode(request.headers.authorization);
+      const userId =
+        decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+      // Check if the same userId, programId, and subject already exist in UserPoints table
+      const checkExistingPointsQuery = {
+        query: `
+          query CheckExistingPoints($userId: uuid!, $programId: uuid!, $subject: String!) {
+            UserPoints(
+              where: {
+                user_id: { _eq: $userId },
+                identifier: { _eq: "subject_completion" },
+                earning_context: { 
+                  _contains: { 
+                    programId: $programId,
+                    subject: $subject
+                  } 
+                }
+              }
+            ) {
+              user_id
+              points
+              earning_context
+            }
+          }
+        `,
+        variables: {
+          userId: userId,
+          programId: programId,
+          subject: subject,
+        },
+      };
+      const config = {
+        method: "post",
+        url: process.env.ALTHASURA,
+        headers: {
+          Authorization: request.headers.authorization,
+          "Content-Type": "application/json",
+        },
+        data: checkExistingPointsQuery,
+      };
+      const existingPointsResponse = await this.axios(config);
+
+      if (existingPointsResponse.data.data.UserPoints.length > 0) {
+        console.log("Points already assigned for this user and program");
+        return false;
+      }
+      // Extract both contentIds and lesson_questionset IDs from programRules.prog
+      const lessonIdsToCheck = programRules.prog
+        .flatMap((rule) => [rule.contentId, rule.lesson_questionset])
+        .filter(Boolean); // Remove any null/undefined values
+
+      if (lessonIdsToCheck.length === 0) {
+        return false;
+      }
+
+      // Query to check completed lessons
+      const completedLessonsQuery = {
+        query: `
+          query GetCompletedLessons($userId: uuid!, $lessonIds: [String!]!, $programId: uuid!) {
+            LessonProgressTracking_aggregate(
+              where: {
+                userId: { _eq: $userId },
+                lessonId: { _in: $lessonIds },
+                status: { _eq: completed },
+                programId: { _eq: $programId }
+              }
+            ) {
+              aggregate{
+              count
+              }
+            }
+          }
+        `,
+        variables: {
+          userId: userId,
+          lessonIds: lessonIdsToCheck,
+          programId: programId,
+        },
+      };
+
+      const configData = {
+        method: "post",
+        url: process.env.ALTHASURA,
+        headers: {
+          Authorization: request.headers.authorization,
+          "Content-Type": "application/json",
+        },
+        data: completedLessonsQuery,
+      };
+
+      const response = await this.axios(configData);
+
+      if (response?.data?.errors) {
+        console.log(response?.data?.errors);
+
+        return false;
+      }
+
+      // Compare the number of completed lessons with the total required lessons
+      const completedLessonsCount =
+        response.data.data.LessonProgressTracking_aggregate.aggregate.count;
+      const requiredLessonsCount = lessonIdsToCheck.length;
+      console.log(
+        "completedLessonsCount === requiredLessonsCount->>>>>>.",
+        completedLessonsCount,
+        requiredLessonsCount
       );
 
-    if (moduleTracking?.statusCode != 200) {
-      return new ErrorResponse({
-        errorCode: moduleTracking?.statusCode,
-        errorMessage:
-          moduleTracking?.errorMessage + "Could not create Module Tracking",
+      return completedLessonsCount === requiredLessonsCount;
+    } catch (error) {
+      console.error("Error checking lesson completion:", error);
+      throw new ErrorResponse({
+        errorCode: "500",
+        errorMessage: "Failed to check lesson completion status",
       });
-    } else {
-      if (moduleTracking.data.moduleProgressId) {
-        return new SuccessResponse({
-          statusCode: moduleTracking?.statusCode,
-          message: "Ok.",
-          data: { ack: "Module and Course Tracking created" },
-        });
-      } else if (moduleTracking.data.affected_rows) {
-        return new SuccessResponse({
-          statusCode: moduleTracking?.statusCode,
-          message: "Ok.",
-          data: { ack: "Module and Course Tracking updated" },
-        });
-      } else {
-        return new SuccessResponse({
-          statusCode: moduleTracking?.statusCode,
-          message: "Ok.",
-          data: { ack: "Course completed" },
-        });
-      }
     }
   }
 }

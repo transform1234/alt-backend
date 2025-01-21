@@ -492,6 +492,8 @@ export class ALTCourseTrackingService {
       data: data,
     });
   }
+
+  /*
   public async glaAddALTCourseTracking(
     request: any,
     altCourseTrackingDto: ALTCourseTrackingDto,
@@ -579,4 +581,5 @@ export class ALTCourseTrackingService {
       });
     }
   }
+  */
 }

@@ -14,7 +14,7 @@ import {
   CacheInterceptor,
   Inject,
   Query,
-  HttpStatus
+  HttpStatus,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -38,7 +38,7 @@ import { SentryInterceptor } from "src/common/sentry.interceptor";
 export class ALTProgramAssociationController {
   constructor(
     private altProgramAssociationService: ALTProgramAssociationService
-  ) { }
+  ) {}
 
   @Post("/altsubjectlist")
   @ApiBasicAuth("access-token")
@@ -133,10 +133,9 @@ export class ALTProgramAssociationController {
   public async getGlaUserContent(
     @Req() request: Request,
     @Body() altTermstoRulesDto: TermsProgramtoRulesDto,
-    @Query('page') page: any,
-    @Query('limit') limit: any
+    @Query("page") page: any,
+    @Query("limit") limit: any
   ) {
-
     return this.altProgramAssociationService.getGlaUserContent(
       request,
       altTermstoRulesDto,
@@ -146,33 +145,22 @@ export class ALTProgramAssociationController {
   }
   @Post("/contentSearch")
   @ApiBasicAuth("access-token")
-  public async contentSearch(
-    @Req() request: Request,
-    @Body() body: any
-  ) {
+  public async contentSearch(@Req() request: Request, @Body() body: any) {
     return this.altProgramAssociationService.contentSearch(request, body);
   }
 
-  // @Post("/contentLike")
-  // @ApiBasicAuth("access-token")
-  // public async contentLike(
-  //   @Req() request: Request,
-  //   @Body() body: any
-  // ){
-  //   return this.altProgramAssociationService.contentLike(request,body);
-  // }
-
-  @Post('contentLike')
+  // Like content
+  @Post("contentLike")
   @ApiBasicAuth("access-token")
   @ApiOkResponse({ description: "ALT Rules" })
   @ApiForbiddenResponse({ description: "Forbidden" })
-  async contentLike(@Body() body: any, @Req() request: Request,) {
+  async contentLike(@Body() body: any, @Req() request: Request) {
     const { programId, subject, contentId, like } = body;
 
     if (!programId || !subject || !contentId || like === undefined) {
       return {
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Invalid request body. Missing required fields.',
+        message: "Invalid request body. Missing required fields.",
       };
     }
 
@@ -182,20 +170,19 @@ export class ALTProgramAssociationController {
       contentId,
       like,
     });
-
   }
 
-  @Post('isContentLiked')
+  @Post("isContentLiked")
   @ApiBasicAuth("access-token")
   @ApiOkResponse({ description: "ALT Rules" })
   @ApiForbiddenResponse({ description: "Forbidden" })
-  async isContentLike(@Body() body: any, @Req() request: Request,) {
+  async isContentLike(@Body() body: any, @Req() request: Request) {
     const { programId, subject, contentId } = body;
 
     if (!programId || !subject || !contentId) {
       return {
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Invalid request body. Missing required fields.',
+        message: "Invalid request body. Missing required fields.",
       };
     }
 
@@ -204,11 +191,92 @@ export class ALTProgramAssociationController {
       subject,
       contentId,
     });
-
   }
 
+  // Rate content
+  @Post("rateQuiz")
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "ALT Rules" })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  async rateQuiz(@Body() body: any, @Req() request: Request) {
+    const { programId, subject, assessmentId, rating } = body;
 
+    if (!programId || !subject || !assessmentId || rating === undefined) {
+      return {
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: "Invalid request body. Missing required fields.",
+      };
+    }
 
+    return this.altProgramAssociationService.rateQuiz(request, {
+      programId,
+      subject,
+      assessmentId,
+      rating,
+    });
+  }
+
+  @Post("isQuizRated")
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "ALT Rules" })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  async isQuizRated(@Body() body: any, @Req() request: Request) {
+    const { programId, subject, contentId } = body;
+
+    if (!programId || !subject || !contentId) {
+      return {
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: "Invalid request body. Missing required fields.",
+      };
+    }
+
+    return this.altProgramAssociationService.isQuizRated(request, {
+      programId,
+      subject,
+      contentId,
+    });
+  }
+
+  @Get("getUserPoints")
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "ALT Rules" })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  async getUserPoints(
+    @Body() body: any,
+    @Req() request: Request,
+    @Query("page") page: any,
+    @Query("limit") limit: any
+  ) {
+    return this.altProgramAssociationService.getUserPoints(
+      request,
+      page,
+      limit
+    );
+  }
+
+  @Post("addUserPoints")
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "ALT Rules" })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  async addUserPoints(@Body() body: any, @Req() request: Request) {
+    const { identifier, description } = body;
+
+    return this.altProgramAssociationService.addUserPoints(request, {
+      identifier,
+      description,
+    });
+  }
+
+  @Post("leaderBoardPoints")
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "ALT Rules" })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  async leaderBoardPoints(@Body() body: any, @Req() request: Request) {
+    const { filters, timeframe } = body;
+
+    return this.altProgramAssociationService.leaderBoardPoints(request, {
+      filters,
+      timeframe,
+    });
+  }
 }
-
-

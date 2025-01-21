@@ -8,7 +8,7 @@ import { UpdateALTProgramAssociationDto } from "src/altProgramAssociation/dto/up
 import { ErrorResponse } from "src/error-response";
 import { ALTProgramAssociationSearch } from "src/altProgramAssociation/dto/searchAltProgramAssociation.dto";
 import jwt_decode from "jwt-decode";
-import { firstValueFrom } from 'rxjs';
+import moment from "moment";
 
 Injectable();
 export class ALTProgramAssociationService {
@@ -197,76 +197,6 @@ export class ALTProgramAssociationService {
       data: result,
     });
   }
-
-  // public async updateProgramAssociation(
-  //   request: any,
-  //   programAssocNo: string,
-  //   updateProgramAssociationDto: UpdateALTProgramAssociationDto
-  // ) {
-  //   const updateAltProgramAssoc = new UpdateALTProgramAssociationDto(
-  //     updateProgramAssociationDto
-  //   );
-
-  //   console.log(updateAltProgramAssoc,"update 1");
-  //   console.log(updateProgramAssociationDto, "update2");
-
-  //   let newUpdateAltProgram = "";
-  //   Object.keys(updateProgramAssociationDto).forEach((key) => {
-  //     if (
-  //       updateProgramAssociationDto[key] &&
-  //       updateProgramAssociationDto[key] != "" &&
-  //       Object.keys(updateAltProgramAssoc).includes(key)
-  //     ) {
-  //       console.log(key);
-
-  //       newUpdateAltProgram += `${key}: ${JSON.stringify(
-  //         updateProgramAssociationDto[key]
-  //       )}, `;
-  //     }
-
-  //   });
-
-  //   console.log(newUpdateAltProgram,"newUpdateAltProgram");
-
-  //   const altProgramUpdateData = {
-  //     query: `mutation UpdateProgram($programAssocNo:uuid!) {
-  //       update_AssessProgram_by_pk(pk_columns: {programAssocNo: $programAssocNo}, _set: {${newUpdateAltProgram}}) {
-  //         updated_at
-  //       }
-  //     }`,
-  //     variables: {
-  //       programAssocNo: programAssocNo,
-  //     },
-  //   };
-
-  //   const configData = {
-  //     method: "post",
-  //     url: process.env.ALTHASURA,
-  //     headers: {
-  //       "Authorization": request.headers.authorization,
-  //       "Content-Type": "application/json",
-  //     },
-  //     altProgramUpdateData,
-  //   };
-
-  //   const response = await this.axios(configData);
-
-  //   if (response?.data?.errors) {
-  //     console.log(response?.data?.errors);
-  //     return new ErrorResponse({
-  //       errorCode: response.data.errors[0].extensions,
-  //       errorMessage: response.data.errors[0].message,
-  //     });
-  //   }
-
-  //   const result = response.data.data.AssessProgram_by_pk;
-
-  //   return new SuccessResponse({
-  //     statusCode: 200,
-  //     message: "Ok.",
-  //     data: result,
-  //   });
-  // }
 
   public async searchALTProgramAssociation(
     request: any,
@@ -505,39 +435,44 @@ export class ALTProgramAssociationService {
 
     return data.slice(startIndex, endIndex);
   }
+
   public async contentSearch(request, body) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    console.log("altUserId", altUserId);
     const programId = body.programId;
     const subjectCondition = body.subject
       ? `subject: {_eq: "${body.subject}"}, `
       : "";
-    console.log(programId);
 
-    //get the programData from programTermAssoc
     const data = {
-      query: `query MyQuery{
-                ProgramTermAssoc(where: {programId: {_eq: "${programId}"}, ${subjectCondition}}) {
-                  programId
-                  rules
-                  subject
-                  medium
-                  grade
-                  board
-                }
-              }
-            `,
+      query: `
+        query MyQuery {
+          ProgramTermAssoc(where: {programId: {_eq: "${programId}"}, ${subjectCondition}}) {
+            programId
+            rules
+            subject
+            medium
+            grade
+            board
+          }
+        }
+      `,
     };
-    console.log(data.query);
 
-    const config_data = {
+    const configData = {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
         Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
-      data: data,
+      data,
     };
-    const response = await this.axios(config_data);
+
+    const response = await this.axios(configData);
 
     if (response?.data?.errors) {
       return new ErrorResponse({
@@ -545,8 +480,9 @@ export class ALTProgramAssociationService {
         errorMessage: response.data.errors[0].message,
       });
     }
+
     const rulesData = response.data.data.ProgramTermAssoc;
-    // Validate rulesData and log errors for missing or malformed data
+
     if (!rulesData || rulesData.length === 0) {
       return new ErrorResponse({
         errorCode: "404",
@@ -554,62 +490,95 @@ export class ALTProgramAssociationService {
       });
     }
 
-    //  Process each rule and match contentId
-    const responseData = [];
-
-    rulesData.forEach((rule) => {
+    const filteredProg = rulesData.flatMap((rule) => {
       if (rule.rules) {
         try {
-          rule.rules = JSON.parse(rule.rules); // Parse the rules
+          const parsedRules = JSON.parse(rule.rules);
+
+          if (Array.isArray(parsedRules.prog)) {
+            return parsedRules.prog
+              .filter((item) =>
+                item.name
+                  ?.toLowerCase()
+                  .includes(body.searchQuery.toLowerCase())
+              )
+              .map((item) => ({
+                ...item,
+                subject: rule.subject, // Include the subject from rulesData
+              }));
+          }
         } catch (error) {
-          return new ErrorResponse({
-            errorCode: "500",
-            errorMessage: `Failed to parse rules for programId: ${rule.programId}`,
-          });
-        }
-
-        // Ensure `prog` exists and is an array
-        if (Array.isArray(rule.rules.prog)) {
-          const filteredProg = rule.rules.prog.filter((item) =>
-            item.name?.toLowerCase().includes(body.searchQuery.toLowerCase())
+          console.error(
+            `Failed to parse rules for programId: ${rule.programId}`,
+            error
           );
-
-          filteredProg.forEach((item) => {
-            responseData.push({
-              contentId: item.contentId,
-              name: item.name,
-              subject: rule.subject ,
-              courseId: item.courseId ,
-              contentType: item.contentType,
-              order: item.order,
-              allowedAttempts: item.allowedAttempts,
-              criteria: item.criteria,
-              contentSource: item.contentSource,
-              lesson_questionset: item.lesson_questionset,
-              thumbnailUrl: item.thumbnailUrl
-            });
-          });
-        } else {
-          return new ErrorResponse({
-            errorCode: "500",
-            errorMessage: `Invalid 'prog' format for programId: ${rule.programId}`,
-          })
         }
-      } else {
-        return new ErrorResponse({
-          errorCode: "500",
-          errorMessage: `Missing 'rules' for programId: ${rule.programId}`,
-        })
       }
+      return [];
     });
+
+    const lessonIds = filteredProg.flatMap((item) => [
+      item.contentId,
+      item.lesson_questionset,
+    ]);
+
+    const lessonStatusQuery = {
+      query: `
+        query GetLessonStatuses($lessonIds: [String!]!, $userId: uuid) {
+          LessonProgressTracking(where: {lessonId: {_in: $lessonIds}, userId: {_eq: $userId}}, distinct_on: lessonId) {
+            lessonId
+            status
+          }
+        }
+      `,
+      variables: {
+        lessonIds,
+        userId: altUserId,
+      },
+    };
+
+    const lessonStatusResponse = await this.axios({
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: lessonStatusQuery,
+    });
+
+    if (lessonStatusResponse?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: lessonStatusResponse.data.errors[0].extensions,
+        errorMessage: lessonStatusResponse.data.errors[0].message,
+      });
+    }
+
+    const lessonStatuses =
+      lessonStatusResponse.data.data.LessonProgressTracking;
+
+    const responseData = filteredProg.map((item) => {
+      const lessonStatus = lessonStatuses.find(
+        (status) => status.lessonId === item.contentId
+      );
+
+      const lessonQuestionsetStatus = lessonStatuses.find(
+        (status) => status.lessonId === item.lesson_questionset
+      );
+
+      return {
+        ...item,
+        lesson_status: lessonStatus?.status || "pending",
+        lesson_questionset_status: lessonQuestionsetStatus?.status || "pending",
+      };
+    });
+
     const pageNumber = parseInt(body.pageNumber, 10) || 1;
     const limit = parseInt(body.limit, 10) || 10;
     const offset = (pageNumber - 1) * limit;
 
-    // Paginate the responseData
     const paginatedData = responseData.slice(offset, offset + limit);
 
-    // Add metadata for pagination
     const meta = {
       total: responseData.length,
       limit,
@@ -618,7 +587,6 @@ export class ALTProgramAssociationService {
       totalPages: Math.ceil(responseData.length / limit),
     };
 
-    // Create the final response
     return new SuccessResponse({
       statusCode: 200,
       message: "Ok.",
@@ -626,38 +594,43 @@ export class ALTProgramAssociationService {
     });
   }
 
-  // async likeContent(request, data: {
-  //   programId: string;
-  //   subject: string;
-  //   userId: string;
-  //   contentId: string;
-  //   like: boolean;
-  // }) {
-  //   const graphqlMutation = {
+  // public async contentSearch(request, body) {
+  //   const decoded: any = jwt_decode(request.headers.authorization);
+  //   const altUserId =
+  //     decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+  //   console.log("altUserId", altUserId);
+  //   const programId = body.programId;
+  //   const subjectCondition = body.subject
+  //     ? `subject: {_eq: "${body.subject}"}, `
+  //     : "";
+
+  //   const data = {
   //     query: `
-  //       mutation ($input: GlaLikedContents_insert_input!) {
-  //         insert_GlaLikedContents_one(object: $input) {
-  //           id
+  //       query MyQuery {
+  //         ProgramTermAssoc(where: {programId: {_eq: "${programId}"}, ${subjectCondition}}) {
+  //           programId
+  //           rules
+  //           subject
+  //           medium
+  //           grade
+  //           board
   //         }
   //       }
   //     `,
-  //     variables: {
-  //       input: data,
-  //     },
   //   };
 
-  //   console.log(graphqlMutation.query);
-
-  //   const config_data = {
+  //   const configData = {
   //     method: "post",
   //     url: process.env.ALTHASURA,
   //     headers: {
   //       Authorization: request.headers.authorization,
   //       "Content-Type": "application/json",
   //     },
-  //     data: graphqlMutation,
+  //     data,
   //   };
-  //   const response = await this.axios(config_data);
+
+  //   const response = await this.axios(configData);
 
   //   if (response?.data?.errors) {
   //     return new ErrorResponse({
@@ -665,102 +638,128 @@ export class ALTProgramAssociationService {
   //       errorMessage: response.data.errors[0].message,
   //     });
   //   }
-  //   return response
 
-  // }
+  //   const rulesData = response.data.data.ProgramTermAssoc;
 
+  //   if (!rulesData || rulesData.length === 0) {
+  //     return new ErrorResponse({
+  //       errorCode: "404",
+  //       errorMessage: "No data found.",
+  //     });
+  //   }
 
-  // async likeContent(request, data: {
-  //   programId: string;
-  //   subject: string;
-  //   contentId: string;
-  //   like: boolean;
-  // }) {
+  //   const filteredProg = rulesData.flatMap((rule) => {
+  //     if (rule.rules) {
+  //       try {
+  //         const parsedRules = JSON.parse(rule.rules);
 
-  //   const decoded: any = jwt_decode(request.headers.authorization);
-  //   const altUserId =
-  //     decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-
-  //   console.log("altUserId", altUserId);
-  //   //console.log("altTermsProgramDto", altTermsProgramDto);
-  //   const graphqlMutation = {
-  //     query: `
-  //       mutation InsertLike($contentId: String!, $like: Boolean!, $programId: String!, $subject: String!, $userId: String!) {
-  //         insert_GlaLikedContents_one(object: {
-  //           contentId: $contentId,
-  //           like: $like,
-  //           programId: $programId,
-  //           subject: $subject,
-  //           userId: $userId
-  //         }) {
-  //           id
-  //           like
-  //           programId
-  //           subject
-  //           userId
-  //           contentId
-  //           created_at
-  //           updated_at
+  //         if (Array.isArray(parsedRules.prog)) {
+  //           return parsedRules.prog.filter((item) =>
+  //             item.name?.toLowerCase().includes(body.searchQuery.toLowerCase())
+  //           );
   //         }
+  //       } catch (error) {
+  //         // Log error for invalid rules format
+  //         console.error(
+  //           `Failed to parse rules for programId: ${rule.programId}`
+  //         );
   //       }
+  //     }
+
+  //     return [];
+  //   });
+
+  //   // return filteredProg
+
+  //   const lessonIds = filteredProg.flatMap((item) => [
+  //     item.contentId,
+  //     item.lesson_questionset,
+  //   ]);
+
+  //   const lessonStatusQuery = {
+  //     query: `
+  //       query GetLessonStatuses($lessonIds: [String!]!, $userId: uuid) {
+  //           LessonProgressTracking(where: {lessonId: {_in: $lessonIds}, userId: {_eq: $userId}}, distinct_on: lessonId) {
+  //             lessonId
+  //             status
+  //           }
+  //         }
+
   //     `,
   //     variables: {
-  //       contentId: data.contentId,
-  //       like: data.like,
-  //       programId: data.programId,
-  //       subject: data.subject,
+  //       lessonIds,
   //       userId: altUserId,
   //     },
   //   };
 
-    
-  
-  //   console.log('GraphQL Mutation:', graphqlMutation.query);
-  
-  //   const config_data = {
-  //     method: 'post',
+  //   const lessonStatusResponse = await this.axios({
+  //     method: "post",
   //     url: process.env.ALTHASURA,
   //     headers: {
   //       Authorization: request.headers.authorization,
-  //       'Content-Type': 'application/json',
+  //       "Content-Type": "application/json",
   //     },
-  //     data: graphqlMutation,
-  //   };
-  
-  //   try {
-  //     const response = await this.axios(config_data);
+  //     data: lessonStatusQuery,
+  //   });
 
-  //     console.log("response", response.data.data)
-  
-  //     if (response?.data?.errors) {
-  //       console.error('GraphQL Errors:', response.data.errors);
-  //       return new ErrorResponse({
-  //         errorCode: response.data.errors[0]?.extensions?.code || 'UNKNOWN_ERROR',
-  //         errorMessage: response.data.errors[0]?.message || 'An unknown error occurred.',
-  //       });
-  //     }
-  
-  //     return new SuccessResponse({
-  //       statusCode: 200,
-  //       message: 'Content like status updated successfully.',
-  //       data: response.data.data,
-  //     });
-  //   } catch (error) {
-  //     console.error('Axios Error:', error.message);
-  //     throw new ErrorResponse({
-  //       errorCode: 'AXIOS_ERROR',
-  //       errorMessage: 'Failed to execute the GraphQL mutation.',
+  //   if (lessonStatusResponse?.data?.errors) {
+  //     return new ErrorResponse({
+  //       errorCode: lessonStatusResponse.data.errors[0].extensions,
+  //       errorMessage: lessonStatusResponse.data.errors[0].message,
   //     });
   //   }
+
+  //   const lessonStatuses =
+  //     lessonStatusResponse.data.data.LessonProgressTracking;
+
+  //   const responseData = filteredProg.map((item) => {
+  //     const lessonStatus = lessonStatuses.find(
+  //       (status) => status.lessonId === item.contentId
+  //     );
+
+  //     const lessonQuestionsetStatus = lessonStatuses.find(
+  //       (status) => status.lessonId === item.lesson_questionset
+  //     );
+
+  //     return {
+  //       ...item,
+  //       subject: rulesData.find((rule) => rule.programId === programId)?.subject,
+  //       lesson_status: lessonStatus?.status || "pending",
+  //       lesson_questionset_status: lessonQuestionsetStatus?.status || "pending",
+  //     };
+  //   });
+
+  //   const pageNumber = parseInt(body.pageNumber, 10) || 1;
+  //   const limit = parseInt(body.limit, 10) || 10;
+  //   const offset = (pageNumber - 1) * limit;
+
+  //   const paginatedData = responseData.slice(offset, offset + limit);
+
+  //   const meta = {
+  //     total: responseData.length,
+  //     limit,
+  //     offset,
+  //     currentPage: pageNumber,
+  //     totalPages: Math.ceil(responseData.length / limit),
+  //   };
+
+  //   return new SuccessResponse({
+  //     statusCode: 200,
+  //     message: "Ok.",
+  //     data: { paginatedData, meta },
+  //   });
   // }
 
-  async likeContent(request, data: {
-    programId: string;
-    subject: string;
-    contentId: string;
-    like: boolean;
-  }) {
-
+  // Like content
+  async likeContent(
+    request,
+    data: {
+      programId: string;
+      subject: string;
+      contentId: string;
+      like: boolean;
+    }
+  ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
@@ -791,11 +790,11 @@ export class ALTProgramAssociationService {
     };
 
     const config_data = {
-      method: 'post',
+      method: "post",
       url: process.env.ALTHASURA,
       headers: {
         Authorization: request.headers.authorization,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       data: checkGraphQLQuery,
     };
@@ -803,13 +802,13 @@ export class ALTProgramAssociationService {
     try {
       // Check if the like entry already exists
       const checkResponse = await this.axios(config_data);
-      console.log("checkResponse", checkResponse.data.data)
+      console.log("checkResponse", checkResponse.data.data);
       const existingLike = checkResponse?.data?.data?.GlaLikedContents[0];
-      console.log("existingLike", existingLike)
+      console.log("existingLike", existingLike);
 
       if (existingLike) {
         // If entry exists, update the like status
-        console.log("entry exists")
+        console.log("entry exists");
         const updateGraphQLQuery = {
           query: `
             mutation UpdateLike($contentId: String!, $like: Boolean!, $programId: String!, $subject: String!, $userId: String!) {
@@ -849,12 +848,12 @@ export class ALTProgramAssociationService {
 
         return new SuccessResponse({
           statusCode: 200,
-          message: 'Content like status updated successfully.',
+          message: "Content like status updated successfully.",
           data: updateResponse.data.data,
         });
       } else {
         // If no entry exists, insert a new one
-        console.log("no entry exists")
+        console.log("no entry exists");
         const insertGraphQLQuery = {
           query: `
             mutation InsertLike($contentId: String!, $like: Boolean!, $programId: String!, $subject: String!, $userId: String!) {
@@ -892,26 +891,27 @@ export class ALTProgramAssociationService {
 
         return new SuccessResponse({
           statusCode: 200,
-          message: 'Content like status inserted successfully.',
+          message: "Content like status inserted successfully.",
           data: insertResponse.data.data,
         });
       }
-
     } catch (error) {
-      console.error('Axios Error:', error.message);
+      console.error("Axios Error:", error.message);
       throw new ErrorResponse({
-        errorCode: 'AXIOS_ERROR',
-        errorMessage: 'Failed to execute the GraphQL mutation.',
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
       });
     }
   }
 
-  async isContentLike(request, data: {
-    programId: string;
-    subject: string;
-    contentId: string;
-  }) {
-
+  async isContentLike(
+    request,
+    data: {
+      programId: string;
+      subject: string;
+      contentId: string;
+    }
+  ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
@@ -939,16 +939,16 @@ export class ALTProgramAssociationService {
       variables: {
         contentId: data.contentId,
         programId: data.programId,
-        subject: data.subject
+        subject: data.subject,
       },
     };
 
     const config_data = {
-      method: 'post',
+      method: "post",
       url: process.env.ALTHASURA,
       headers: {
         Authorization: request.headers.authorization,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       data: checkGraphQLQuery,
     };
@@ -956,39 +956,1012 @@ export class ALTProgramAssociationService {
     try {
       // Check if the like entry already exists
       const checkResponse = await this.axios(config_data);
-      console.log("checkResponse", checkResponse.data.data)
+      console.log("checkResponse", checkResponse.data);
       const existingLike = checkResponse?.data?.data?.GlaLikedContents[0];
-      console.log("existingLike", existingLike)
+      console.log("existingLike", existingLike);
 
       if (existingLike) {
         // If entry exists, update the like status
-        
 
         return new SuccessResponse({
           statusCode: 200,
-          message: 'Content fetched successfully.',
+          message: "Content fetched successfully.",
           data: checkResponse?.data?.data?.GlaLikedContents,
         });
       } else {
         // If no entry exists, insert a new one
-        console.log("no entry exists")
-        
+        console.log("no entry exists");
 
         return new SuccessResponse({
           statusCode: 200,
-          message: 'Content not exists.',
+          message: "Content not exists.",
           data: [],
         });
       }
-
     } catch (error) {
-      console.error('Axios Error:', error.message);
+      console.error("Axios Error:", error.message);
       throw new ErrorResponse({
-        errorCode: 'AXIOS_ERROR',
-        errorMessage: 'Failed to execute the GraphQL mutation.',
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
       });
     }
   }
 
-  
+  // Rate Quiz
+  async rateQuiz(
+    request,
+    data: {
+      programId: string;
+      subject: string;
+      assessmentId: string;
+      rating: number;
+    }
+  ) {
+    if (!data.rating || data.rating < 1 || data.rating > 5) {
+      return new ErrorResponse({
+        errorCode: "Invalid Rating",
+        errorMessage: "Rating should be between 1 and 5.",
+      });
+    }
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    console.log("altUserId", altUserId);
+
+    //fetch the rules
+    const getRulesQuery = {
+      query: `query MyQuery($programId: uuid, $subject: String) {
+                    ProgramTermAssoc(where: {programId: {_eq: $programId}, subject: {_eq: $subject}}){
+                      rules
+                    }
+                  }
+              `,
+      variables: {
+        programId: data.programId,
+        subject: data.subject,
+      },
+    };
+    let config = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: getRulesQuery,
+    };
+    const rulesResponse = await this.axios(config);
+    if (rulesResponse?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: rulesResponse.data.errors[0].extensions,
+        errorMessage: rulesResponse.data.errors[0].message,
+      });
+    }
+    const rules = rulesResponse?.data?.data?.ProgramTermAssoc[0].rules;
+    const rulesData = JSON.parse(rules);
+    const assessmentExists = rulesData.prog.some(
+      (rule) => rule.lesson_questionset === data.assessmentId
+    );
+
+    if (!assessmentExists) {
+      return new ErrorResponse({
+        errorCode: "404",
+        errorMessage: "AssessmentId not found in the program rules",
+      });
+    }
+
+    // First, check if the combination exists
+    const checkGraphQLQuery = {
+      query: `
+        query CheckLikeStatus($contentId: String!, $programId: String!, $subject: String!, $userId: String!) {
+          GlaQuizRating(where: {
+            contentId: { _eq: $contentId },
+            programId: { _eq: $programId },
+            subject: { _eq: $subject },
+            userId: { _eq: $userId }
+          }) {
+            id
+            rating
+          }
+        }
+      `,
+      variables: {
+        contentId: data.assessmentId,
+        programId: data.programId,
+        subject: data.subject,
+        userId: altUserId,
+      },
+    };
+
+    const config_data = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: checkGraphQLQuery,
+    };
+
+    try {
+      // Check if the like entry already exists
+      const checkResponse = await this.axios(config_data);
+      console.log("checkResponse", checkResponse.data.data);
+      const existingLike = checkResponse?.data?.data?.GlaQuizRating[0];
+      console.log("existingLike", existingLike);
+
+      if (existingLike) {
+        // If entry exists, update the like status
+        console.log("entry exists");
+        const updateGraphQLQuery = {
+          query: `
+            mutation UpdateLike($contentId: String!, $rating: Int!, $programId: String!, $subject: String!, $userId: String!) {
+              update_GlaQuizRating(where: {
+                contentId: { _eq: $contentId },
+                programId: { _eq: $programId },
+                subject: { _eq: $subject },
+                userId: { _eq: $userId }
+              }, _set: { rating: $rating }) {
+                affected_rows
+                returning {
+                  id
+                  rating
+                  programId
+                  subject
+                  userId
+                  contentId
+                  created_at
+                  updated_at
+                }
+              }
+            }
+          `,
+          variables: {
+            contentId: data.assessmentId,
+            rating: data.rating,
+            programId: data.programId,
+            subject: data.subject,
+            userId: altUserId,
+          },
+        };
+
+        config_data.data = updateGraphQLQuery;
+
+        const updateResponse = await this.axios(config_data);
+        console.log("Updated Like:", updateResponse.data.data);
+
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "Content like status updated successfully.",
+          data: updateResponse.data.data.update_GlaQuizRating,
+        });
+      } else {
+        // If no entry exists, insert a new one
+        console.log("no entry exists");
+        const insertGraphQLQuery = {
+          query: `
+            mutation InsertLike($contentId: String!, $rating: Int!, $programId: String!, $subject: String!, $userId: String!) {
+              insert_GlaQuizRating_one(object: {
+                contentId: $contentId,
+                rating: $rating,
+                programId: $programId,
+                subject: $subject,
+                userId: $userId
+              }) {
+                id
+                rating
+                programId
+                subject
+                userId
+                contentId
+                created_at
+                updated_at
+              }
+            }
+          `,
+          variables: {
+            contentId: data.assessmentId,
+            rating: data.rating,
+            programId: data.programId,
+            subject: data.subject,
+            userId: altUserId,
+          },
+        };
+
+        config_data.data = insertGraphQLQuery;
+
+        const insertResponse = await this.axios(config_data);
+        console.log("Inserted Like:", insertResponse.data.data);
+
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "Content like status inserted successfully.",
+          data: insertResponse.data.data.insert_GlaQuizRating_one,
+        });
+      }
+    } catch (error) {
+      console.error("Axios Error:", error.message);
+      throw new ErrorResponse({
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
+      });
+    }
+  }
+
+  async isQuizRated(
+    request,
+    data: {
+      programId: string;
+      subject: string;
+      contentId: string;
+    }
+  ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    console.log("altUserId", altUserId);
+
+    // First, check if the combination exists
+    const checkGraphQLQuery = {
+      query: `
+        query CheckLikeStatus($contentId: String!, $programId: String!, $subject: String!) {
+          GlaQuizRating(where: {
+            contentId: { _eq: $contentId },
+            programId: { _eq: $programId },
+            subject: { _eq: $subject }
+          }) {
+            id
+            userId
+            contentId
+            programId
+            subject
+            rating
+          }
+        }
+      `,
+      variables: {
+        contentId: data.contentId,
+        programId: data.programId,
+        subject: data.subject,
+      },
+    };
+
+    const config_data = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: checkGraphQLQuery,
+    };
+
+    try {
+      // Check if the like entry already exists
+      const checkResponse = await this.axios(config_data);
+      console.log("checkResponse", checkResponse.data);
+      const existingLike = checkResponse?.data?.data?.GlaQuizRating[0];
+      console.log("existingLike", existingLike);
+
+      if (existingLike) {
+        // If entry exists, update the like status
+
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "Content fetched successfully.",
+          data: checkResponse?.data?.data?.GlaQuizRating,
+        });
+      } else {
+        // If no entry exists, insert a new one
+        console.log("no entry exists");
+
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "Content not exists.",
+          data: [],
+        });
+      }
+    } catch (error) {
+      console.error("Axios Error:", error.message);
+      throw new ErrorResponse({
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
+      });
+    }
+  }
+
+  async getUserPoints(request, page: number = 1, limit: number = 10) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    // Calculate offset based on page and limit
+    const offset = (page - 1) * limit;
+    // Ensure limit and offset are numbers
+    const numericLimit = Number(limit);
+    const numericOffset = Number(offset);
+
+    console.log("altUserId", altUserId);
+
+    const getUserPointsQuery = {
+      query: `
+      query MyQuery($userId: uuid!, $limit: Int, $offset: Int) {
+            UserPoints(where: {user_id: {_eq: $userId}}, order_by: {created_at: desc}, limit: $limit, offset: $offset) {
+              id
+              identifier
+              points
+              description
+              user_id
+              created_at
+              updated_at
+            }
+            total: UserPoints_aggregate(where: {user_id: {_eq: $userId}}, order_by: {created_at: desc}, limit: $limit, offset: $offset) {
+              aggregate {
+                count
+              }
+            }
+          }
+
+
+      `,
+      variables: {
+        userId: altUserId,
+        limit: numericLimit,
+        offset: numericOffset,
+      },
+    };
+    console.log();
+
+    const config_data = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: getUserPointsQuery,
+    };
+
+    try {
+      const response = await this.axios(config_data);
+      console.log("checkResponse", response.data);
+      if (response.data.errors) {
+        return new SuccessResponse({
+          statusCode: 400,
+          message: response.data.errors[0].message,
+          data: response.data.errors,
+        });
+      }
+      const points = response.data.data.UserPoints;
+      const totalCount = response.data.data.total.aggregate.count;
+      const totalPages = Math.ceil(totalCount / limit);
+      if (points.length > 0) {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "User Points fetched successfully.",
+          data: {
+            points,
+            currentPage: page,
+            totalPages: totalPages,
+            totalRecords: totalCount,
+            limit: limit,
+          },
+        });
+      } else {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "User Points not exists.",
+          data: [],
+        });
+      }
+    } catch (error) {
+      console.error("Axios Error:", error.message);
+      throw new ErrorResponse({
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
+      });
+    }
+  }
+
+  async addUserPoints(request, data) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    console.log("altUserId", altUserId);
+    console.log("identifier", data.identifier);
+
+    // get the points to be allocated to the user for a given identifier
+    const checkGraphQLQuery = {
+      query: `
+      query MyQuery($identifier: String!) {
+        PointsConfig(
+          where: { identifier: { _eq: $identifier } }
+
+        ) {
+          id
+          title
+          description
+          points
+          identifier
+          created_at
+          updated_at
+        }
+      }
+      `,
+      variables: {
+        identifier: data.identifier,
+      },
+    };
+
+    const config_data = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: checkGraphQLQuery,
+    };
+
+    const checkResponse = await this.axios(config_data);
+    console.log("checkResponse", checkResponse.data.data);
+
+    const points = checkResponse.data.data.PointsConfig[0].points || 0;
+
+    // Create description with points value
+    const description = `${data.description} ${points} points`;
+
+    const insertGraphQLQuery = {
+      query: `
+        mutation InsertUserPoints($userId: uuid!, $identifier: String!, $points: Int!, $description: String!, $earning_context: jsonb) {
+          insert_UserPoints_one(object: {
+            user_id: $userId,
+            identifier: $identifier,
+            points: $points,
+            description: $description,
+            earning_context: $earning_context
+          }) {
+            id
+            identifier
+            user_id
+            points
+            description
+            created_at
+            updated_at
+            earning_context
+          }
+        }
+      `,
+      variables: {
+        userId: altUserId,
+        identifier: data.identifier,
+        points: points,
+        description: description, // Use the new description with points
+        earning_context: data.earning_context,
+      },
+    };
+    console.log(insertGraphQLQuery.query, insertGraphQLQuery.variables);
+    console.log();
+
+    config_data.data = insertGraphQLQuery;
+
+    const insertResponse = await this.axios(config_data);
+    console.log("Inserted Like:", insertResponse.data);
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "User points added successfully.",
+      data: insertResponse.data.data,
+    });
+  }
+
+  async leaderBoardPoints(request, data) {
+    console.log("timeframe", data.timeframe);
+    if (
+      !data.timeframe ||
+      (data.timeframe !== "last30days" &&
+        data.timeframe !== "allday" &&
+        data.timeframe !== "last7days" &&
+        data.timeframe !== "today")
+    ) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage:
+          "Invalid timeframe. Must be one of: today, last7days, last30days, allday",
+      });
+    }
+
+    const { startDate, endDate } = await this.getDateRange(data.timeframe);
+
+    console.log("startDate", moment(startDate).format("DD-MM-YYYY"));
+    console.log("endDate", moment(endDate).format("DD-MM-YYYY"));
+
+    const filters = data.filters || {};
+    const groupId = filters.groupId;
+    const schoolUdise = filters.schoolUdise;
+    const board = filters.board;
+
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    console.log("altUserId", altUserId);
+
+    if (groupId) {
+      console.log("Fetching data by Group ID:", groupId);
+      return this.getPointsByClassId(
+        request,
+        altUserId,
+        groupId,
+        startDate,
+        endDate
+      );
+    } else if (schoolUdise) {
+      console.log("Fetching data by School UDISE:", schoolUdise);
+      return this.getPointsBySchoolId(
+        request,
+        altUserId,
+        schoolUdise,
+        startDate,
+        endDate
+      );
+    } else if (board) {
+      console.log("Fetching data by Board:", board);
+      return this.getPointsByBoard(
+        request,
+        altUserId,
+        board,
+        startDate,
+        endDate
+      );
+    } else {
+      throw new Error(
+        "Invalid filters: At least one of groupId, schoolUdise, or board is required."
+      );
+    }
+  }
+
+  async getPointsByClassId(request, userId, groupId, startDate, endDate) {
+    const variables: any = { groupId };
+    if (startDate && endDate) {
+      variables.startDate = startDate;
+      variables.endDate = endDate;
+    }
+
+    const checkGraphQLQuery = {
+      query: `
+      query MyQuery($groupId: uuid!, $startDate: timestamptz, $endDate: timestamptz) {
+        Group(where: { groupId: { _eq: $groupId } }) {
+          groupId
+          type
+          grade
+          name
+        }
+        topUsers: GroupMembership(
+          where: { groupId: { _eq: $groupId } },
+          order_by: { User: { Points_aggregate: { sum: { points: asc } } } }
+        ) {
+          User {
+            name
+            userId
+            totalPoints: Points_aggregate(
+              ${
+                startDate && endDate
+                  ? "where: { created_at: { _gte: $startDate, _lte: $endDate } }"
+                  : ""
+              }
+            ) {
+              aggregate {
+                sum {
+                  points
+                }
+              }
+            }
+            Points(order_by: {created_at: desc}, limit: 1) {
+              points
+              created_at
+              description
+              identifier
+            }
+          }
+        }
+      }
+      `,
+      variables,
+    };
+
+    console.log("checkGraphQLQuery", checkGraphQLQuery);
+
+    const config_data = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: checkGraphQLQuery,
+    };
+
+    try {
+      const checkResponse = await this.axios(config_data);
+      console.log("checkResponse", checkResponse.data);
+
+      if (checkResponse?.data?.errors) {
+        return new SuccessResponse({
+          statusCode: 400,
+          message: checkResponse?.data?.errors,
+          data: checkResponse?.data?.data,
+        });
+      } else if (checkResponse?.data?.data) {
+        const formattedData = this.transformClassData(
+          checkResponse?.data?.data,
+          userId
+        );
+
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "User Points fetched successfully.",
+          data: formattedData,
+        });
+      } else {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "User Points not exists.",
+          data: [],
+        });
+      }
+    } catch (error) {
+      console.error("Axios Error:", error.message);
+      throw new ErrorResponse({
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
+      });
+    }
+  }
+
+  async getPointsBySchoolId(request, userId, schoolUdise, startDate, endDate) {
+    const checkGraphQLQuery = {
+      query: `
+      query MyQuery($schoolUdise: String!, $startDate: timestamptz, $endDate: timestamptz) {
+        Group(where: { schoolUdise: { _eq: $schoolUdise } }) {
+          groupId
+          type
+          grade
+          name
+          topUsers: GroupMemberships(
+            order_by: { User: { Points_aggregate: { sum: { points: asc } } } }
+          ) {
+            userId
+            User {
+              name
+              userId
+              totalPoints: Points_aggregate(where: { created_at: { _gte: $startDate, _lte: $endDate } }) {
+                aggregate {
+                  sum {
+                    points
+                  }
+                }
+              }
+              Points(order_by: {created_at: desc}, limit: 1) {
+                points
+                created_at
+                description
+                identifier
+              }
+            }
+          }
+        }
+      }
+      `,
+      variables: {
+        schoolUdise: schoolUdise,
+        startDate,
+        endDate,
+      },
+    };
+
+    const config_data = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: checkGraphQLQuery,
+    };
+
+    try {
+      const checkResponse = await this.axios(config_data);
+      console.log("checkResponse", checkResponse.data);
+
+      if (checkResponse?.data?.errors) {
+        return new SuccessResponse({
+          statusCode: 400,
+          message: checkResponse?.data?.errors,
+          data: checkResponse?.data?.data,
+        });
+      } else if (checkResponse?.data?.data) {
+        //checkResponse { data: { Group: [] } }
+        if (
+          !checkResponse.data.data.Group ||
+          checkResponse.data.data.Group.length === 0
+        ) {
+          return new SuccessResponse({
+            statusCode: 204,
+            message: `No data found for board: ${schoolUdise}`,
+            data: [],
+          });
+        }
+        const formattedData = this.transformSchoolData(
+          checkResponse?.data?.data,
+          userId
+        );
+
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "User Points fetched successfully.",
+          data: formattedData,
+        });
+      } else {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "User Points not exists.",
+          data: [],
+        });
+      }
+    } catch (error) {
+      console.error("Axios Error:", error.message);
+      throw new ErrorResponse({
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
+      });
+    }
+  }
+
+  async getPointsByBoard(request, userId, board, startDate, endDate) {
+    const checkGraphQLQuery = {
+      query: `
+      query MyQuery($board: String!, $startDate: timestamptz, $endDate: timestamptz) {
+        School(where: { board: { _ilike: $board } }) {
+          board
+          udiseCode
+          Groups {
+            schoolUdise
+            groupId
+            type
+            grade
+            name
+            topUsers: GroupMemberships(
+              order_by: { User: { Points_aggregate: { sum: { points: asc } } } }
+            ) {
+              groupId
+              User {
+                name
+                userId
+                totalPoints: Points_aggregate(where: { created_at: { _gte: $startDate, _lte: $endDate } }) {
+                  aggregate {
+                    sum {
+                      points
+                    }
+                  }
+                }
+                Points(order_by: {created_at: desc}, limit: 1) {
+                  points
+                  created_at
+                  description
+                  identifier
+                }
+              }
+            }
+          }
+        }
+      }
+      `,
+      variables: {
+        board: board,
+        startDate,
+        endDate,
+      },
+    };
+
+    const config_data = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: checkGraphQLQuery,
+    };
+
+    try {
+      const checkResponse = await this.axios(config_data);
+      console.log("checkResponse", checkResponse.data);
+
+      if (checkResponse?.data?.errors) {
+        return new SuccessResponse({
+          statusCode: 401,
+          message: checkResponse?.data?.errors,
+          data: checkResponse?.data?.data,
+        });
+      } else if (checkResponse?.data?.data) {
+        if (
+          !checkResponse.data.data?.School ||
+          checkResponse.data.data.School.length === 0
+        ) {
+          return new SuccessResponse({
+            statusCode: 204,
+            message: `No data found for board: ${board}`,
+          });
+        }
+
+        const formattedData = this.transformBoardData(
+          checkResponse?.data?.data,
+          userId
+        );
+
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "User Points fetched successfully.",
+          data: formattedData,
+        });
+      } else {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "User Points not exists.",
+          data: [],
+        });
+      }
+    } catch (error) {
+      console.error("Axios Error:", error.message);
+      throw new ErrorResponse({
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
+      });
+    }
+  }
+
+  async getDateRange(
+    timeframes: string
+  ): Promise<{ startDate: string; endDate: string }> {
+    const today = moment(); // Get today's date
+
+    switch (timeframes) {
+      case "today":
+        return {
+          startDate: today.clone().startOf("day").toISOString(),
+          endDate: today.clone().endOf("day").toISOString(),
+        };
+      case "last7days":
+        return {
+          startDate: moment().subtract(7, "days").startOf("day").toISOString(),
+          endDate: today.clone().endOf("day").toISOString(),
+        };
+      case "last30days":
+        return {
+          startDate: moment().subtract(30, "days").startOf("day").toISOString(),
+          endDate: today.clone().endOf("day").toISOString(),
+        };
+      default:
+        // Infinite time range for default
+        return {
+          startDate: "1900-01-01T00:00:00Z",
+          endDate: "9999-12-31T23:59:59Z",
+        };
+    }
+  }
+
+  transformClassData(data: any, userId: string) {
+    console.log("userId", userId);
+
+    // Map and sort topUsers based on points
+    const topUsers = data.topUsers
+      .map((userEntry: any) => ({
+        name: userEntry.User.name || "",
+        userId: userEntry.User.userId || "",
+        class: data.Group[0]?.grade || "",
+        className: data.Group[0]?.name || "",
+        points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
+        lastEarnedPoints: userEntry.User.Points,
+      }))
+      .filter((user) => user.points > 0)
+      .sort((a, b) => b.points - a.points) // Sort by points in descending order
+      .map((user, index) => ({
+        ...user,
+        rank: index + 1, // Assign rank after sorting
+      }));
+
+    // Find the current user based on userId
+    const currentUser = topUsers.find((user) => user.userId === userId) || null;
+
+    const result = {
+      topUsers,
+      currentUser,
+    };
+
+    return result;
+  }
+
+  transformSchoolData(data: any, userId: string) {
+    // Create a unified topUsers array for all groups
+    let topUsers = data.Group.flatMap((group: any) =>
+      group.topUsers.map((userEntry: any) => ({
+        name: userEntry.User.name || "",
+        userId: userEntry.User.userId || "",
+        class: group.grade || "",
+        className: group.name || "",
+        points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
+        lastEarnedPoints: userEntry.User.Points,
+      }))
+    );
+
+    // Remove users with 0 points
+    topUsers = topUsers.filter((user) => user.points > 0);
+
+    // Sort topUsers by points in descending order
+    topUsers = topUsers.sort((a, b) => b.points - a.points);
+
+    // Assign rank after sorting
+    topUsers = topUsers.map((user, index) => ({
+      ...user,
+      rank: index + 1,
+    }));
+
+    // Find the current user based on userId
+    const currentUser = topUsers.find((user) => user.userId === userId) || null;
+
+    // Prepare the result
+    const result = {
+      topUsers, // Unified array of top users with ranks assigned by points
+      currentUser, // Data for the current user if found
+    };
+
+    return result;
+  }
+
+  transformBoardData(data: any, userId: string) {
+    let topUsers = data.School.map((school: any) => {
+      // Combine and sort topUsers across all groups
+      const Users = school.Groups.flatMap((group: any) =>
+        group.topUsers.map((userEntry: any) => ({
+          name: userEntry.User.name || "",
+          userId: userEntry.User.userId,
+          class: group.grade || "",
+          className: group.name || "",
+          rank: 0, // Temporary; rank will be updated after sorting
+          points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
+          lastEarnedPoints: userEntry.User.Points,
+        }))
+      );
+
+      return Users;
+    });
+
+    topUsers = topUsers.flat();
+
+    // Remove users with 0 points
+    topUsers = topUsers.filter((user) => user.points > 0);
+
+    // Sort topUsers by points in descending order
+    topUsers = topUsers.sort((a, b) => b.points - a.points);
+
+    // Assign rank after sorting
+    topUsers = topUsers.map((user, index) => ({
+      ...user,
+      rank: index + 1,
+    }));
+
+    // Find the current user based on userId
+    const currentUser = topUsers.find((user) => user.userId === userId) || null;
+
+    // Prepare the result
+    const result = {
+      topUsers, // Unified array of top users with ranks assigned by points
+      currentUser, // Data for the current user if found
+    };
+
+    return result;
+  }
 }
