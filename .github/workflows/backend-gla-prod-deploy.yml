@@ -37,7 +37,7 @@ jobs:
       - name: Deploy to server
         run: |
           sshpass -p '${{ secrets.EC2_SSH_KEY_ALT_GLA_PROD }}' ssh -v -o StrictHostKeyChecking=no ${{ secrets.USERNAME_ALT_GLA_PROD }}@${{ secrets.HOST_DNS_ALT_GLA_PROD }} <<'ENDSSH'
-          cd /home/prasad/alt-gla-prod-backend #It is deploying on server 13.203.108.107  For Dev Environment only please note. 
+          cd /home/prasad/dump/dump-palooza-jan-21/prasad/alt-gla-prod-backend #It is deploying on server 13.203.108.107  For Dev Environment only please note. 
           ./deploy.sh
           ENDSSH
        
