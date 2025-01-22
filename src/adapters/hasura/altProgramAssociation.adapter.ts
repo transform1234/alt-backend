@@ -1853,9 +1853,41 @@ export class ALTProgramAssociationService {
     }
   }
 
+  // transformClassData(data: any, userId: string) {
+  //   console.log("userId", userId);
+
+  //   // Map and sort topUsers based on points
+  //   const topUsers = data.topUsers
+  //     .map((userEntry: any) => ({
+  //       name: userEntry.User.name || "",
+  //       userId: userEntry.User.userId || "",
+  //       class: data.Group[0]?.grade || "",
+  //       className: data.Group[0]?.name || "",
+  //       points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
+  //       lastEarnedPoints: userEntry.User.Points,
+  //     }))
+  //     .filter((user) => user.points > 0)
+  //     .sort((a, b) => b.points - a.points) // Sort by points in descending order
+  //     .map((user, index) => ({
+  //       ...user,
+  //       rank: index + 1, // Assign rank after sorting
+  //     }));
+
+  //   // Find the current user based on userId
+  //   const currentUser = topUsers.find((user) => user.userId === userId) || null;
+
+  //   const result = {
+  //     topUsers,
+  //     currentUser,
+  //   };
+
+  //   return result;
+  // }
+
+
   transformClassData(data: any, userId: string) {
     console.log("userId", userId);
-
+  
     // Map and sort topUsers based on points
     const topUsers = data.topUsers
       .map((userEntry: any) => ({
@@ -1867,22 +1899,71 @@ export class ALTProgramAssociationService {
         lastEarnedPoints: userEntry.User.Points,
       }))
       .filter((user) => user.points > 0)
-      .sort((a, b) => b.points - a.points) // Sort by points in descending order
-      .map((user, index) => ({
+      .sort((a, b) => b.points - a.points); // Sort by points in descending order
+  
+    // Assign ranks, ensuring the same rank for users with the same points
+    let currentRank = 0;
+    let previousPoints = null;
+  
+    const rankedUsers = topUsers.map((user, index) => {
+      if (user.points !== previousPoints) {
+        currentRank = index + 1; // Update rank only if points differ
+        previousPoints = user.points;
+      }
+      return {
         ...user,
-        rank: index + 1, // Assign rank after sorting
-      }));
-
+        rank: currentRank,
+      };
+    });
+  
     // Find the current user based on userId
-    const currentUser = topUsers.find((user) => user.userId === userId) || null;
-
+    const currentUser = rankedUsers.find((user) => user.userId === userId) || null;
+  
     const result = {
-      topUsers,
+      topUsers: rankedUsers,
       currentUser,
     };
-
+  
     return result;
   }
+  
+
+  // transformSchoolData(data: any, userId: string) {
+  //   // Create a unified topUsers array for all groups
+  //   let topUsers = data.Group.flatMap((group: any) =>
+  //     group.topUsers.map((userEntry: any) => ({
+  //       name: userEntry.User.name || "",
+  //       userId: userEntry.User.userId || "",
+  //       class: group.grade || "",
+  //       className: group.name || "",
+  //       points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
+  //       lastEarnedPoints: userEntry.User.Points,
+  //     }))
+  //   );
+
+  //   // Remove users with 0 points
+  //   topUsers = topUsers.filter((user) => user.points > 0);
+
+  //   // Sort topUsers by points in descending order
+  //   topUsers = topUsers.sort((a, b) => b.points - a.points);
+
+  //   // Assign rank after sorting
+  //   topUsers = topUsers.map((user, index) => ({
+  //     ...user,
+  //     rank: index + 1,
+  //   }));
+
+  //   // Find the current user based on userId
+  //   const currentUser = topUsers.find((user) => user.userId === userId) || null;
+
+  //   // Prepare the result
+  //   const result = {
+  //     topUsers, // Unified array of top users with ranks assigned by points
+  //     currentUser, // Data for the current user if found
+  //   };
+
+  //   return result;
+  // }
 
   transformSchoolData(data: any, userId: string) {
     // Create a unified topUsers array for all groups
@@ -1896,30 +1977,84 @@ export class ALTProgramAssociationService {
         lastEarnedPoints: userEntry.User.Points,
       }))
     );
-
+  
     // Remove users with 0 points
     topUsers = topUsers.filter((user) => user.points > 0);
-
+  
     // Sort topUsers by points in descending order
     topUsers = topUsers.sort((a, b) => b.points - a.points);
-
-    // Assign rank after sorting
-    topUsers = topUsers.map((user, index) => ({
-      ...user,
-      rank: index + 1,
-    }));
-
+  
+    // Assign ranks, ensuring the same rank for users with the same points
+    let currentRank = 0;
+    let previousPoints = null;
+  
+    const rankedUsers = topUsers.map((user, index) => {
+      if (user.points !== previousPoints) {
+        currentRank = index + 1; // Update rank only if points differ
+        previousPoints = user.points;
+      }
+      return {
+        ...user,
+        rank: currentRank,
+      };
+    });
+  
     // Find the current user based on userId
-    const currentUser = topUsers.find((user) => user.userId === userId) || null;
-
+    const currentUser = rankedUsers.find((user) => user.userId === userId) || null;
+  
     // Prepare the result
     const result = {
-      topUsers, // Unified array of top users with ranks assigned by points
+      topUsers: rankedUsers, // Unified array of top users with ranks assigned by points
       currentUser, // Data for the current user if found
     };
-
+  
     return result;
   }
+  
+
+  // transformBoardData(data: any, userId: string) {
+  //   let topUsers = data.School.map((school: any) => {
+  //     // Combine and sort topUsers across all groups
+  //     const Users = school.Groups.flatMap((group: any) =>
+  //       group.topUsers.map((userEntry: any) => ({
+  //         name: userEntry.User.name || "",
+  //         userId: userEntry.User.userId,
+  //         class: group.grade || "",
+  //         className: group.name || "",
+  //         rank: 0, // Temporary; rank will be updated after sorting
+  //         points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
+  //         lastEarnedPoints: userEntry.User.Points,
+  //       }))
+  //     );
+
+  //     return Users;
+  //   });
+
+  //   topUsers = topUsers.flat();
+
+  //   // Remove users with 0 points
+  //   topUsers = topUsers.filter((user) => user.points > 0);
+
+  //   // Sort topUsers by points in descending order
+  //   topUsers = topUsers.sort((a, b) => b.points - a.points);
+
+  //   // Assign rank after sorting
+  //   topUsers = topUsers.map((user, index) => ({
+  //     ...user,
+  //     rank: index + 1,
+  //   }));
+
+  //   // Find the current user based on userId
+  //   const currentUser = topUsers.find((user) => user.userId === userId) || null;
+
+  //   // Prepare the result
+  //   const result = {
+  //     topUsers, // Unified array of top users with ranks assigned by points
+  //     currentUser, // Data for the current user if found
+  //   };
+
+  //   return result;
+  // }
 
   transformBoardData(data: any, userId: string) {
     let topUsers = data.School.map((school: any) => {
@@ -1930,38 +2065,47 @@ export class ALTProgramAssociationService {
           userId: userEntry.User.userId,
           class: group.grade || "",
           className: group.name || "",
-          rank: 0, // Temporary; rank will be updated after sorting
           points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
           lastEarnedPoints: userEntry.User.Points,
         }))
       );
-
+  
       return Users;
     });
-
+  
     topUsers = topUsers.flat();
-
+  
     // Remove users with 0 points
     topUsers = topUsers.filter((user) => user.points > 0);
-
+  
     // Sort topUsers by points in descending order
     topUsers = topUsers.sort((a, b) => b.points - a.points);
-
-    // Assign rank after sorting
-    topUsers = topUsers.map((user, index) => ({
-      ...user,
-      rank: index + 1,
-    }));
-
+  
+    // Assign ranks, ensuring the same rank for users with the same points
+    let currentRank = 0;
+    let previousPoints = null;
+  
+    const rankedUsers = topUsers.map((user, index) => {
+      if (user.points !== previousPoints) {
+        currentRank = index + 1; // Update rank only if points differ
+        previousPoints = user.points;
+      }
+      return {
+        ...user,
+        rank: currentRank,
+      };
+    });
+  
     // Find the current user based on userId
-    const currentUser = topUsers.find((user) => user.userId === userId) || null;
-
+    const currentUser = rankedUsers.find((user) => user.userId === userId) || null;
+  
     // Prepare the result
     const result = {
-      topUsers, // Unified array of top users with ranks assigned by points
+      topUsers: rankedUsers, // Unified array of top users with ranks assigned by points
       currentUser, // Data for the current user if found
     };
-
+  
     return result;
   }
+  
 }
