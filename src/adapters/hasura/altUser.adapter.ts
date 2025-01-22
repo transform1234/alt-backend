@@ -1190,6 +1190,7 @@ export class ALTHasuraUserService {
   }
 
   async fetchUserData(username: string, token: string, roles: string[]) {
+    console.log("fetchUserData username", username)
     const query = {
       query: `
       query searchUser($username: String!) {
@@ -1211,9 +1212,8 @@ export class ALTHasuraUserService {
               medium
               grade
               groupId
+              schoolUdise
             }
-          }
-          Student {
             School {
               name
               udiseCode
