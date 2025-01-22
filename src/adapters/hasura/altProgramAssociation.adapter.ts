@@ -1918,9 +1918,12 @@ export class ALTProgramAssociationService {
   
     // Find the current user based on userId
     const currentUser = rankedUsers.find((user) => user.userId === userId) || null;
+
+    // Limit to the top 50 users
+    const top10Users = rankedUsers.slice(0, 10);
   
     const result = {
-      topUsers: rankedUsers,
+      topUsers: top10Users,
       currentUser,
     };
   
@@ -2001,10 +2004,13 @@ export class ALTProgramAssociationService {
   
     // Find the current user based on userId
     const currentUser = rankedUsers.find((user) => user.userId === userId) || null;
+
+    // Limit to the top 50 users
+    const top10Users = rankedUsers.slice(0, 10);
   
     // Prepare the result
     const result = {
-      topUsers: rankedUsers, // Unified array of top users with ranks assigned by points
+      topUsers: top10Users, // Unified array of top users with ranks assigned by points
       currentUser, // Data for the current user if found
     };
   
@@ -2098,10 +2104,13 @@ export class ALTProgramAssociationService {
   
     // Find the current user based on userId
     const currentUser = rankedUsers.find((user) => user.userId === userId) || null;
+
+    // Limit to the top 50 users
+    const top50Users = rankedUsers.slice(0, 50);
   
     // Prepare the result
     const result = {
-      topUsers: rankedUsers, // Unified array of top users with ranks assigned by points
+      topUsers: top50Users, // Unified array of top users with ranks assigned by points
       currentUser, // Data for the current user if found
     };
   
