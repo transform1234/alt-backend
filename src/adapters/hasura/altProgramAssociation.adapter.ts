@@ -1886,7 +1886,7 @@ export class ALTProgramAssociationService {
 
   transformClassData(data: any, userId: string) {
     console.log("userId", userId);
-  
+
     // Map and sort topUsers based on points
     const topUsers = data.topUsers
       .map((userEntry: any) => ({
@@ -1899,11 +1899,11 @@ export class ALTProgramAssociationService {
       }))
       .filter((user) => user.points > 0)
       .sort((a, b) => b.points - a.points); // Sort by points in descending order
-  
+
     // Assign ranks, ensuring the same rank for users with the same points
     let currentRank = 0;
     let previousPoints = null;
-  
+
     const rankedUsers = topUsers.map((user, index) => {
       if (user.points !== previousPoints) {
         currentRank = index + 1; // Update rank only if points differ
@@ -1914,21 +1914,22 @@ export class ALTProgramAssociationService {
         rank: currentRank,
       };
     });
-  
+
     // Find the current user based on userId
-    const currentUser = rankedUsers.find((user) => user.userId === userId) || null;
+    const currentUser =
+      rankedUsers.find((user) => user.userId === userId) || null;
 
     // Limit to the top 50 users
     const top10Users = rankedUsers.slice(0, 10);
-  
+
     const result = {
       topUsers: top10Users,
       currentUser,
     };
-  
+
     return result;
   }
-  
+
   // transformSchoolData(data: any, userId: string) {
   //   // Create a unified topUsers array for all groups
   //   let topUsers = data.Group.flatMap((group: any) =>
@@ -1978,17 +1979,17 @@ export class ALTProgramAssociationService {
         lastEarnedPoints: userEntry.User.Points,
       }))
     );
-  
+
     // Remove users with 0 points
     topUsers = topUsers.filter((user) => user.points > 0);
-  
+
     // Sort topUsers by points in descending order
     topUsers = topUsers.sort((a, b) => b.points - a.points);
-  
+
     // Assign ranks, ensuring the same rank for users with the same points
     let currentRank = 0;
     let previousPoints = null;
-  
+
     const rankedUsers = topUsers.map((user, index) => {
       if (user.points !== previousPoints) {
         currentRank = index + 1; // Update rank only if points differ
@@ -1999,22 +2000,23 @@ export class ALTProgramAssociationService {
         rank: currentRank,
       };
     });
-  
+
     // Find the current user based on userId
-    const currentUser = rankedUsers.find((user) => user.userId === userId) || null;
+    const currentUser =
+      rankedUsers.find((user) => user.userId === userId) || null;
 
     // Limit to the top 50 users
     const top10Users = rankedUsers.slice(0, 10);
-  
+
     // Prepare the result
     const result = {
       topUsers: top10Users, // Unified array of top users with ranks assigned by points
       currentUser, // Data for the current user if found
     };
-  
+
     return result;
   }
-  
+
   // transformBoardData(data: any, userId: string) {
   //   let topUsers = data.School.map((school: any) => {
   //     // Combine and sort topUsers across all groups
@@ -2072,22 +2074,22 @@ export class ALTProgramAssociationService {
           lastEarnedPoints: userEntry.User.Points,
         }))
       );
-  
+
       return Users;
     });
-  
+
     topUsers = topUsers.flat();
-  
+
     // Remove users with 0 points
     topUsers = topUsers.filter((user) => user.points > 0);
-  
+
     // Sort topUsers by points in descending order
     topUsers = topUsers.sort((a, b) => b.points - a.points);
-  
+
     // Assign ranks, ensuring the same rank for users with the same points
     let currentRank = 0;
     let previousPoints = null;
-  
+
     const rankedUsers = topUsers.map((user, index) => {
       if (user.points !== previousPoints) {
         currentRank = index + 1; // Update rank only if points differ
@@ -2098,25 +2100,24 @@ export class ALTProgramAssociationService {
         rank: currentRank,
       };
     });
-  
+
     // Find the current user based on userId
-    const currentUser = rankedUsers.find((user) => user.userId === userId) || null;
+    const currentUser =
+      rankedUsers.find((user) => user.userId === userId) || null;
 
     // Limit to the top 50 users
     const top50Users = rankedUsers.slice(0, 50);
-  
+
     // Prepare the result
     const result = {
       topUsers: top50Users, // Unified array of top users with ranks assigned by points
       currentUser, // Data for the current user if found
     };
-  
+
     return result;
   }
 
   async classTeacher(request, data) {
-    
-
     const filters = data.filters || {};
     const groupId = filters.groupId;
     const schoolUdise = filters.schoolUdise;
@@ -2129,28 +2130,13 @@ export class ALTProgramAssociationService {
 
     if (groupId) {
       console.log("Fetching data by Group ID:", groupId);
-      return this.getTeacherByClassId(
-        request,
-        altUserId,
-        groupId,
-        
-      );
+      return this.getTeacherByClassId(request, altUserId, groupId);
     } else if (schoolUdise) {
       console.log("Fetching data by School UDISE:", schoolUdise);
-      return this.getTeacherBySchoolId(
-        request,
-        altUserId,
-        schoolUdise,
-        
-      );
+      return this.getTeacherBySchoolId(request, altUserId, schoolUdise);
     } else if (board) {
       console.log("Fetching data by Board:", board);
-      return this.getTeacherByBoard(
-        request,
-        altUserId,
-        board,
-        
-      );
+      return this.getTeacherByBoard(request, altUserId, board);
     } else {
       throw new Error(
         "Invalid filters: At least one of groupId, schoolUdise, or board is required."
@@ -2160,7 +2146,7 @@ export class ALTProgramAssociationService {
 
   async getTeacherByClassId(request, userId, groupId) {
     const variables: any = { groupId };
-    
+
     const checkGraphQLQuery = {
       query: `
       query MyQuery($groupId: uuid!, $startDate: timestamptz, $endDate: timestamptz) {
@@ -2227,7 +2213,7 @@ export class ALTProgramAssociationService {
         //   userId
         // );
 
-        const formattedData = checkResponse?.data?.data
+        const formattedData = checkResponse?.data?.data;
 
         return new SuccessResponse({
           statusCode: 200,
@@ -2272,7 +2258,7 @@ export class ALTProgramAssociationService {
       }
       `,
       variables: {
-        schoolUdise: schoolUdise
+        schoolUdise: schoolUdise,
       },
     };
 
@@ -2309,7 +2295,7 @@ export class ALTProgramAssociationService {
           });
         }
 
-        const formattedData = checkResponse?.data?.data
+        const formattedData = checkResponse?.data?.data;
         // const formattedData = this.transformSchoolData(
         //   checkResponse?.data?.data,
         //   userId
@@ -2363,7 +2349,7 @@ export class ALTProgramAssociationService {
       }
       `,
       variables: {
-        board: board
+        board: board,
       },
     };
 
@@ -2397,129 +2383,11 @@ export class ALTProgramAssociationService {
             message: `No data found for board: ${board}`,
           });
         }
-        const formattedData = checkResponse?.data?.data
+        const formattedData = checkResponse?.data?.data;
         // const formattedData = this.transformBoardData(
         //   checkResponse?.data?.data,
         //   userId
         // );
-
-        return new SuccessResponse({
-          statusCode: 200,
-          message: "User Points fetched successfully.",
-          data: formattedData,
-        });
-      } else {
-        return new SuccessResponse({
-          statusCode: 200,
-          message: "User Points not exists.",
-          data: [],
-        });
-      }
-    } catch (error) {
-      console.error("Axios Error:", error.message);
-      throw new ErrorResponse({
-        errorCode: "AXIOS_ERROR",
-        errorMessage: "Failed to execute the GraphQL mutation.",
-      });
-    }
-  }
-
-  async subject(request, data) {
-    
-
-    const filters = data.filters || {};
-    const groupId = filters.groupId
-
-    const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserId =
-      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-    console.log("altUserId", altUserId);
-
-    if (groupId) {
-      console.log("Fetching data by Group ID:", groupId);
-      return this.getSubjectByClassId(
-        request,
-        altUserId,
-        groupId,
-        
-      );
-    } else {
-      throw new Error(
-        "Invalid filters: At least one of groupId, schoolUdise, or board is required."
-      );
-    }
-  }
-
-  async getSubjectByClassId(request, userId, groupId) {
-    const variables: any = { groupId };
-    
-    const checkGraphQLQuery = {
-      query: `
-      query MyQuery($groupId: uuid!) {
-        Group(where: { groupId: { _eq: $groupId } }) {
-          groupId
-          type
-          grade
-          name
-        }
-        topUsers: GroupMembership(
-          where: { groupId: { _eq: $groupId } },
-          order_by: { User: { Points_aggregate: { sum: { points: asc } } } }
-        ) {
-          User {
-            name
-            userId
-             Points_aggregate(
-              
-            ) {
-              aggregate {
-                sum {
-                  points
-                }
-              }
-            }
-            Points(order_by: {created_at: desc}, limit: 1) {
-              points
-              created_at
-              description
-              identifier
-            }
-          }
-        }
-      }
-      `,
-      variables,
-    };
-
-    console.log("checkGraphQLQuery", checkGraphQLQuery);
-
-    const config_data = {
-      method: "post",
-      url: process.env.ALTHASURA,
-      headers: {
-        Authorization: request.headers.authorization,
-        "Content-Type": "application/json",
-      },
-      data: checkGraphQLQuery,
-    };
-
-    try {
-      const checkResponse = await this.axios(config_data);
-      console.log("checkResponse", checkResponse.data);
-
-      if (checkResponse?.data?.errors) {
-        return new SuccessResponse({
-          statusCode: 400,
-          message: checkResponse?.data?.errors,
-          data: checkResponse?.data?.data,
-        });
-      } else if (checkResponse?.data?.data) {
-        // const formattedData = this.transformClassData(
-        //   checkResponse?.data?.data,
-        //   userId
-        // );
-
-        const formattedData = checkResponse?.data?.data
 
         return new SuccessResponse({
           statusCode: 200,

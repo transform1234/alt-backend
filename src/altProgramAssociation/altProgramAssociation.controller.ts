@@ -290,19 +290,7 @@ export class ALTProgramAssociationController {
     const { filters } = body;
 
     return this.altProgramAssociationService.classTeacher(request, {
-      filters
-    });
-  }
-
-  // subject list
-  @Post("subject")
-  @ApiBasicAuth("access-token")
-  @ApiOkResponse({ description: "ALT Rules" })
-  @ApiForbiddenResponse({ description: "Forbidden" })
-  async subject(@Body() body: any, @Req() request: Request) {
-    const { filters } = body;
-    return this.altProgramAssociationService.subject(request, {
-      filters
+      filters,
     });
   }
 
@@ -315,4 +303,3 @@ export class ALTProgramAssociationController {
   }
 
 }
-
