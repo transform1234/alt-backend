@@ -2170,13 +2170,28 @@ export class ALTProgramAssociationService {
           grade
           name
         }
-        GroupMembership(where: {role: {_eq: "teacher"}}){
+        topUsers: GroupMembership(
+          where: { groupId: { _eq: $groupId } },
+          order_by: { User: { Points_aggregate: { sum: { points: asc } } } }
+        ) {
           User {
             name
             userId
-            role
-            email
-            
+             Points_aggregate(
+              
+            ) {
+              aggregate {
+                sum {
+                  points
+                }
+              }
+            }
+            Points(order_by: {created_at: desc}, limit: 1) {
+              points
+              created_at
+              description
+              identifier
+            }
           }
         }
       }
