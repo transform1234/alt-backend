@@ -279,4 +279,11 @@ export class ALTProgramAssociationController {
       timeframe,
     });
   }
+  @Post("/migration")
+  async migartionOfLessonData(@Req() request: Request, @Body() programId) {
+    return this.altProgramAssociationService.assignProgramPoints(
+      request,
+      programId
+    );
+  }
 }
