@@ -294,6 +294,18 @@ export class ALTProgramAssociationController {
     });
   }
 
+  // subject list
+  @Post("subject")
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "ALT Rules" })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  async subject(@Body() body: any, @Req() request: Request) {
+    const { filters } = body;
+    return this.altProgramAssociationService.subject(request, {
+      filters
+    });
+  }
+
   @Post("/migration")
   async migartionOfLessonData(@Req() request: Request, @Body() programId) {
     return this.altProgramAssociationService.assignProgramPoints(
@@ -301,6 +313,6 @@ export class ALTProgramAssociationController {
       programId
     );
   }
-  
+
 }
 

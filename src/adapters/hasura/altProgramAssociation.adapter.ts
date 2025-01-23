@@ -2424,6 +2424,124 @@ export class ALTProgramAssociationService {
     }
   }
 
+  async subject(request, data) {
+    
+
+    const filters = data.filters || {};
+    const groupId = filters.groupId
+
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    console.log("altUserId", altUserId);
+
+    if (groupId) {
+      console.log("Fetching data by Group ID:", groupId);
+      return this.getSubjectByClassId(
+        request,
+        altUserId,
+        groupId,
+        
+      );
+    } else {
+      throw new Error(
+        "Invalid filters: At least one of groupId, schoolUdise, or board is required."
+      );
+    }
+  }
+
+  async getSubjectByClassId(request, userId, groupId) {
+    const variables: any = { groupId };
+    
+    const checkGraphQLQuery = {
+      query: `
+      query MyQuery($groupId: uuid!) {
+        Group(where: { groupId: { _eq: $groupId } }) {
+          groupId
+          type
+          grade
+          name
+        }
+        topUsers: GroupMembership(
+          where: { groupId: { _eq: $groupId } },
+          order_by: { User: { Points_aggregate: { sum: { points: asc } } } }
+        ) {
+          User {
+            name
+            userId
+             Points_aggregate(
+              
+            ) {
+              aggregate {
+                sum {
+                  points
+                }
+              }
+            }
+            Points(order_by: {created_at: desc}, limit: 1) {
+              points
+              created_at
+              description
+              identifier
+            }
+          }
+        }
+      }
+      `,
+      variables,
+    };
+
+    console.log("checkGraphQLQuery", checkGraphQLQuery);
+
+    const config_data = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: checkGraphQLQuery,
+    };
+
+    try {
+      const checkResponse = await this.axios(config_data);
+      console.log("checkResponse", checkResponse.data);
+
+      if (checkResponse?.data?.errors) {
+        return new SuccessResponse({
+          statusCode: 400,
+          message: checkResponse?.data?.errors,
+          data: checkResponse?.data?.data,
+        });
+      } else if (checkResponse?.data?.data) {
+        // const formattedData = this.transformClassData(
+        //   checkResponse?.data?.data,
+        //   userId
+        // );
+
+        const formattedData = checkResponse?.data?.data
+
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "User Points fetched successfully.",
+          data: formattedData,
+        });
+      } else {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "User Points not exists.",
+          data: [],
+        });
+      }
+    } catch (error) {
+      console.error("Axios Error:", error.message);
+      throw new ErrorResponse({
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
+      });
+    }
+  }
+
 
   async assignProgramPoints(request, data) {
     const token = request.headers.authorization?.replace("Bearer ", "");
