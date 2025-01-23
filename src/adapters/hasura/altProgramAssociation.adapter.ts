@@ -993,15 +993,63 @@ export class ALTProgramAssociationService {
     data: {
       programId: string;
       subject: string;
-      contentId: string;
-      rating: boolean;
+      assessmentId: string;
+      rating: number;
     }
   ) {
+    if (!data.rating || data.rating < 1 || data.rating > 5) {
+      return new ErrorResponse({
+        errorCode: "Invalid Rating",
+        errorMessage: "Rating should be between 1 and 5.",
+      });
+    }
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
     console.log("altUserId", altUserId);
+
+    //fetch the rules
+    const getRulesQuery = {
+      query: `query MyQuery($programId: uuid, $subject: String) {
+                    ProgramTermAssoc(where: {programId: {_eq: $programId}, subject: {_eq: $subject}}){
+                      rules
+                    }
+                  }
+              `,
+      variables: {
+        programId: data.programId,
+        subject: data.subject,
+      },
+    };
+    let config = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: getRulesQuery,
+    };
+    const rulesResponse = await this.axios(config);
+    if (rulesResponse?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: rulesResponse.data.errors[0].extensions,
+        errorMessage: rulesResponse.data.errors[0].message,
+      });
+    }
+    const rules = rulesResponse?.data?.data?.ProgramTermAssoc[0].rules;
+    const rulesData = JSON.parse(rules);
+    const assessmentExists = rulesData.prog.some(
+      (rule) => rule.lesson_questionset === data.assessmentId
+    );
+
+    if (!assessmentExists) {
+      return new ErrorResponse({
+        errorCode: "404",
+        errorMessage: "AssessmentId not found in the program rules",
+      });
+    }
 
     // First, check if the combination exists
     const checkGraphQLQuery = {
@@ -1019,7 +1067,7 @@ export class ALTProgramAssociationService {
         }
       `,
       variables: {
-        contentId: data.contentId,
+        contentId: data.assessmentId,
         programId: data.programId,
         subject: data.subject,
         userId: altUserId,
@@ -1070,7 +1118,7 @@ export class ALTProgramAssociationService {
             }
           `,
           variables: {
-            contentId: data.contentId,
+            contentId: data.assessmentId,
             rating: data.rating,
             programId: data.programId,
             subject: data.subject,
@@ -1086,7 +1134,7 @@ export class ALTProgramAssociationService {
         return new SuccessResponse({
           statusCode: 200,
           message: "Content like status updated successfully.",
-          data: updateResponse.data.data,
+          data: updateResponse.data.data.update_GlaQuizRating,
         });
       } else {
         // If no entry exists, insert a new one
@@ -1113,7 +1161,7 @@ export class ALTProgramAssociationService {
             }
           `,
           variables: {
-            contentId: data.contentId,
+            contentId: data.assessmentId,
             rating: data.rating,
             programId: data.programId,
             subject: data.subject,
@@ -1129,7 +1177,7 @@ export class ALTProgramAssociationService {
         return new SuccessResponse({
           statusCode: 200,
           message: "Content like status inserted successfully.",
-          data: insertResponse.data.data,
+          data: insertResponse.data.data.insert_GlaQuizRating_one,
         });
       }
     } catch (error) {
@@ -1805,9 +1853,41 @@ export class ALTProgramAssociationService {
     }
   }
 
+  // transformClassData(data: any, userId: string) {
+  //   console.log("userId", userId);
+
+  //   // Map and sort topUsers based on points
+  //   const topUsers = data.topUsers
+  //     .map((userEntry: any) => ({
+  //       name: userEntry.User.name || "",
+  //       userId: userEntry.User.userId || "",
+  //       class: data.Group[0]?.grade || "",
+  //       className: data.Group[0]?.name || "",
+  //       points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
+  //       lastEarnedPoints: userEntry.User.Points,
+  //     }))
+  //     .filter((user) => user.points > 0)
+  //     .sort((a, b) => b.points - a.points) // Sort by points in descending order
+  //     .map((user, index) => ({
+  //       ...user,
+  //       rank: index + 1, // Assign rank after sorting
+  //     }));
+
+  //   // Find the current user based on userId
+  //   const currentUser = topUsers.find((user) => user.userId === userId) || null;
+
+  //   const result = {
+  //     topUsers,
+  //     currentUser,
+  //   };
+
+  //   return result;
+  // }
+
+
   transformClassData(data: any, userId: string) {
     console.log("userId", userId);
-
+  
     // Map and sort topUsers based on points
     const topUsers = data.topUsers
       .map((userEntry: any) => ({
@@ -1819,22 +1899,74 @@ export class ALTProgramAssociationService {
         lastEarnedPoints: userEntry.User.Points,
       }))
       .filter((user) => user.points > 0)
-      .sort((a, b) => b.points - a.points) // Sort by points in descending order
-      .map((user, index) => ({
+      .sort((a, b) => b.points - a.points); // Sort by points in descending order
+  
+    // Assign ranks, ensuring the same rank for users with the same points
+    let currentRank = 0;
+    let previousPoints = null;
+  
+    const rankedUsers = topUsers.map((user, index) => {
+      if (user.points !== previousPoints) {
+        currentRank = index + 1; // Update rank only if points differ
+        previousPoints = user.points;
+      }
+      return {
         ...user,
-        rank: index + 1, // Assign rank after sorting
-      }));
-
+        rank: currentRank,
+      };
+    });
+  
     // Find the current user based on userId
-    const currentUser = topUsers.find((user) => user.userId === userId) || null;
+    const currentUser = rankedUsers.find((user) => user.userId === userId) || null;
 
+    // Limit to the top 50 users
+    const top10Users = rankedUsers.slice(0, 10);
+  
     const result = {
-      topUsers,
+      topUsers: top10Users,
       currentUser,
     };
-
+  
     return result;
   }
+  
+
+  // transformSchoolData(data: any, userId: string) {
+  //   // Create a unified topUsers array for all groups
+  //   let topUsers = data.Group.flatMap((group: any) =>
+  //     group.topUsers.map((userEntry: any) => ({
+  //       name: userEntry.User.name || "",
+  //       userId: userEntry.User.userId || "",
+  //       class: group.grade || "",
+  //       className: group.name || "",
+  //       points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
+  //       lastEarnedPoints: userEntry.User.Points,
+  //     }))
+  //   );
+
+  //   // Remove users with 0 points
+  //   topUsers = topUsers.filter((user) => user.points > 0);
+
+  //   // Sort topUsers by points in descending order
+  //   topUsers = topUsers.sort((a, b) => b.points - a.points);
+
+  //   // Assign rank after sorting
+  //   topUsers = topUsers.map((user, index) => ({
+  //     ...user,
+  //     rank: index + 1,
+  //   }));
+
+  //   // Find the current user based on userId
+  //   const currentUser = topUsers.find((user) => user.userId === userId) || null;
+
+  //   // Prepare the result
+  //   const result = {
+  //     topUsers, // Unified array of top users with ranks assigned by points
+  //     currentUser, // Data for the current user if found
+  //   };
+
+  //   return result;
+  // }
 
   transformSchoolData(data: any, userId: string) {
     // Create a unified topUsers array for all groups
@@ -1848,30 +1980,87 @@ export class ALTProgramAssociationService {
         lastEarnedPoints: userEntry.User.Points,
       }))
     );
-
+  
     // Remove users with 0 points
     topUsers = topUsers.filter((user) => user.points > 0);
-
+  
     // Sort topUsers by points in descending order
     topUsers = topUsers.sort((a, b) => b.points - a.points);
-
-    // Assign rank after sorting
-    topUsers = topUsers.map((user, index) => ({
-      ...user,
-      rank: index + 1,
-    }));
-
+  
+    // Assign ranks, ensuring the same rank for users with the same points
+    let currentRank = 0;
+    let previousPoints = null;
+  
+    const rankedUsers = topUsers.map((user, index) => {
+      if (user.points !== previousPoints) {
+        currentRank = index + 1; // Update rank only if points differ
+        previousPoints = user.points;
+      }
+      return {
+        ...user,
+        rank: currentRank,
+      };
+    });
+  
     // Find the current user based on userId
-    const currentUser = topUsers.find((user) => user.userId === userId) || null;
+    const currentUser = rankedUsers.find((user) => user.userId === userId) || null;
 
+    // Limit to the top 50 users
+    const top10Users = rankedUsers.slice(0, 10);
+  
     // Prepare the result
     const result = {
-      topUsers, // Unified array of top users with ranks assigned by points
+      topUsers: top10Users, // Unified array of top users with ranks assigned by points
       currentUser, // Data for the current user if found
     };
-
+  
     return result;
   }
+  
+
+  // transformBoardData(data: any, userId: string) {
+  //   let topUsers = data.School.map((school: any) => {
+  //     // Combine and sort topUsers across all groups
+  //     const Users = school.Groups.flatMap((group: any) =>
+  //       group.topUsers.map((userEntry: any) => ({
+  //         name: userEntry.User.name || "",
+  //         userId: userEntry.User.userId,
+  //         class: group.grade || "",
+  //         className: group.name || "",
+  //         rank: 0, // Temporary; rank will be updated after sorting
+  //         points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
+  //         lastEarnedPoints: userEntry.User.Points,
+  //       }))
+  //     );
+
+  //     return Users;
+  //   });
+
+  //   topUsers = topUsers.flat();
+
+  //   // Remove users with 0 points
+  //   topUsers = topUsers.filter((user) => user.points > 0);
+
+  //   // Sort topUsers by points in descending order
+  //   topUsers = topUsers.sort((a, b) => b.points - a.points);
+
+  //   // Assign rank after sorting
+  //   topUsers = topUsers.map((user, index) => ({
+  //     ...user,
+  //     rank: index + 1,
+  //   }));
+
+  //   // Find the current user based on userId
+  //   const currentUser = topUsers.find((user) => user.userId === userId) || null;
+
+  //   // Prepare the result
+  //   const result = {
+  //     topUsers, // Unified array of top users with ranks assigned by points
+  //     currentUser, // Data for the current user if found
+  //   };
+
+  //   return result;
+  // }
 
   transformBoardData(data: any, userId: string) {
     let topUsers = data.School.map((school: any) => {
@@ -1882,38 +2071,49 @@ export class ALTProgramAssociationService {
           userId: userEntry.User.userId,
           class: group.grade || "",
           className: group.name || "",
-          rank: 0, // Temporary; rank will be updated after sorting
           points: userEntry.User.totalPoints?.aggregate?.sum?.points || 0,
           lastEarnedPoints: userEntry.User.Points,
         }))
       );
-
+  
       return Users;
     });
-
+  
     topUsers = topUsers.flat();
-
+  
     // Remove users with 0 points
     topUsers = topUsers.filter((user) => user.points > 0);
-
+  
     // Sort topUsers by points in descending order
     topUsers = topUsers.sort((a, b) => b.points - a.points);
-
-    // Assign rank after sorting
-    topUsers = topUsers.map((user, index) => ({
-      ...user,
-      rank: index + 1,
-    }));
-
+  
+    // Assign ranks, ensuring the same rank for users with the same points
+    let currentRank = 0;
+    let previousPoints = null;
+  
+    const rankedUsers = topUsers.map((user, index) => {
+      if (user.points !== previousPoints) {
+        currentRank = index + 1; // Update rank only if points differ
+        previousPoints = user.points;
+      }
+      return {
+        ...user,
+        rank: currentRank,
+      };
+    });
+  
     // Find the current user based on userId
-    const currentUser = topUsers.find((user) => user.userId === userId) || null;
+    const currentUser = rankedUsers.find((user) => user.userId === userId) || null;
 
+    // Limit to the top 50 users
+    const top50Users = rankedUsers.slice(0, 50);
+  
     // Prepare the result
     const result = {
-      topUsers, // Unified array of top users with ranks assigned by points
+      topUsers: top50Users, // Unified array of top users with ranks assigned by points
       currentUser, // Data for the current user if found
     };
-
+  
     return result;
   }
   async assignProgramPoints(request, data) {
@@ -2031,6 +2231,9 @@ export class ALTProgramAssociationService {
 
     // Step 3 & 4: Iterate through completed lessons and check UserPoints
     for (const progress of completedLessons) {
+      if(progress.programId === null){
+        continue;
+      }
       const { userId, lessonId, created_at, updated_at } = progress;
       const contentInfo = contentMap.get(lessonId);
       const identifier =

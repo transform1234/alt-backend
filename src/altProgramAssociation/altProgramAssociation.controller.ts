@@ -199,9 +199,9 @@ export class ALTProgramAssociationController {
   @ApiOkResponse({ description: "ALT Rules" })
   @ApiForbiddenResponse({ description: "Forbidden" })
   async rateQuiz(@Body() body: any, @Req() request: Request) {
-    const { programId, subject, contentId, rating } = body;
+    const { programId, subject, assessmentId, rating } = body;
 
-    if (!programId || !subject || !contentId || rating === undefined) {
+    if (!programId || !subject || !assessmentId || rating === undefined) {
       return {
         statusCode: HttpStatus.BAD_REQUEST,
         message: "Invalid request body. Missing required fields.",
@@ -211,7 +211,7 @@ export class ALTProgramAssociationController {
     return this.altProgramAssociationService.rateQuiz(request, {
       programId,
       subject,
-      contentId,
+      assessmentId,
       rating,
     });
   }
