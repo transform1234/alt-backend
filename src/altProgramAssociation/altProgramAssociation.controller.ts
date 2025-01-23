@@ -279,4 +279,19 @@ export class ALTProgramAssociationController {
       timeframe,
     });
   }
+
+  // Class Teacher API
+
+  @Post("classTeacher")
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "ALT Rules" })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  async classTeacher(@Body() body: any, @Req() request: Request) {
+    const { filters } = body;
+
+    return this.altProgramAssociationService.classTeacher(request, {
+      filters
+    });
+  }
+
 }
