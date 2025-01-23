@@ -1884,10 +1884,9 @@ export class ALTProgramAssociationService {
   //   return result;
   // }
 
-
   transformClassData(data: any, userId: string) {
     console.log("userId", userId);
-  
+
     // Map and sort topUsers based on points
     const topUsers = data.topUsers
       .map((userEntry: any) => ({
@@ -1900,11 +1899,11 @@ export class ALTProgramAssociationService {
       }))
       .filter((user) => user.points > 0)
       .sort((a, b) => b.points - a.points); // Sort by points in descending order
-  
+
     // Assign ranks, ensuring the same rank for users with the same points
     let currentRank = 0;
     let previousPoints = null;
-  
+
     const rankedUsers = topUsers.map((user, index) => {
       if (user.points !== previousPoints) {
         currentRank = index + 1; // Update rank only if points differ
@@ -1915,21 +1914,21 @@ export class ALTProgramAssociationService {
         rank: currentRank,
       };
     });
-  
+
     // Find the current user based on userId
-    const currentUser = rankedUsers.find((user) => user.userId === userId) || null;
+    const currentUser =
+      rankedUsers.find((user) => user.userId === userId) || null;
 
     // Limit to the top 50 users
     const top10Users = rankedUsers.slice(0, 10);
-  
+
     const result = {
       topUsers: top10Users,
       currentUser,
     };
-  
+
     return result;
   }
-  
 
   // transformSchoolData(data: any, userId: string) {
   //   // Create a unified topUsers array for all groups
@@ -1980,17 +1979,17 @@ export class ALTProgramAssociationService {
         lastEarnedPoints: userEntry.User.Points,
       }))
     );
-  
+
     // Remove users with 0 points
     topUsers = topUsers.filter((user) => user.points > 0);
-  
+
     // Sort topUsers by points in descending order
     topUsers = topUsers.sort((a, b) => b.points - a.points);
-  
+
     // Assign ranks, ensuring the same rank for users with the same points
     let currentRank = 0;
     let previousPoints = null;
-  
+
     const rankedUsers = topUsers.map((user, index) => {
       if (user.points !== previousPoints) {
         currentRank = index + 1; // Update rank only if points differ
@@ -2001,22 +2000,22 @@ export class ALTProgramAssociationService {
         rank: currentRank,
       };
     });
-  
+
     // Find the current user based on userId
-    const currentUser = rankedUsers.find((user) => user.userId === userId) || null;
+    const currentUser =
+      rankedUsers.find((user) => user.userId === userId) || null;
 
     // Limit to the top 50 users
     const top10Users = rankedUsers.slice(0, 10);
-  
+
     // Prepare the result
     const result = {
       topUsers: top10Users, // Unified array of top users with ranks assigned by points
       currentUser, // Data for the current user if found
     };
-  
+
     return result;
   }
-  
 
   // transformBoardData(data: any, userId: string) {
   //   let topUsers = data.School.map((school: any) => {
@@ -2075,22 +2074,22 @@ export class ALTProgramAssociationService {
           lastEarnedPoints: userEntry.User.Points,
         }))
       );
-  
+
       return Users;
     });
-  
+
     topUsers = topUsers.flat();
-  
+
     // Remove users with 0 points
     topUsers = topUsers.filter((user) => user.points > 0);
-  
+
     // Sort topUsers by points in descending order
     topUsers = topUsers.sort((a, b) => b.points - a.points);
-  
+
     // Assign ranks, ensuring the same rank for users with the same points
     let currentRank = 0;
     let previousPoints = null;
-  
+
     const rankedUsers = topUsers.map((user, index) => {
       if (user.points !== previousPoints) {
         currentRank = index + 1; // Update rank only if points differ
@@ -2101,19 +2100,20 @@ export class ALTProgramAssociationService {
         rank: currentRank,
       };
     });
-  
+
     // Find the current user based on userId
-    const currentUser = rankedUsers.find((user) => user.userId === userId) || null;
+    const currentUser =
+      rankedUsers.find((user) => user.userId === userId) || null;
 
     // Limit to the top 50 users
     const top50Users = rankedUsers.slice(0, 50);
-  
+
     // Prepare the result
     const result = {
       topUsers: top50Users, // Unified array of top users with ranks assigned by points
       currentUser, // Data for the current user if found
     };
-  
+
     return result;
   }
   async assignProgramPoints(request, data) {
@@ -2231,7 +2231,7 @@ export class ALTProgramAssociationService {
 
     // Step 3 & 4: Iterate through completed lessons and check UserPoints
     for (const progress of completedLessons) {
-      if(progress.programId === null){
+      if (progress.programId === null) {
         continue;
       }
       const { userId, lessonId, created_at, updated_at } = progress;
@@ -2404,45 +2404,5 @@ export class ALTProgramAssociationService {
       message: "User points added successfully.",
       data: insertResponse.data.data,
     });
-  }
-
-  public async checkContentCompletion(
-    userId,
-    altProgramAssociation,
-    lessonProgressTracking
-  ) {
-    // Create a set to store completed contentId and lesson_questionset for quick lookup
-    const completedSet = new Set();
-
-    // Populate the set with completed contentId and lesson_questionset for the user
-    for (const progress of lessonProgressTracking) {
-      if (progress.userId === userId && progress.status === "completed") {
-        completedSet.add(progress.contentId);
-        if (progress.lesson_questionset) {
-          completedSet.add(progress.lesson_questionset);
-        }
-      }
-    }
-
-    // Iterate over each ProgramTermAssoc in altProgramAssociation
-    for (const program of altProgramAssociation.ProgramTermAssoc) {
-      const rules = JSON.parse(program.rules);
-
-      // Check if all contentId and lesson_questionset are completed
-      const allCompleted = rules.prog.every(
-        (lesson) =>
-          completedSet.has(lesson.contentId) &&
-          (!lesson.lesson_questionset ||
-            completedSet.has(lesson.lesson_questionset))
-      );
-
-      // If all lessons are completed, return true for the subject
-      if (allCompleted) {
-        return true;
-      }
-    }
-
-    // Return false if not all lessons are completed
-    return false;
   }
 }
