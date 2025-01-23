@@ -2423,5 +2423,294 @@ export class ALTProgramAssociationService {
       });
     }
   }
+
+
+  async assignProgramPoints(request, data) {
+    const token = request.headers.authorization?.replace("Bearer ", "");
+    if (!token) {
+      return new ErrorResponse({
+        errorCode: "403",
+        errorMessage: "Authorization token is required.",
+      });
+    }
+
+    // Decode the JWT token
+    const decoded: any = jwt_decode(token);
+
+    // Get user claims from token
+    const userRole =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+
+    console.log(userRole);
+
+    // Check if user has systemAdmin role
+    if (!userRole.includes("systemAdmin")) {
+      return new ErrorResponse({
+        errorCode: "403",
+        errorMessage: "Only system administrators can perform this action",
+      });
+    }
+
+    // try {
+    const getRules = {
+      query: `query MyQuery($programId: uuid ) {
+                    ProgramTermAssoc(where: {programId: {_eq: $programId}}) {
+                      rules
+                      subject
+                      Board {
+                        board
+                      }
+                    }
+                  }
+              `,
+      variables: {
+        programId: data.programId,
+      },
+    };
+
+    const rulesConfigData = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: getRules,
+    };
+    const rulesResponse = await this.axios(rulesConfigData);
+    console.log("rulesResponse", rulesResponse.data)
+    console.log(rulesResponse.data.data.ProgramTermAssoc[0].Board.board);
+
+    const programRules = rulesResponse.data.data.ProgramTermAssoc;
+
+    const contentMap = new Map();
+    let userPoints: any = [];
+    let subjectPoints: any = [];
+    for (const rule of programRules) {
+      const rules = JSON.parse(rule.rules);
+      for (const lesson of rules.prog) {
+        contentMap.set(lesson.contentId, {
+          type: "lesson",
+          subject: rule.subject,
+        });
+        if (lesson.lesson_questionset) {
+          contentMap.set(lesson.lesson_questionset, {
+            type: "assessment",
+            subject: rule.subject,
+          });
+        }
+      }
+    }
+    console.log(contentMap);
+
+    const contentIds = Array.from(contentMap.keys());
+
+    // Step 2: Query LessonProgressTracking for completed lessons
+    const lessonProgressQuery = {
+      query: `query GetCompletedLessons($contentIds: [String!]!, $programId: uuid) {
+                  LessonProgressTracking(where: {lessonId: {_in: $contentIds}, status: {_eq: completed}, programId: {_eq: $programId}}) {
+                    userId
+                    created_at
+                    updated_at
+                    status
+                    lessonId
+                  }
+                }
+    `,
+      variables: {
+        contentIds: contentIds,
+        programId: data.programId,
+      },
+    };
+    console.log(lessonProgressQuery.query, lessonProgressQuery.variables);
+
+    const configData = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: lessonProgressQuery,
+    };
+
+    const lessonResponse = await this.axios(configData);
+    // Extract completed lesson IDs from the response
+    const completedLessons = lessonResponse.data.data.LessonProgressTracking;
+
+    // Step 3 & 4: Iterate through completed lessons and check UserPoints
+    for (const progress of completedLessons) {
+      if (progress.programId === null) {
+        continue;
+      }
+      const { userId, lessonId, created_at, updated_at } = progress;
+      const contentInfo = contentMap.get(lessonId);
+      const identifier =
+        contentInfo.type === "lesson"
+          ? "lesson_completion"
+          : "assesment_completion";
+
+      const checkPointsQuery = {
+        query: `
+        query CheckExistingPoints($userId: uuid!, $contentId: String!, $programId: String!, $identifier: String!) {
+            UserPoints(where: {user_id: {_eq: $userId}, identifier: {_eq: $identifier}, earning_context: {_contains: {programId: $programId, contentId: $contentId}}}) {
+                id
+            }
+        }
+    `,
+        variables: {
+          userId,
+          contentId: lessonId,
+          programId: data.programId,
+          identifier,
+        },
+      };
+
+      const configData = {
+        method: "post",
+        url: process.env.ALTHASURA,
+        headers: {
+          Authorization: request.headers.authorization,
+          "Content-Type": "application/json",
+        },
+        data: checkPointsQuery,
+      };
+      const existingPointsResponse = await this.axios(configData);
+
+      if (!existingPointsResponse.data.data.UserPoints.length) {
+        const pointsData = {
+          identifier,
+          description:
+            identifier === "lesson_completion"
+              ? "Student has completed lesson and earned"
+              : "Student has completed assessment and earned",
+          earning_context: {
+            contentId: lessonId,
+            programId: data.programId,
+            subject: await this.checkLessonExist(programRules, progress),
+            migration_allocation: true,
+          },
+          created_at,
+          updated_at,
+        };
+        console.log(pointsData);
+
+        userPoints.push(
+          await this.addContentPoints(request, userId, pointsData)
+        );
+      } else {
+        console.log(
+          "entry already exist in userPoints table ",
+          userId,
+          lessonId,
+          data.programId
+        );
+      }
+    }
+    // Return success response with points data
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "success",
+      data: {
+        userPoints: userPoints,
+        subjectPoints: subjectPoints,
+      },
+    });
+  }
+  public async checkLessonExist(rulesData, progress) {
+    for (const rule of rulesData) {
+      const rules = JSON.parse(rule.rules);
+      if (
+        rules.prog.some(
+          (lesson) =>
+            lesson.contentId === progress.lessonId ||
+            lesson.lesson_questionset === progress.lessonId
+        )
+      ) {
+        return rule.subject;
+      }
+    }
+    throw new Error("Lesson not found in rules");
+  }
+  public async addContentPoints(request, userId, data) {
+    // get the points to be allocated to the user for a given identifier
+    const checkGraphQLQuery = {
+      query: `
+      query MyQuery($identifier: String!) {
+        PointsConfig(
+          where: { identifier: { _eq: $identifier } }
+        ) {
+          id
+          title
+          description
+          points
+          identifier
+          created_at
+          updated_at
+        }
+      }
+      `,
+      variables: {
+        identifier: data.identifier,
+      },
+    };
+    console.log(checkGraphQLQuery.query, checkGraphQLQuery.variables);
+
+    const config_data = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: checkGraphQLQuery,
+    };
+
+    const checkResponse = await this.axios(config_data);
+    console.log(checkResponse.data);
+
+    const points = checkResponse?.data?.data?.PointsConfig[0]?.points || 0;
+
+    // Create description with points value
+    const description = `${data.description} ${points} points`;
+
+    const insertGraphQLQuery = {
+      query: `
+        mutation InsertUserPoints($userId: uuid!, $identifier: String!, $points: Int!, $description: String!, $earning_context: jsonb, $created_at: timestamptz, $updated_at: timestamptz) 
+        {
+        insert_UserPoints_one(object: {user_id: $userId, identifier: $identifier, points: $points, description: $description, earning_context: $earning_context, created_at: $created_at, updated_at: $updated_at}) {
+            id
+            identifier
+            user_id
+            points
+            description
+            created_at
+            updated_at
+            earning_context
+          }
+        }
+      `,
+      variables: {
+        userId: userId,
+        identifier: data.identifier,
+        points: points,
+        description: description, // Use the new description with points
+        earning_context: data.earning_context,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+      },
+    };
+
+    config_data.data = insertGraphQLQuery;
+
+    const insertResponse = await this.axios(config_data);
+    console.log("Inserted Like:", insertResponse.data.data);
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "User points added successfully.",
+      data: insertResponse.data.data,
+    });
+  }
   
 }

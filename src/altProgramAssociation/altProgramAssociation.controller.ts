@@ -294,4 +294,13 @@ export class ALTProgramAssociationController {
     });
   }
 
+  @Post("/migration")
+  async migartionOfLessonData(@Req() request: Request, @Body() programId) {
+    return this.altProgramAssociationService.assignProgramPoints(
+      request,
+      programId
+    );
+  }
+  
 }
+
