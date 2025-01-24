@@ -10,7 +10,6 @@ import {
   SerializeOptions,
   Req,
   CacheInterceptor,
-  Inject,
   Query,
 } from "@nestjs/common";
 import {
@@ -36,14 +35,16 @@ import { UserAdapter } from "./useradapter";
 import { HasuraUserService } from "src/adapters/hasura/user.adapter";
 import { UserUpdateDto } from "./dto/user-update.dto";
 import { SentryInterceptor } from "src/common/sentry.interceptor";
+import { ALTHasuraUserService } from "src/adapters/hasura/altUser.adapter";
 @UseInterceptors(SentryInterceptor)
 @ApiTags("User")
 @Controller("user")
 export class UserController {
   constructor(
     private readonly service: UserService,
-    private userAdapter: UserAdapter,
-    private hasuraUserService: HasuraUserService
+    private readonly userAdapter: UserAdapter,
+    private readonly hasuraUserService: HasuraUserService,
+    private readonly altHasuraUserService: ALTHasuraUserService
   ) {}
 
   @Get("/:id")
@@ -146,5 +147,9 @@ export class UserController {
     return await this.userAdapter
       .buildUserAdapter()
       .teacherSegment(schoolId, templateId, request);
+  }
+  @Post("/selectUserData")
+  public async deletUserFromKCAndDB(@Req() request: Request,@Body() data:any){
+    return await this.altHasuraUserService.deleteUser(request,data);
   }
 }
