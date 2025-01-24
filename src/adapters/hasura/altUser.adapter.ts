@@ -1334,8 +1334,6 @@ export class ALTHasuraUserService {
           status: 403,
         };
       }
-      console.log('Request headers:', request.headers);
-
       if (
         request.headers.delete_api_secret &&
         request.headers.delete_api_secret !== process.env.DELETE_API_SECRET
@@ -1383,10 +1381,10 @@ export class ALTHasuraUserService {
           telemetryRecordsDeleted: telemetryResult.rows,
         },
       };
-    } catch (Error) {
+    } catch (telemetryError) {
       await client.query("ROLLBACK");
-      console.error("error:", Error);
-      throw new Error(`Database error: ${Error.message}`);
+      console.error("error:", telemetryError);
+      throw new Error(`Database error: ${telemetryError.message}`);
     } finally {
       if (client) {
         client.release();

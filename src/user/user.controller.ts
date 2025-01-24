@@ -10,9 +10,7 @@ import {
   SerializeOptions,
   Req,
   CacheInterceptor,
-  Inject,
   Query,
-  Delete,
 } from "@nestjs/common";
 import {
   SunbirdUserToken,
@@ -44,9 +42,9 @@ import { ALTHasuraUserService } from "src/adapters/hasura/altUser.adapter";
 export class UserController {
   constructor(
     private readonly service: UserService,
-    private userAdapter: UserAdapter,
-    private hasuraUserService: HasuraUserService,
-    private altHasuraUserService: ALTHasuraUserService
+    private readonly userAdapter: UserAdapter,
+    private readonly hasuraUserService: HasuraUserService,
+    private readonly altHasuraUserService: ALTHasuraUserService
   ) {}
 
   @Get("/:id")
