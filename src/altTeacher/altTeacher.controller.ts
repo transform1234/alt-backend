@@ -98,4 +98,17 @@ export class ALTTeacherController {
   ) {
     return this.altTeacherService.searchTeacher(request, teachersearchdto);
   }
+
+  @Post('subject')
+  @UsePipes(ValidationPipe)
+  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "Teacher detail." })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  // @SerializeOptions({
+  //   strategy: "excludeAll",
+  // })
+  getSubject(@Req() request: Request) {
+    return this.altTeacherService.getSubject(request);
+  }
 }

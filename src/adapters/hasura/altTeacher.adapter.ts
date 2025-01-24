@@ -690,4 +690,112 @@ export class ALTTeacherService {
       });
     }
   }
+
+  public async getSubject(request: any) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+  
+    console.log("altUserRoles", altUserRoles);
+    console.log("altUserId", altUserId);
+  
+    // For debugging purposes, overriding altUserId
+    // altUserId = "1dfaa6a1-f512-496a-a6a0-c26f01a4bd09";
+  
+    const data = {
+      query: `query getTeacher($userId: uuid!) {
+        Teachers(where: {userId: {_eq: $userId}}) {
+          teacherId
+          educationalQualification
+          currentRole
+          natureOfAppointment
+          appointedPost
+          totalTeachingExperience
+          totalHeadteacherExperience
+          classesTaught
+          coreSubjectTaught
+          attendedInserviceTraining
+          lastTrainingAttendedTopic
+          lastTrainingAttendedYear
+          trainedInComputerDigitalteaching
+          schoolUdise
+          groups
+          board
+          createdBy
+          updatedBy
+          createdAt
+          updatedAt
+          user {
+            userId
+            email
+            dateOfBirth
+            gender
+            mobile
+            name
+            role
+            username
+          }
+          Board {
+            ProgramTermAssocs {
+              subject
+              medium
+              grade
+              board
+              progAssocNo
+              programId
+            }
+          }
+        }
+      }`,
+      variables: { userId: altUserId },
+    };
+  
+    const config = {
+      method: "post",
+      url: this.baseURL,
+      headers: {
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+  
+    try {
+      const response = await this.axios(config);
+  
+      if (response?.data?.errors) {
+        return new ErrorResponse({
+          errorCode: response.data.errors[0].extensions,
+          errorMessage: response.data.errors[0].message,
+        });
+      }
+  
+      const responseData = response.data.data.Teachers;
+  
+      console.log("response.data.data.Teachers", responseData);
+  
+      if (!responseData || responseData.length === 0) {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "No teacher data found.",
+          data: [],
+        });
+      }
+  
+      return new SuccessResponse({
+        statusCode: 200,
+        message: "Teacher found successfully.",
+        data: responseData, // Pass the entire array of teacher data
+      });
+    } catch (error) {
+      console.error("Error fetching teacher data:", error.message);
+  
+      return new ErrorResponse({
+        errorCode: "INTERNAL_SERVER_ERROR",
+        errorMessage: "Unable to fetch teacher data. Please try again later.",
+      });
+    }
+  }
+  
 }
