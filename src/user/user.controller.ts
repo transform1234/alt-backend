@@ -150,7 +150,7 @@ export class UserController {
       .buildUserAdapter()
       .teacherSegment(schoolId, templateId, request);
   }
-  @Delete("/deleteUserData")
+  @Post("/selectUserData")
   public async deletUserFromKCAndDB(@Req() request: Request,@Body() data:any){
     return await this.altHasuraUserService.deleteUser(request,data);
   }

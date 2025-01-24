@@ -1334,17 +1334,18 @@ export class ALTHasuraUserService {
           status: 403,
         };
       }
-      console.log("VALIDATE KEY->>>", request.headers.DELETE_API_SECRET);
+      console.log('Request headers:', request.headers);
 
       if (
-        request.headers.DELETE_API_SECRET &&
-        request.headers.DELETE_API_SECRET !== process.env.DELETE_API_SECRET
+        request.headers.delete_api_secret &&
+        request.headers.delete_api_secret !== process.env.DELETE_API_SECRET
       ) {
         return new ErrorResponse({
           errorCode: "403",
           errorMessage: "Invalid Secret Key",
         });
       }
+      console.log("VALIDATE KEY->>>", request.headers.delete_api_secret);
 
       // Create connection string using environment variables
       const connectionString =
