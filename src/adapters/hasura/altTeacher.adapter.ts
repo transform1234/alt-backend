@@ -694,13 +694,13 @@ export class ALTTeacherService {
   public async getSubject(request: any) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
-    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    let altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
   
     console.log("altUserRoles", altUserRoles);
     console.log("altUserId", altUserId);
   
     // For debugging purposes, overriding altUserId
-    // altUserId = "1dfaa6a1-f512-496a-a6a0-c26f01a4bd09";
+     altUserId = "1dfaa6a1-f512-496a-a6a0-c26f01a4bd09";
   
     const data = {
       query: `query getTeacher($userId: uuid!) {
@@ -796,6 +796,97 @@ export class ALTTeacherService {
         errorMessage: "Unable to fetch teacher data. Please try again later.",
       });
     }
+  }
+
+  public async classProgress(request: any, body: any) {
+    const programId = body.programId;
+    console.log("programId", programId)
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    let altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+  
+    console.log("altUserRoles", altUserRoles);
+    console.log("altUserId", altUserId);
+  
+    // For debugging purposes, overriding altUserId
+     altUserId = "1dfaa6a1-f512-496a-a6a0-c26f01a4bd09";
+  
+    const data = {
+      query: `query getTeacher($programId: uuid!) {
+        ProgramTermAssoc(where: {programId: {_eq: $programId}}) {
+          programId
+          grade
+          medium
+          subject
+          board
+          rules
+        }
+      }`,
+      variables: { programId: programId },
+    };
+  
+    const config = {
+      method: "post",
+      url: this.baseURL,
+      headers: {
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+  
+    try {
+      const response = await this.axios(config);
+  
+      if (response?.data?.errors) {
+        return new ErrorResponse({
+          errorCode: response.data.errors[0].extensions,
+          errorMessage: response.data.errors[0].message,
+        });
+      }
+  
+      const responseData = response.data.data;
+  
+      console.log("response.data.data", responseData);
+
+
+      const subjectProgress = await this.subjectProgress(responseData.ProgramTermAssoc[0].rules)
+  
+      if (!responseData || responseData.length === 0) {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "No class data found.",
+          data: [],
+        });
+      }
+  
+      return new SuccessResponse({
+        statusCode: 200,
+        message: "Class found successfully.",
+        data: responseData, // Pass the entire array of teacher data
+      });
+    } catch (error) {
+      console.error("Error fetching Class data:", error.message);
+  
+      return new ErrorResponse({
+        errorCode: "INTERNAL_SERVER_ERROR",
+        errorMessage: "Unable to fetch Class data. Please try again later.",
+      });
+    }
+  }
+
+  public async subjectProgress(rules) {
+    console.log("rules", rules)
+    const formattedRules = JSON.parse(rules)
+    console.log("formattedRules", formattedRules.prog)
+
+    const lessonProgress = await this.lessonProgress(formattedRules.prog[0].contentId, formattedRules.prog[0].contentType)
+  }
+
+  public async lessonProgress(contentId, contentType) {
+    console.log("contentId", contentId, contentType)
+    
   }
   
 }

@@ -111,4 +111,17 @@ export class ALTTeacherController {
   getSubject(@Req() request: Request) {
     return this.altTeacherService.getSubject(request);
   }
+
+  @Post('classProgress')
+  @UsePipes(ValidationPipe)
+  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "Teacher detail." })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  // @SerializeOptions({
+  //   strategy: "excludeAll",
+  // })
+  classProgress(@Req() request: Request, @Body() body: any) {
+    return this.altTeacherService.classProgress(request, body);
+  }
 }

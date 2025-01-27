@@ -37,6 +37,7 @@ export class ALTProgramAssociationService {
     request: any,
     altSubjectListDto: ALTSubjectListDto
   ) {
+    console.log("altSubjectListDto", altSubjectListDto)
     const subjectListData = {
       query: `query GetSubjectList ($board:String,$medium:String,$grade:String,$programId:uuid!){
                 ProgramTermAssoc(where: 
