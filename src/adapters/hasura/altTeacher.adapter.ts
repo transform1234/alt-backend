@@ -699,56 +699,6 @@ export class ALTTeacherService {
     console.log("altUserRoles", altUserRoles);
     console.log("altUserId", altUserId);
   
-    
-  
-    // const data = {
-    //   query: `query getTeacher($userId: uuid!) {
-    //     Teachers(where: {userId: {_eq: $userId}}) {
-    //       teacherId
-    //       educationalQualification
-    //       currentRole
-    //       natureOfAppointment
-    //       appointedPost
-    //       totalTeachingExperience
-    //       totalHeadteacherExperience
-    //       classesTaught
-    //       coreSubjectTaught
-    //       attendedInserviceTraining
-    //       lastTrainingAttendedTopic
-    //       lastTrainingAttendedYear
-    //       trainedInComputerDigitalteaching
-    //       schoolUdise
-    //       groups
-    //       board
-    //       createdBy
-    //       updatedBy
-    //       createdAt
-    //       updatedAt
-    //       user {
-    //         userId
-    //         email
-    //         dateOfBirth
-    //         gender
-    //         mobile
-    //         name
-    //         role
-    //         username
-    //       }
-    //       Board {
-    //         ProgramTermAssocs {
-    //           subject
-    //           medium
-    //           grade
-    //           board
-    //           progAssocNo
-    //           programId
-    //         }
-    //       }
-    //     }
-    //   }`,
-    //   variables: { userId: altUserId },
-    // };
-
     const data = {
       query: `
         query getTeacher($userId: uuid!, $board: String!, $medium: String!, $grade: String!) {
@@ -928,25 +878,271 @@ export class ALTTeacherService {
   }
 
   public async subjectProgress(request, rules, studentDetails) {
-    console.log("rules", rules)
-    const formattedRules = JSON.parse(rules)
-    console.log("formattedRules", formattedRules.prog)
-
-    const lessonProgress = await this.lessonProgress(request, formattedRules.prog[0].contentId, studentDetails.Group[0].GroupMemberships)
-
-    return lessonProgress
+    try {
+      console.log("rules", rules);
+      const formattedRules = JSON.parse(rules);
+      console.log("formattedRules", formattedRules);
+  
+      // Extract contentIds from rules
+      const contentIds = formattedRules.prog.map((progItem) => progItem.contentId);
+      console.log("Extracted contentIds:", contentIds);
+  
+      // Extract userIds from studentDetails
+      const studentGroup = studentDetails.Group[0]; // Assuming you need the first group
+      let userIds = studentGroup.GroupMemberships.map(
+        (membership) => membership.User.Student.userId
+      );
+      // userIds.push('e954780c-0a1b-4038-a59a-65ee932c4aa6')
+      // userIds.push('05729f7b-cb29-4f0a-93a9-3b7bdf9367b4')
+      console.log("Extracted userIds:", userIds);
+  
+      // Pass extracted IDs to the lessonProgress method
+      const lessonProgress = await this.lessonProgress(
+        request,
+        contentIds,
+        userIds
+      );
+  
+      return lessonProgress;
+    } catch (error) {
+      console.error("Error in subjectProgress:", error);
+      throw error;
+    }
   }
 
-  public async lessonProgress(request, contentId, studentDetails) {
-    console.log("contentId", contentId)
 
-    console.log("studentDetails", studentDetails[0].User.Student)
-
-    const status = this.getLessonProgressStatus(request, contentId, studentDetails[0].User.Student)
-
-    return status
-
+  public async lessonProgress(request, contentIds, studentIds) {
+    console.log("contentIds", contentIds);
+    console.log("studentIds", studentIds);
+  
+    const data = {
+      query: `query myQuery($contentIds: [String!]!, $studentIds: [uuid!]!) {
+        LessonProgressTracking(where: {
+          lessonId: {_in: $contentIds}, 
+          userId: {_in: $studentIds}, 
+          status: {_eq: completed}
+        }) {
+          courseId
+          lessonId
+          userId
+          status
+        }
+      }`,
+      variables: { contentIds, studentIds },
+    };
+  
+    const config = {
+      method: "post",
+      url: this.baseURL,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+  
+    try {
+      const response = await this.axios(config);
+      const responseData = response.data;
+  
+      console.log("responseData", responseData);
+  
+      // Calculate the count of completed statuses
+      const completedCount = responseData.data.LessonProgressTracking.length;
+      const totalStudentCount = studentIds.length; // Total number of students passed as parameter
+  
+      // Calculate percentage completion
+      const completionPercentage = totalStudentCount > 0 ? (completedCount / totalStudentCount) * 100 : 0;
+  
+      console.log(`Number of completed lessons: ${completedCount}`);
+      console.log(`Total students: ${totalStudentCount}`);
+      console.log(`Completion percentage: ${completionPercentage.toFixed(2)}%`);
+  
+      return {
+        completedCount,
+        totalStudentCount,
+        completionPercentage: completionPercentage.toFixed(2), // Round to 2 decimal places
+        data: responseData.data.LessonProgressTracking,
+      };
+    } catch (error) {
+      console.error("Error fetching Class data:", error.message);
+      return new ErrorResponse({
+        errorCode: "INTERNAL_SERVER_ERROR",
+        errorMessage: "Unable to fetch Class data. Please try again later.",
+      });
+    }
   }
+  
+  
+
+  public async lessonProgress1(request, contentIds, studentIds) {
+    console.log("contentIds", contentIds);
+    console.log("studentIds", studentIds);
+  
+    const data = {
+      query: `query myQuery($contentIds: [String!]!, $studentIds: [uuid!]!) {
+        LessonProgressTracking(where: {
+          lessonId: {_in: $contentIds}, 
+          userId: {_in: $studentIds}, 
+          status: {_eq: completed}
+        }) {
+          courseId
+          lessonId
+          userId
+          status
+        }
+      }`,
+      variables: { contentIds, studentIds },
+    };
+  
+    const config = {
+      method: "post",
+      url: this.baseURL,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+  
+    try {
+      const response = await this.axios(config);
+      const responseData = response.data;
+      console.log("responseData", responseData);
+
+      console.log("responseData", responseData);
+
+    // Calculate the count of completed statuses
+    const completedCount = responseData.data.LessonProgressTracking.length;
+
+    console.log(`Number of completed lessons: ${completedCount}`);
+  
+      return responseData;
+    } catch (error) {
+      console.error("Error fetching Class data:", error.message);
+      return new ErrorResponse({
+        errorCode: "INTERNAL_SERVER_ERROR",
+        errorMessage: "Unable to fetch Class data. Please try again later.",
+      });
+    }
+  }
+
+  public async lessonProgress2(request, contentIds, studentIds) {
+    console.log("contentIds", contentIds);
+    console.log("studentIds", studentIds);
+  
+    const results = [];
+  
+    try {
+      for (const contentId of contentIds) {
+        console.log(`Processing for contentId: ${contentId}`);
+  
+        const data = {
+          query: `query myQuery($contentId: String!, $studentIds: [uuid!]!) {
+            LessonProgressTracking(where: {
+              lessonId: {_eq: $contentId}, 
+              userId: {_in: $studentIds}, 
+              status: {_eq: completed}
+            }) {
+              courseId
+              lessonId
+              userId
+              status
+            }
+          }`,
+          variables: { contentId, studentIds },
+        };
+  
+        const config = {
+          method: "post",
+          url: this.baseURL,
+          headers: {
+            Authorization: request.headers.authorization,
+            "Content-Type": "application/json",
+          },
+          data: data,
+        };
+  
+        const response = await this.axios(config);
+        const responseData = response.data;
+  
+        console.log(`Progress for contentId ${contentId}:`, responseData);
+  
+        // Store the response for this contentId
+        results.push({ contentId, data: responseData });
+      }
+  
+      return results;
+    } catch (error) {
+      console.error("Error fetching Class data:", error.message);
+      return new ErrorResponse({
+        errorCode: "INTERNAL_SERVER_ERROR",
+        errorMessage: "Unable to fetch Class data. Please try again later.",
+      });
+    }
+  }
+
+  public async lessonProgress3(request, contentIds, studentIds) {
+    console.log("contentIds", contentIds);
+    console.log("studentIds", studentIds);
+  
+    const results = [];
+  
+    try {
+      for (const contentId of contentIds) {
+        console.log(`Processing for contentId: ${contentId}`);
+        
+        for (const studentId of studentIds) {
+          console.log(`Processing for studentId: ${studentId}`);
+  
+          const data = {
+            query: `query myQuery($contentId: String!, $studentId: uuid!) {
+              LessonProgressTracking(where: {
+                lessonId: {_eq: $contentId}, 
+                userId: {_eq: $studentId}, 
+                status: {_eq: completed}
+              }) {
+                courseId
+                lessonId
+                userId
+                status
+              }
+            }`,
+            variables: { contentId, studentId },
+          };
+  
+          const config = {
+            method: "post",
+            url: this.baseURL,
+            headers: {
+              Authorization: request.headers.authorization,
+              "Content-Type": "application/json",
+            },
+            data: data,
+          };
+  
+          const response = await this.axios(config);
+          const responseData = response.data;
+  
+          console.log(`Progress for contentId ${contentId}, studentId ${studentId}:`, responseData);
+  
+          // Store the response for this contentId and studentId
+          results.push({ contentId, studentId, data: responseData });
+        }
+      }
+  
+      return results;
+    } catch (error) {
+      console.error("Error fetching Class data:", error.message);
+      return new ErrorResponse({
+        errorCode: "INTERNAL_SERVER_ERROR",
+        errorMessage: "Unable to fetch Class data. Please try again later.",
+      });
+    }
+  }
+  
+  
+  
 
   public async getGroupId(request, medium, grade, board, schoolUdise) {
     const decoded: any = jwt_decode(request.headers.authorization);
@@ -1147,7 +1343,7 @@ export class ALTTeacherService {
 
   public async getLessonProgressStatus(request: any, contentId, userId) {
     console.log("contentId", contentId)
-    console.log("userId", userId)
+    console.log("userId", userId.userId)
 
     const decoded: any = jwt_decode(request.headers.authorization);
     // const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
@@ -1158,14 +1354,14 @@ export class ALTTeacherService {
 
     const data = {
       query: `query myQuery($contentId: String!, $userId: uuid!) {
-        LessonProgressTracking(where: {lessonId: {_eq: $contentId}, userId: {_eq: $userId}, status: {_eq: "completed"}}) {
+        LessonProgressTracking(where: {lessonId: {_eq: $contentId}, userId: {_eq: $userId}, status: {_eq: completed}}) {
           courseId
           lessonId
           userId
           status
         }
       }`,
-      variables: { contentId: contentId,  userId: userId},
+      variables: { contentId: contentId,  userId: userId.userId},
     };
   
     const config = {
