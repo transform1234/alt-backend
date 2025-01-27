@@ -1371,7 +1371,6 @@ export class ALTHasuraUserService {
       console.log("selectTelemetryQuery->>>", selectTelemetryQuery);
 
       const telemetryResult = await telemetryClient.query(selectTelemetryQuery);
-      console.log("TELEMETRY DEBUG->>>>>>", telemetryResult);
 
       console.log(`Fetched ${telemetryResult} telemetry records`);
 
