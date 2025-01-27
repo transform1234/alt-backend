@@ -1366,7 +1366,7 @@ export class ALTHasuraUserService {
       
 
       const selectTelemetryQuery = `
-        SELECT * FROM djp_events 
+        SELECT count(*) FROM djp_events 
         WHERE message::jsonb -> 'actor' ->> 'id' = $1
       `;
 
@@ -1374,14 +1374,16 @@ export class ALTHasuraUserService {
         selectTelemetryQuery,
         [userId]
       );
-      console.log(`Fetched ${telemetryResult.rowCount} telemetry records`);
+      console.log("TELEMETRY DEBUG->>>>>>",telemetryResult);
+      
+      console.log(`Fetched ${telemetryResult} telemetry records`);
 
       return {
         success: true,
         message: `User fetched successfully`,
         userId: userId,
         details: {
-          telemetryRecordsDeleted: telemetryResult.rows,
+          telemetryRecordsDeleted: telemetryResult,
         },
       };
     } catch (telemetryError) {
