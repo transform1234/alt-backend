@@ -1365,11 +1365,10 @@ export class ALTHasuraUserService {
       console.log("CONNECTION ESTABLISHED ->", telemetryClient);
 
       const selectTelemetryQuery = `
-        SELECT count(*) FROM djp_events 
+        SELECT * FROM djp_events 
         WHERE message::jsonb -> 'actor' ->> 'id' = 'f29c0973-7f8a-47a2-a1df-dc1080460ed6'
       `;
-      console.log("selectTelemetryQuery->>>",selectTelemetryQuery);
-      
+      console.log("selectTelemetryQuery->>>", selectTelemetryQuery);
 
       const telemetryResult = await telemetryClient.query(selectTelemetryQuery);
       console.log("TELEMETRY DEBUG->>>>>>", telemetryResult);
