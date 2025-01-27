@@ -694,13 +694,13 @@ export class ALTTeacherService {
   public async getSubject(request: any) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
-    let altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
   
     console.log("altUserRoles", altUserRoles);
     console.log("altUserId", altUserId);
   
     // For debugging purposes, overriding altUserId
-     altUserId = "1dfaa6a1-f512-496a-a6a0-c26f01a4bd09";
+    // altUserId = "1dfaa6a1-f512-496a-a6a0-c26f01a4bd09";
   
     const data = {
       query: `query getTeacher($userId: uuid!) {
@@ -798,22 +798,19 @@ export class ALTTeacherService {
     }
   }
 
-  public async classProgress(request: any, body: any) {
-    const programId = body.programId;
-    console.log("programId", programId)
+  public async classProgress(request: any, medium, grade, board) {
+   
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
-    let altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
   
     console.log("altUserRoles", altUserRoles);
     console.log("altUserId", altUserId);
   
-    // For debugging purposes, overriding altUserId
-     altUserId = "1dfaa6a1-f512-496a-a6a0-c26f01a4bd09";
   
     const data = {
-      query: `query getTeacher($programId: uuid!) {
-        ProgramTermAssoc(where: {programId: {_eq: $programId}}) {
+      query: `query getTeacher($medium: String!, $grade: String!, $board: String!) {
+        ProgramTermAssoc(where: {medium: {_eq: $medium}, grade: {_eq: $grade}, board: {_eq: $board}}) {
           programId
           grade
           medium
@@ -822,7 +819,7 @@ export class ALTTeacherService {
           rules
         }
       }`,
-      variables: { programId: programId },
+      variables: { medium: medium,  grade: grade, board: board},
     };
   
     const config = {
@@ -886,7 +883,80 @@ export class ALTTeacherService {
 
   public async lessonProgress(contentId, contentType) {
     console.log("contentId", contentId, contentType)
-    
+
+  }
+
+  public async subjectWiseProgress(request: any, subject, medium, grade, board) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+  
+    console.log("altUserRoles", altUserRoles);
+    console.log("altUserId", altUserId);
+  
+    const data = {
+      query: `query getTeacher($medium: String!, $grade: String!, $board: String!, $subject:  String!) {
+        ProgramTermAssoc(where: {medium: {_eq: $medium}, grade: {_eq: $grade}, board: {_eq: $board}, subject: {_eq: $subject}}) {
+          programId
+          grade
+          medium
+          subject
+          board
+          rules
+        }
+      }`,
+      variables: { medium: medium,  grade: grade, board: board, subject: subject},
+    };
+  
+    const config = {
+      method: "post",
+      url: this.baseURL,
+      headers: {
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+  
+    try {
+      const response = await this.axios(config);
+  
+      if (response?.data?.errors) {
+        return new ErrorResponse({
+          errorCode: response.data.errors[0].extensions,
+          errorMessage: response.data.errors[0].message,
+        });
+      }
+  
+      const responseData = response.data.data;
+  
+      console.log("response.data.data", responseData);
+
+
+      const subjectProgress = await this.subjectProgress(responseData.ProgramTermAssoc[0].rules)
+  
+      if (!responseData || responseData.length === 0) {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "No class data found.",
+          data: [],
+        });
+      }
+  
+      return new SuccessResponse({
+        statusCode: 200,
+        message: "Class found successfully.",
+        data: responseData, // Pass the entire array of teacher data
+      });
+    } catch (error) {
+      console.error("Error fetching Class data:", error.message);
+  
+      return new ErrorResponse({
+        errorCode: "INTERNAL_SERVER_ERROR",
+        errorMessage: "Unable to fetch Class data. Please try again later.",
+      });
+    }
   }
   
 }

@@ -122,6 +122,21 @@ export class ALTTeacherController {
   //   strategy: "excludeAll",
   // })
   classProgress(@Req() request: Request, @Body() body: any) {
-    return this.altTeacherService.classProgress(request, body);
+    const { medium, grade, board } = body
+    return this.altTeacherService.classProgress(request, medium, grade, board);
+  }
+
+  @Post('subjectProgress')
+  @UsePipes(ValidationPipe)
+  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "Teacher detail." })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  // @SerializeOptions({
+  //   strategy: "excludeAll",
+  // })
+  subjectProgress(@Req() request: Request, @Body() body: any) {
+    const { subject, medium, grade, board } = body
+    return this.altTeacherService.subjectWiseProgress(request, subject, medium, grade, board);
   }
 }
