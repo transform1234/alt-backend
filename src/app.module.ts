@@ -46,6 +46,7 @@ import { ALTBulkUploadTeacherModule } from "./altBulkUploadTeacher/altBulkUpload
 import { ALTBulkUploadSchoolModule } from "./altBulkUploadSchool/altBulkUploadSchool.module";
 import { ALTAuthModule } from "./altAuth/altAuth.module";
 import { QuestionModule } from "./Question/question.module";
+import { UserModule } from "./user/user.module";
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -95,7 +96,8 @@ import { QuestionModule } from "./Question/question.module";
     ALTBulkUploadTeacherModule,
     ALTBulkUploadSchoolModule,
     ALTAuthModule,
-    QuestionModule
+    QuestionModule,
+    UserModule
   ],
   controllers: [AppController],
   providers: [AppService],
