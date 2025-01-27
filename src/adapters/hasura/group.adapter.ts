@@ -364,6 +364,8 @@ export class HasuraGroupService implements IServicelocatorgroup {
   }
 
   public async findGroupsByUserId(userId: string, role: string, request: any) {
+    console.log("userId", userId)
+    console.log("role", role)
     let axios = require("axios");
     var findMember = {
       query: `query GetGroup($userId:uuid!,$role:String) {

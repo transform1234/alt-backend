@@ -1137,6 +1137,8 @@ export class ALTHasuraUserService {
         return this.sendErrorResponse(res, 401, "Invalid token");
       }
 
+      console.log("userInfo", userInfo)
+
       // Decode the token
       const decoded: any = jwt_decode(token);
       const currentTimestamp = Math.floor(Date.now() / 1000);
@@ -1240,6 +1242,7 @@ export class ALTHasuraUserService {
 
     try {
       const response = await this.axios(config);
+      console.log("response.data.data", response.data)
       return response.data.data.Users || null;
     } catch (error) {
       console.error("GraphQL fetch error:", error.message);

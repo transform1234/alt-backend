@@ -108,8 +108,9 @@ export class ALTTeacherController {
   // @SerializeOptions({
   //   strategy: "excludeAll",
   // })
-  getSubject(@Req() request: Request) {
-    return this.altTeacherService.getSubject(request);
+  getSubject(@Req() request: Request, @Body() body: any) {
+    const { groupId, medium, grade, board, schoolUdise } = body
+    return this.altTeacherService.getSubject(request, groupId, medium, grade, board, schoolUdise);
   }
 
   @Post('classProgress')
@@ -136,7 +137,7 @@ export class ALTTeacherController {
   //   strategy: "excludeAll",
   // })
   subjectProgress(@Req() request: Request, @Body() body: any) {
-    const { subject, medium, grade, board } = body
-    return this.altTeacherService.subjectWiseProgress(request, subject, medium, grade, board);
+    const { subject, medium, grade, board, schoolUdise } = body
+    return this.altTeacherService.subjectWiseProgress(request, subject, medium, grade, board, schoolUdise);
   }
 }
