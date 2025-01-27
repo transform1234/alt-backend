@@ -1365,26 +1365,29 @@ export class ALTHasuraUserService {
       // Connect to the database
       let telemetryClient = await pool.connect();
 
+      console.log("CONNECTION ESTABLISHED ->", telemetryClient);
+
       const selectTelemetryQuery = `
         SELECT * FROM djp_events 
-        WHERE message::jsonb -> 'actor' ->> 'id' = $1
+        WHERE message::jsonb -> 'actor' ->> 'id' = 'f29c0973-7f8a-47a2-a1df-dc1080460ed6'
       `;
+      console.log("selectTelemetryQuery->>>", selectTelemetryQuery);
 
-      const telemetryResult = await telemetryClient.query(
-        selectTelemetryQuery,
-        [userId]
-      );
-      console.log(`Fetched ${telemetryResult.rowCount} telemetry records`);
+      const telemetryResult = await telemetryClient.query(selectTelemetryQuery);
+
+      console.log(`Fetched ${telemetryResult} telemetry records`);
 
       return {
         success: true,
         message: `User fetched successfully`,
         userId: userId,
         details: {
-          telemetryRecordsDeleted: telemetryResult.rows,
+          telemetryRecordsDeleted: telemetryResult,
         },
       };
     } catch (telemetryError) {
+      console.log(telemetryError);
+
       await client.query("ROLLBACK");
       console.error("error:", telemetryError);
       throw new Error(`Database error: ${telemetryError.message}`);
