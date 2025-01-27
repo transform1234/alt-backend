@@ -11,7 +11,6 @@ import {
   Req,
   CacheInterceptor,
   Query,
-  UploadedFile,
   Delete,
 } from "@nestjs/common";
 import {
@@ -38,10 +37,7 @@ import { HasuraUserService } from "src/adapters/hasura/user.adapter";
 import { UserUpdateDto } from "./dto/user-update.dto";
 import { SentryInterceptor } from "src/common/sentry.interceptor";
 import { ALTHasuraUserService } from "src/adapters/hasura/altUser.adapter";
-import { FileInterceptor } from "@nestjs/platform-express";
-import * as multer from "multer";
-import * as fs from "fs";
-import csv from "csv-parser";
+
 
 @UseInterceptors(SentryInterceptor)
 @ApiTags("User")
