@@ -802,7 +802,7 @@ export class ALTTeacherService {
     }
   }
 
-  public async classProgress(request: any, medium, grade, board) {
+  public async classWiseProgress1(request: any, medium, grade, board, schoolUdise) {
    
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
@@ -813,7 +813,7 @@ export class ALTTeacherService {
   
   
     const data = {
-      query: `query getTeacher($medium: String!, $grade: String!, $board: String!) {
+      query: `query myQuery($medium: String!, $grade: String!, $board: String!) {
         ProgramTermAssoc(where: {medium: {_eq: $medium}, grade: {_eq: $grade}, board: {_eq: $board}}) {
           programId
           grade
@@ -852,7 +852,7 @@ export class ALTTeacherService {
       console.log("response.data.data", responseData);
 
 
-     // const subjectProgress = await this.subjectProgress(responseData.ProgramTermAssoc[0].rules)
+      //const subjectProgress = await this.subjectWiseProgress(request, subject, medium, grade, board, schoolUdise)
   
       if (!responseData || responseData.length === 0) {
         return new SuccessResponse({
@@ -873,6 +873,241 @@ export class ALTTeacherService {
       return new ErrorResponse({
         errorCode: "INTERNAL_SERVER_ERROR",
         errorMessage: "Unable to fetch Class data. Please try again later.",
+      });
+    }
+  }
+
+  public async classWiseProgress(request: any, medium: string, grade: string, board: string, schoolUdise: string) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+  
+    console.log("altUserRoles", altUserRoles);
+    console.log("altUserId", altUserId);
+  
+    const data = {
+      query: `query myQuery($medium: String!, $grade: String!, $board: String!) {
+        ProgramTermAssoc(where: {medium: {_eq: $medium}, grade: {_eq: $grade}, board: {_eq: $board}}) {
+          programId
+          grade
+          medium
+          subject
+          board
+          rules
+        }
+      }`,
+      variables: { medium, grade, board },
+    };
+  
+    const config = {
+      method: "post",
+      url: this.baseURL,
+      headers: {
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+  
+    try {
+      const response = await this.axios(config);
+  
+      if (response?.data?.errors) {
+        return new ErrorResponse({
+          errorCode: response.data.errors[0].extensions,
+          errorMessage: response.data.errors[0].message,
+        });
+      }
+  
+      const responseData = response.data.data?.ProgramTermAssoc;
+  
+      if (!responseData || responseData.length === 0) {
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "No class data found.",
+          data: [],
+        });
+      }
+  
+      console.log("responseData 933", responseData);
+  
+      // Initialize variables for aggregation
+      const subjectResults = [];
+      let totalCompletionCount = 0;
+      let totalStudentsCount = 0;
+  
+      // Iterate over each subject and calculate subject-wise progress
+      for (const program of responseData) {
+        const { subject, rules } = program;
+  
+        try {
+          // Parse the rules to extract content IDs
+          const parsedRules = JSON.parse(rules);
+          const contentIds = parsedRules.prog.map((progItem: any) => progItem.contentId);
+  
+          console.log(`Calculating progress for subject: ${subject}, contentIds: ${contentIds}`);
+  
+          // Call subjectWiseProgress
+          const subjectProgress: any = await this.subjectWiseProgress(
+            request,
+            subject,
+            medium,
+            grade,
+            board,
+            schoolUdise
+          );
+  
+          if (subjectProgress && !("errorCode" in subjectProgress)) {
+            // Add the result to the array
+            subjectResults.push({
+              subject,
+              ...subjectProgress, // Add the completion data for this subject
+            });
+  
+            // Aggregate completion data
+            totalCompletionCount += subjectProgress.completedCount;
+            totalStudentsCount += subjectProgress.totalStudentCount;
+          } else {
+            console.error(`Error in subjectWiseProgress for subject ${subject}:`, subjectProgress);
+          }
+        } catch (error) {
+          console.error(`Failed to calculate progress for subject ${subject}:`, error.message);
+        }
+      }
+  
+      // Calculate the overall class completion percentage
+      const classCompletionPercentage =
+        totalStudentsCount > 0 ? (totalCompletionCount / totalStudentsCount) * 100 : 0;
+  
+      return new SuccessResponse({
+        statusCode: 200,
+        message: "Class progress calculated successfully.",
+        data: {
+          classCompletionPercentage: classCompletionPercentage.toFixed(2), // Round to 2 decimal places
+          subjectResults,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching Class data:", error.message);
+  
+      return new ErrorResponse({
+        errorCode: "INTERNAL_SERVER_ERROR",
+        errorMessage: "Unable to fetch Class data. Please try again later.",
+      });
+    }
+  }
+  
+  
+
+  // subject wise progress
+
+  public async subjectWiseProgress(request: any, subject, medium, grade, board, schoolUdise) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+  
+    console.log("altUserRoles", altUserRoles);
+    console.log("altUserId", altUserId);
+
+
+    const studentDetails = await this.getStudentByClassId(request, medium, grade, board, schoolUdise)
+    console.log("studentDetails", studentDetails.Group[0].GroupMemberships.length)
+    //return studentDetails
+
+    const rules = await this.getRules(request, subject, medium, grade, board, schoolUdise)
+
+    const subjectProgress = await this.subjectProgress(request, rules.ProgramTermAssoc[0].rules, studentDetails)
+
+    return subjectProgress
+  
+    
+  }
+
+  public async subjectWiseProgressController(request: any, subject, medium, grade, board, schoolUdise) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+  
+    console.log("altUserRoles", altUserRoles);
+    console.log("altUserId", altUserId);
+
+
+    const studentDetails = await this.getStudentByClassId(request, medium, grade, board, schoolUdise)
+    console.log("studentDetails", studentDetails.Group[0].GroupMemberships.length)
+    //return studentDetails
+
+    const rules = await this.getRules(request, subject, medium, grade, board, schoolUdise)
+
+    const subjectProgress = await this.subjectProgress(request, rules.ProgramTermAssoc[0].rules, studentDetails)
+
+    //return subjectProgress
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Subject progress calculated successfully.",
+      data: subjectProgress
+    });
+  
+    
+  }
+
+  async getStudentByClassId(request, medium, grade, board, schoolUdise) {
+    const variables: any = { medium, grade, board, schoolUdise };
+
+    const checkGraphQLQuery = {
+      query: `
+      query MyQuery( $medium: String!, $grade: numeric!, $board: String!, $schoolUdise: String!) {
+        Group(where: {medium: {_eq: $medium}, grade: {_eq: $grade}, board: {_eq: $board}, status: {_eq: true}, schoolUdise: {_eq: $schoolUdise}}) {
+          groupId
+          grade
+          medium
+          name
+          status
+          board
+          schoolUdise
+          GroupMemberships(where: {role: {_eq: "student"}, status: {_eq: true}}) {
+            User {
+              Student {
+                userId
+                user {
+                  role
+                  name
+                  userId
+                }
+              }
+            }
+          }
+        }
+      }
+      `,
+      variables,
+    };
+
+    console.log("checkGraphQLQuery", checkGraphQLQuery);
+
+    const config_data = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: checkGraphQLQuery,
+    };
+
+    try {
+      const checkResponse = await this.axios(config_data);
+      const responseData = checkResponse.data.data
+      console.log("responseData", responseData);
+
+      return responseData
+
+    } catch (error) {
+      console.error("Axios Error:", error.message);
+      throw new ErrorResponse({
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
       });
     }
   }
@@ -910,6 +1145,58 @@ export class ALTTeacherService {
     }
   }
 
+  public async getRules(request: any, subject, medium, grade, board, schoolUdise) {
+
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+  
+    console.log("altUserRoles", altUserRoles);
+    console.log("altUserId", altUserId);
+
+    const data = {
+      query: `query myQuery($medium: String!, $grade: String!, $board: String!, $subject:  String!) {
+        ProgramTermAssoc(where: {medium: {_eq: $medium}, grade: {_eq: $grade}, board: {_eq: $board}, subject: {_eq: $subject}}) {
+          programId
+          grade
+          medium
+          subject
+          board
+          rules
+        }
+      }`,
+      variables: { medium: medium,  grade: grade, board: board, subject: subject},
+    };
+  
+    const config = {
+      method: "post",
+      url: this.baseURL,
+      headers: {
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+  
+    try {
+      const response = await this.axios(config);
+  
+      const responseData = response.data.data;
+  
+      console.log("response.data.data", responseData);
+
+      return responseData
+      
+    } catch (error) {
+      console.error("Error fetching Class data:", error.message);
+  
+      return new ErrorResponse({
+        errorCode: "INTERNAL_SERVER_ERROR",
+        errorMessage: "Unable to fetch Class data. Please try again later.",
+      });
+    }
+  }
 
   public async lessonProgress(request, contentIds, studentIds) {
     console.log("contentIds", contentIds);
@@ -972,8 +1259,9 @@ export class ALTTeacherService {
       });
     }
   }
-  
-  
+
+
+  // function for testing
 
   public async lessonProgress1(request, contentIds, studentIds) {
     console.log("contentIds", contentIds);
@@ -1140,9 +1428,6 @@ export class ALTTeacherService {
       });
     }
   }
-  
-  
-  
 
   public async getGroupId(request, medium, grade, board, schoolUdise) {
     const decoded: any = jwt_decode(request.headers.authorization);
@@ -1204,193 +1489,56 @@ export class ALTTeacherService {
     }
   }
 
-  // subject wise progress
+  // public async getLessonProgressStatus(request: any, contentId, userId) {
+  //   console.log("contentId", contentId)
+  //   console.log("userId", userId.userId)
 
-  public async subjectWiseProgress(request: any, subject, medium, grade, board, schoolUdise) {
-    const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
-    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+  //   const decoded: any = jwt_decode(request.headers.authorization);
+  //   // const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+  //   // const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
   
-    console.log("altUserRoles", altUserRoles);
-    console.log("altUserId", altUserId);
+  //   // console.log("altUserRoles", altUserRoles);
+  //   // console.log("altUserId", altUserId);
 
-
-    const studentDetails = await this.getStudentByClassId(request, medium, grade, board, schoolUdise)
-    console.log("studentDetails", studentDetails.Group[0].GroupMemberships.length)
-    //return studentDetails
-
-    const rules = await this.getRules(request, subject, medium, grade, board, schoolUdise)
-
-    const subjectProgress = await this.subjectProgress(request, rules.ProgramTermAssoc[0].rules, studentDetails)
-
-    return subjectProgress
+  //   const data = {
+  //     query: `query myQuery($contentId: String!, $userId: uuid!) {
+  //       LessonProgressTracking(where: {lessonId: {_eq: $contentId}, userId: {_eq: $userId}, status: {_eq: completed}}) {
+  //         courseId
+  //         lessonId
+  //         userId
+  //         status
+  //       }
+  //     }`,
+  //     variables: { contentId: contentId,  userId: userId.userId},
+  //   };
   
-    
-  }
-
-  async getStudentByClassId(request, medium, grade, board, schoolUdise) {
-    const variables: any = { medium, grade, board, schoolUdise };
-
-    const checkGraphQLQuery = {
-      query: `
-      query MyQuery( $medium: String!, $grade: numeric!, $board: String!, $schoolUdise: String!) {
-        Group(where: {medium: {_eq: $medium}, grade: {_eq: $grade}, board: {_eq: $board}, status: {_eq: true}, schoolUdise: {_eq: $schoolUdise}}) {
-          groupId
-          grade
-          medium
-          name
-          status
-          board
-          schoolUdise
-          GroupMemberships(where: {role: {_eq: "student"}, status: {_eq: true}}) {
-            User {
-              Student {
-                userId
-                user {
-                  role
-                  name
-                  userId
-                }
-              }
-            }
-          }
-        }
-      }
-      `,
-      variables,
-    };
-
-    console.log("checkGraphQLQuery", checkGraphQLQuery);
-
-    const config_data = {
-      method: "post",
-      url: process.env.ALTHASURA,
-      headers: {
-        Authorization: request.headers.authorization,
-        "Content-Type": "application/json",
-      },
-      data: checkGraphQLQuery,
-    };
-
-    try {
-      const checkResponse = await this.axios(config_data);
-      const responseData = checkResponse.data.data
-      console.log("responseData", responseData);
-
-      return responseData
-
-    } catch (error) {
-      console.error("Axios Error:", error.message);
-      throw new ErrorResponse({
-        errorCode: "AXIOS_ERROR",
-        errorMessage: "Failed to execute the GraphQL mutation.",
-      });
-    }
-  }
-
-  public async getRules(request: any, subject, medium, grade, board, schoolUdise) {
-
-    const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
-    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+  //   const config = {
+  //     method: "post",
+  //     url: this.baseURL,
+  //     headers: {
+  //       Authorization: request.headers.authorization,
+  //       "Content-Type": "application/json",
+  //     },
+  //     data: data,
+  //   };
   
-    console.log("altUserRoles", altUserRoles);
-    console.log("altUserId", altUserId);
+  //   try {
+  //     const response = await this.axios(config);
+  
+  //     const responseData = response.data;
+  
+  //     console.log("responseData", responseData);
 
-    const data = {
-      query: `query myQuery($medium: String!, $grade: String!, $board: String!, $subject:  String!) {
-        ProgramTermAssoc(where: {medium: {_eq: $medium}, grade: {_eq: $grade}, board: {_eq: $board}, subject: {_eq: $subject}}) {
-          programId
-          grade
-          medium
-          subject
-          board
-          rules
-        }
-      }`,
-      variables: { medium: medium,  grade: grade, board: board, subject: subject},
-    };
-  
-    const config = {
-      method: "post",
-      url: this.baseURL,
-      headers: {
-        Authorization: request.headers.authorization,
-        "x-hasura-role": getUserRole(altUserRoles),
-        "Content-Type": "application/json",
-      },
-      data: data,
-    };
-  
-    try {
-      const response = await this.axios(config);
-  
-      const responseData = response.data.data;
-  
-      console.log("response.data.data", responseData);
-
-      return responseData
+  //     return responseData
       
-    } catch (error) {
-      console.error("Error fetching Class data:", error.message);
+  //   } catch (error) {
+  //     console.error("Error fetching Class data:", error.message);
   
-      return new ErrorResponse({
-        errorCode: "INTERNAL_SERVER_ERROR",
-        errorMessage: "Unable to fetch Class data. Please try again later.",
-      });
-    }
-  }
-
-  public async getLessonProgressStatus(request: any, contentId, userId) {
-    console.log("contentId", contentId)
-    console.log("userId", userId.userId)
-
-    const decoded: any = jwt_decode(request.headers.authorization);
-    // const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
-    // const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-  
-    // console.log("altUserRoles", altUserRoles);
-    // console.log("altUserId", altUserId);
-
-    const data = {
-      query: `query myQuery($contentId: String!, $userId: uuid!) {
-        LessonProgressTracking(where: {lessonId: {_eq: $contentId}, userId: {_eq: $userId}, status: {_eq: completed}}) {
-          courseId
-          lessonId
-          userId
-          status
-        }
-      }`,
-      variables: { contentId: contentId,  userId: userId.userId},
-    };
-  
-    const config = {
-      method: "post",
-      url: this.baseURL,
-      headers: {
-        Authorization: request.headers.authorization,
-        "Content-Type": "application/json",
-      },
-      data: data,
-    };
-  
-    try {
-      const response = await this.axios(config);
-  
-      const responseData = response.data;
-  
-      console.log("responseData", responseData);
-
-      return responseData
-      
-    } catch (error) {
-      console.error("Error fetching Class data:", error.message);
-  
-      return new ErrorResponse({
-        errorCode: "INTERNAL_SERVER_ERROR",
-        errorMessage: "Unable to fetch Class data. Please try again later.",
-      });
-    }
-  }
+  //     return new ErrorResponse({
+  //       errorCode: "INTERNAL_SERVER_ERROR",
+  //       errorMessage: "Unable to fetch Class data. Please try again later.",
+  //     });
+  //   }
+  // }
   
 }

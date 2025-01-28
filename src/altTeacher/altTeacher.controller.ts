@@ -123,8 +123,8 @@ export class ALTTeacherController {
   //   strategy: "excludeAll",
   // })
   classProgress(@Req() request: Request, @Body() body: any) {
-    const { medium, grade, board } = body
-    return this.altTeacherService.classProgress(request, medium, grade, board);
+    const { medium, grade, board, schoolUdise } = body
+    return this.altTeacherService.classWiseProgress(request, medium, grade, board, schoolUdise);
   }
 
   @Post('subjectProgress')
@@ -138,6 +138,6 @@ export class ALTTeacherController {
   // })
   subjectProgress(@Req() request: Request, @Body() body: any) {
     const { subject, medium, grade, board, schoolUdise } = body
-    return this.altTeacherService.subjectWiseProgress(request, subject, medium, grade, board, schoolUdise);
+    return this.altTeacherService.subjectWiseProgressController(request, subject, medium, grade, board, schoolUdise);
   }
 }
