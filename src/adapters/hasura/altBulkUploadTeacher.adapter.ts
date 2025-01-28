@@ -25,6 +25,7 @@ export class ALTBulkUploadTeacherService {
     let altUserRoles: string[];
     let bulkToken: string;
     try {
+      console.log("bulkTeacherDto", bulkTeacherDto)
       const decoded: any = jwt_decode(request.headers.authorization);
       altUserRoles =
         decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
@@ -46,7 +47,9 @@ export class ALTBulkUploadTeacherService {
     }
     try {
       for (const teacher of bulkTeacherDto.teachers) {
+        console.log("teacher", teacher)
         const teacherClasses = getClasses(teacher.classesTaught);
+        console.log("teacherClasses 52", teacherClasses)
         if (!teacherClasses.length) {
           errors.push({
             name: teacher.name,
@@ -58,12 +61,16 @@ export class ALTBulkUploadTeacherService {
         let groupInfo;
 
         for (let teacherClass of teacherClasses) {
+          console.log("teacherClass 64", teacherClass)
+          let academicYear = teacher.academicYear ?? new Date().getFullYear().toString();
           const groupRes: any = await this.groupService.getGroupBySchoolClass(
             request,
             teacher.schoolUdise,
             teacherClass,
-            new Date().getFullYear().toString()
+            academicYear
           );
+
+          console.log("groupRes", groupRes)
 
           if (!groupRes.data[0].groupId) {
             errors.push({

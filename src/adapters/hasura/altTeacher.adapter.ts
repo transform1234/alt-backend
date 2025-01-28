@@ -884,6 +884,7 @@ export class ALTTeacherService {
   
     console.log("altUserRoles", altUserRoles);
     console.log("altUserId", altUserId);
+    console.log("grade", grade)
   
     const data = {
       query: `query myQuery($medium: String!, $grade: String!, $board: String!) {
@@ -921,6 +922,8 @@ export class ALTTeacherService {
       }
   
       const responseData = response.data.data?.ProgramTermAssoc;
+
+      console.log("responseData", responseData)
   
       if (!responseData || responseData.length === 0) {
         return new SuccessResponse({
@@ -1199,6 +1202,110 @@ export class ALTTeacherService {
   }
 
   public async lessonProgress(request, contentIds, studentIds) {
+    console.log("contentIds", contentIds);
+    console.log("studentIds", studentIds);
+  
+    const data = {
+      query: `query myQuery($contentIds: [String!]!, $studentIds: [uuid!]!) {
+        LessonProgressTracking(where: {
+          lessonId: {_in: $contentIds}, 
+          userId: {_in: $studentIds}, 
+          status: {_eq: completed}
+        }) {
+          lessonId
+          userId
+          status
+        }
+      }`,
+      variables: { contentIds, studentIds },
+    };
+  
+    const config = {
+      method: "post",
+      url: this.baseURL,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+  
+    try {
+      const response = await this.axios(config);
+      const responseData = response.data;
+  
+      if (!responseData?.data?.LessonProgressTracking) {
+        console.error("No lesson progress data found.");
+        return new ErrorResponse({
+          errorCode: "NO_DATA_FOUND",
+          errorMessage: "No lesson progress data found.",
+        });
+      }
+  
+      const lessonProgressData = responseData.data.LessonProgressTracking;
+  
+      console.log("LessonProgressTracking data:", lessonProgressData);
+  
+      // Map to track the number of completed lessons per user
+      const userCompletionMap = new Map();
+  
+      // Populate the map with completed lessons count per user
+      lessonProgressData.forEach((record) => {
+        const { userId } = record;
+        userCompletionMap.set(userId, (userCompletionMap.get(userId) || 0) + 1);
+      });
+  
+      console.log("User Completion Map:", userCompletionMap);
+  
+      // Calculate percentage completion for each user
+      const userCompletionPercentages = studentIds.map((userId) => {
+        const completedLessons = userCompletionMap.get(userId) || 0;
+        const totalLessons = contentIds.length;
+  
+        const completionPercentage =
+          totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+  
+        return {
+          userId,
+          completedLessons,
+          totalLessons,
+          completionPercentage: completionPercentage.toFixed(2), // Round to 2 decimal places
+        };
+      });
+  
+      console.log("User Completion Percentages:", userCompletionPercentages);
+  
+      // Calculate the average completion percentage across all users
+      const totalCompletionPercentage = userCompletionPercentages.reduce(
+        (sum, user) => sum + parseFloat(user.completionPercentage),
+        0
+      );
+      const averageCompletionPercentage =
+        userCompletionPercentages.length > 0
+          ? totalCompletionPercentage / userCompletionPercentages.length
+          : 0;
+  
+      console.log(`Average Completion Percentage: ${averageCompletionPercentage.toFixed(2)}%`);
+  
+      return {
+        statusCode: 200,
+        message: "Lesson progress calculated successfully.",
+        data: {
+          userCompletionPercentages,
+          averageCompletionPercentage: averageCompletionPercentage.toFixed(2), // Round to 2 decimal places
+        },
+      };
+    } catch (error) {
+      console.error("Error fetching lesson progress data:", error.message);
+      return new ErrorResponse({
+        errorCode: "INTERNAL_SERVER_ERROR",
+        errorMessage: "Unable to fetch lesson progress data. Please try again later.",
+      });
+    }
+  }
+  
+
+  public async lessonProgress4(request, contentIds, studentIds) {
     console.log("contentIds", contentIds);
     console.log("studentIds", studentIds);
   

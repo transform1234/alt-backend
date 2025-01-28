@@ -229,6 +229,8 @@ export class TeacherDto {
   @ApiProperty()
   @Expose()
   trainedInComputerDigitalteaching: string;
+  academicYear: string;
+  
 
   constructor(obj: any, all: boolean) {
     this.userId = obj?.userId ? `${obj.userId}` : "";

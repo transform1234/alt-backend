@@ -618,6 +618,10 @@ export class HasuraGroupService implements IServicelocatorgroup {
     className: string,
     year: string
   ) {
+
+    console.log("schoolUdise", schoolUdise)
+    console.log("className", className)
+    console.log("year", year)
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
