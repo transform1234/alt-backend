@@ -37,6 +37,7 @@ export class ALTProgramAssociationService {
     request: any,
     altSubjectListDto: ALTSubjectListDto
   ) {
+    console.log("altSubjectListDto", altSubjectListDto)
     const subjectListData = {
       query: `query GetSubjectList ($board:String,$medium:String,$grade:String,$programId:uuid!){
                 ProgramTermAssoc(where: 
@@ -2149,35 +2150,19 @@ export class ALTProgramAssociationService {
 
     const checkGraphQLQuery = {
       query: `
-      query MyQuery($groupId: uuid!, $startDate: timestamptz, $endDate: timestamptz) {
+      query MyQuery($groupId: uuid!) {
         Group(where: { groupId: { _eq: $groupId } }) {
           groupId
           type
           grade
           name
         }
-        topUsers: GroupMembership(
-          where: { groupId: { _eq: $groupId } },
-          order_by: { User: { Points_aggregate: { sum: { points: asc } } } }
-        ) {
+        GroupMembership(where: {role: {_eq: "teacher"}}){
           User {
             name
             userId
-             Points_aggregate(
-              
-            ) {
-              aggregate {
-                sum {
-                  points
-                }
-              }
-            }
-            Points(order_by: {created_at: desc}, limit: 1) {
-              points
-              created_at
-              description
-              identifier
-            }
+            role
+            email
           }
         }
       }
@@ -2410,7 +2395,6 @@ export class ALTProgramAssociationService {
     }
   }
 
-
   async assignProgramPoints(request, data) {
     const token = request.headers.authorization?.replace("Bearer ", "");
     if (!token) {
@@ -2603,6 +2587,7 @@ export class ALTProgramAssociationService {
       },
     });
   }
+
   public async checkLessonExist(rulesData, progress) {
     for (const rule of rulesData) {
       const rules = JSON.parse(rule.rules);
@@ -2618,6 +2603,7 @@ export class ALTProgramAssociationService {
     }
     throw new Error("Lesson not found in rules");
   }
+
   public async addContentPoints(request, userId, data) {
     // get the points to be allocated to the user for a given identifier
     const checkGraphQLQuery = {
