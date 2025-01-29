@@ -1375,6 +1375,8 @@ export class ALTHasuraUserService {
       "Students",
       "Teachers",
       "Users",
+      "GlaLikedContents",
+      "GlaQuizRating"
     ];
 
     const { usernames } = data;
