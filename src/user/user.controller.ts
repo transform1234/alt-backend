@@ -11,6 +11,7 @@ import {
   Req,
   CacheInterceptor,
   Query,
+  Delete,
 } from "@nestjs/common";
 import {
   SunbirdUserToken,
@@ -36,6 +37,8 @@ import { HasuraUserService } from "src/adapters/hasura/user.adapter";
 import { UserUpdateDto } from "./dto/user-update.dto";
 import { SentryInterceptor } from "src/common/sentry.interceptor";
 import { ALTHasuraUserService } from "src/adapters/hasura/altUser.adapter";
+
+
 @UseInterceptors(SentryInterceptor)
 @ApiTags("User")
 @Controller("user")
@@ -132,7 +135,7 @@ export class UserController {
       reqBody.newPassword
     );
   }
- 
+
   @Get("teachersegment/:schoolId")
   // @ApiBasicAuth("access-token")
   @ApiCreatedResponse({ description: "User list." })
@@ -148,8 +151,11 @@ export class UserController {
       .buildUserAdapter()
       .teacherSegment(schoolId, templateId, request);
   }
-  @Post("/selectUserData")
-  public async deletUserFromKCAndDB(@Req() request: Request,@Body() data:any){
-    return await this.altHasuraUserService.deleteUser(request,data);
+  @Delete("/deleteUserData")
+  public async deletUserFromKCAndDB(
+    @Req() request: Request,
+    @Body() data: { usernames: string[] }
+  ) {
+    return await this.altHasuraUserService.deleteUser(request, data);
   }
 }
