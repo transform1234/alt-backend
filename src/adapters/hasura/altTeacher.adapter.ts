@@ -9,6 +9,7 @@ import { ALTHasuraUserService } from "./altUser.adapter";
 import { GroupMembershipService } from "./groupMembership.adapter";
 import { GroupMembershipDtoById } from "src/groupMembership/dto/groupMembership.dto";
 import { HasuraGroupService } from "./group.adapter";
+import { BMGStoProgramDto } from "src/altProgram/dto/bmgstoProgram.dto";
 @Injectable()
 export class ALTTeacherService {
   constructor(
@@ -1307,7 +1308,7 @@ export class ALTTeacherService {
 
   // student class progress
 
-  public async classWiseProgressController(request: any, medium: string, grade: string, board: string, schoolUdise: string) {
+  public async classWiseProgressController(request: any, medium: string, grade: string, board: string, schoolUdise: string, programId) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
@@ -1317,8 +1318,8 @@ export class ALTTeacherService {
     console.log("grade", grade)
 
     const data = {
-      query: `query myQuery($medium: String!, $grade: String!, $board: String!) {
-        ProgramTermAssoc(where: {medium: {_eq: $medium}, grade: {_eq: $grade}, board: {_eq: $board}}) {
+      query: `query myQuery($medium: String!, $grade: String!, $board: String!, $programId: uuid!) {
+        ProgramTermAssoc(where: {medium: {_eq: $medium}, grade: {_eq: $grade}, board: {_eq: $board}, programId: {_eq: $programId}}) {
           programId
           grade
           medium
@@ -1327,7 +1328,7 @@ export class ALTTeacherService {
           rules
         }
       }`,
-      variables: { medium, grade, board },
+      variables: { medium, grade, board, programId },
     };
 
     const config = {
@@ -1389,7 +1390,8 @@ export class ALTTeacherService {
             grade,
             board,
             schoolUdise,
-            rules
+            rules,
+            programId
           );
 
           if (subjectProgress && !("errorCode" in subjectProgress)) {
@@ -1445,7 +1447,7 @@ export class ALTTeacherService {
     }
   }
 
-  public async studentClassWiseProgressController(request: any, medium: string, grade: string, board: string, schoolUdise: string) {
+  public async studentClassWiseProgressController(request: any, medium: string, grade: string, board: string, schoolUdise: string, programId) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
@@ -1455,8 +1457,8 @@ export class ALTTeacherService {
     console.log("grade", grade)
 
     const data = {
-      query: `query myQuery($medium: String!, $grade: String!, $board: String!) {
-        ProgramTermAssoc(where: {medium: {_eq: $medium}, grade: {_eq: $grade}, board: {_eq: $board}}) {
+      query: `query myQuery($medium: String!, $grade: String!, $board: String!, $programId: uuid!) {
+        ProgramTermAssoc(where: {medium: {_eq: $medium}, grade: {_eq: $grade}, board: {_eq: $board}, programId: {_eq: $programId}}) {
           programId
           grade
           medium
@@ -1465,7 +1467,7 @@ export class ALTTeacherService {
           rules
         }
       }`,
-      variables: { medium, grade, board },
+      variables: { medium, grade, board, programId },
     };
 
     const config = {
@@ -1527,7 +1529,8 @@ export class ALTTeacherService {
             grade,
             board,
             schoolUdise,
-            rules
+            rules,
+            programId
           );
 
           if (subjectProgress && !("errorCode" in subjectProgress)) {
@@ -1549,8 +1552,16 @@ export class ALTTeacherService {
       }
 
       // Calculate the overall class completion percentage
-      const classCompletionPercentage =
-        totalStudentsCount > 0 ? (totalCompletionCount / totalStudentsCount) * 100 : 0;
+      // const classCompletionPercentage =
+      //   totalStudentsCount > 0 ? (totalCompletionCount / totalStudentsCount) * 100 : 0;
+
+      const totalSubjects = subjectResults.length;
+      const totalAverageCompletion = subjectResults.reduce((sum, subject) =>
+        sum + parseFloat(subject.averageCompletionPercentage), 0);
+
+      const classCompletionPercentage = totalSubjects > 0
+        ? (totalAverageCompletion / totalSubjects).toFixed(2)
+        : "0.00";
 
       const classResults = this.calculateClassProgress(subjectResults)
 
@@ -1558,7 +1569,7 @@ export class ALTTeacherService {
         statusCode: 200,
         message: "Student progress calculated successfully.",
         data: {
-          classCompletionPercentage: classCompletionPercentage.toFixed(2), // Round to 2 decimal places
+          classCompletionPercentage: classCompletionPercentage, // Round to 2 decimal places
           //subjectResults,
           classResults
         },
@@ -1573,7 +1584,7 @@ export class ALTTeacherService {
     }
   }
 
-  public async subjectWiseProgressController(request: any, subject, medium, grade, board, schoolUdise) {
+  public async subjectWiseProgressController(request: any, subject, medium, grade, board, schoolUdise, programId) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
@@ -1586,7 +1597,7 @@ export class ALTTeacherService {
     console.log("studentDetails", studentDetails.Group[0].GroupMemberships.length)
     //return studentDetails
 
-    const rules = await this.getRules(request, subject, medium, grade, board, schoolUdise)
+    const rules = await this.getRules(request, subject, medium, grade, board, schoolUdise, programId)
 
     const subjectProgress = await this.subjectProgress(request, rules.ProgramTermAssoc[0].rules, studentDetails, subject)
 
@@ -1601,7 +1612,7 @@ export class ALTTeacherService {
 
   }
 
-  public async studentSubjectWiseProgressController(request: any, subject, medium, grade, board, schoolUdise) {
+  public async studentSubjectWiseProgressController(request: any, subject, medium, grade, board, schoolUdise, programId) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
@@ -1614,7 +1625,7 @@ export class ALTTeacherService {
     console.log("studentDetails", studentDetails.Group[0].GroupMemberships.length)
     //return studentDetails
 
-    const rules = await this.getRules(request, subject, medium, grade, board, schoolUdise)
+    const rules = await this.getRules(request, subject, medium, grade, board, schoolUdise, programId)
 
     const subjectProgress = await this.subjectProgress(request, rules.ProgramTermAssoc[0].rules, studentDetails, subject)
 
@@ -1629,7 +1640,7 @@ export class ALTTeacherService {
 
   }
 
-  public async subjectWiseProgress(request: any, subject, medium, grade, board, schoolUdise, rules) {
+  public async subjectWiseProgress(request: any, subject, medium, grade, board, schoolUdise, rules, programId) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
@@ -1645,7 +1656,7 @@ export class ALTTeacherService {
 
     if (!rules) {
       console.log("rules 1479")
-      rules = await this.getRules(request, subject, medium, grade, board, schoolUdise)
+      rules = await this.getRules(request, subject, medium, grade, board, schoolUdise, programId)
       rules = rules.ProgramTermAssoc[0].rules
     }
 
@@ -1716,7 +1727,7 @@ export class ALTTeacherService {
     }
   }
 
-  public async getRules(request: any, subject, medium, grade, board, schoolUdise) {
+  public async getRules(request: any, subject, medium, grade, board, schoolUdise, programId) {
 
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
@@ -1726,8 +1737,8 @@ export class ALTTeacherService {
     console.log("altUserId", altUserId);
 
     const data = {
-      query: `query myQuery($medium: String!, $grade: String!, $board: String!, $subject:  String!) {
-        ProgramTermAssoc(where: {medium: {_eq: $medium}, grade: {_eq: $grade}, board: {_eq: $board}, subject: {_eq: $subject}}) {
+      query: `query myQuery($medium: String!, $grade: String!, $board: String!, $subject:  String!, $programId: uuid!) {
+        ProgramTermAssoc(where: {medium: {_eq: $medium}, grade: {_eq: $grade}, board: {_eq: $board}, subject: {_eq: $subject}, programId: {_eq: $programId}}) {
           programId
           grade
           medium
@@ -1736,7 +1747,7 @@ export class ALTTeacherService {
           rules
         }
       }`,
-      variables: { medium: medium, grade: grade, board: board, subject: subject },
+      variables: { medium: medium, grade: grade, board: board, subject: subject, programId: programId },
     };
 
     const config = {
@@ -1886,13 +1897,18 @@ export class ALTTeacherService {
       console.log("Extracted contentIds:", contentIds);
 
       // Extract userIds and usernames from studentDetails
+      // Extract userIds and usernames from studentDetails
+      console.log("studentDetails 1892", studentDetails.Group[0].GroupMemberships);
+
       const studentGroup = studentDetails.Group[0]; // Assuming you need the first group
-      const userIds = studentGroup.GroupMemberships.map(
-        (membership) => membership.User.Student.userId
-      );
-      const usernames = studentGroup.GroupMemberships.map(
-        (membership) => membership.User.Student.user.name
-      );
+
+      const userIds = studentGroup.GroupMemberships
+        .filter(membership => membership.User?.Student) // Filter out null Students
+        .map(membership => membership.User.Student.userId);
+
+      const usernames = studentGroup.GroupMemberships
+        .filter(membership => membership.User?.Student) // Filter out null Students
+        .map(membership => membership.User.Student.user?.name || "Unknown"); // Handle missing names
 
       console.log("Extracted userIds:", userIds);
       console.log("Extracted usernames:", usernames);
@@ -1917,35 +1933,38 @@ export class ALTTeacherService {
 
     // Iterate over subject results
     subjectResults.forEach((subjectData) => {
-      if (subjectData.data && subjectData.data.userCompletionPercentages) {
-        subjectData.data.userCompletionPercentages.forEach((student) => {
-          const { userId, username, completionPercentage } = student;
-          const percentage = parseFloat(completionPercentage);
+        if (subjectData.userCompletionPercentages) {  // No `.data` property in actual data
+            subjectData.userCompletionPercentages.forEach((student) => {
+                const { userId, username, completionPercentage } = student;
+                const percentage = parseFloat(completionPercentage);
 
-          if (!studentProgressMap.has(userId)) {
-            studentProgressMap.set(userId, {
-              userId,
-              username,
-              totalSubject: 0,
-              totalPercentage: 0,
+                if (!studentProgressMap.has(userId)) {
+                    studentProgressMap.set(userId, {
+                        userId,
+                        username,
+                        totalSubjects: 0,
+                        totalPercentage: 0,
+                    });
+                }
+
+                const studentData = studentProgressMap.get(userId);
+                studentData.totalSubjects += 1;
+                studentData.totalPercentage += percentage;
             });
-          }
-
-          const studentData = studentProgressMap.get(userId);
-          studentData.totalSubject += 1;
-          studentData.totalPercentage += percentage;
-        });
-      }
+        }
     });
 
     // Convert the map to an array and calculate the final completion percentage
     const classProgress = Array.from(studentProgressMap.values()).map(student => ({
-      ...student,
-      completionPercentage: parseFloat((student.totalPercentage / student.totalSubject).toFixed(2))
+        ...student,
+        completionPercentage: student.totalSubjects > 0 
+            ? parseFloat((student.totalPercentage / student.totalSubjects).toFixed(2)) 
+            : 0
     }));
 
     return classProgress;
-  }
+}
+
 
   public removeUserCompletionPercentages(subjectResults: any[]): any[] {
     return subjectResults.map(({ userCompletionPercentages, ...rest }) => rest);
@@ -1953,344 +1972,64 @@ export class ALTTeacherService {
 
   // function for testing
 
-  public async lessonProgress1(request, contentIds, studentIds) {
-    console.log("contentIds", contentIds);
-    console.log("studentIds", studentIds);
-
-    const data = {
-      query: `query myQuery($contentIds: [String!]!, $studentIds: [uuid!]!) {
-        LessonProgressTracking(where: {
-          lessonId: {_in: $contentIds}, 
-          userId: {_in: $studentIds}, 
-          status: {_eq: completed}
-        }) {
-          courseId
-          lessonId
-          userId
-          status
-        }
-      }`,
-      variables: { contentIds, studentIds },
-    };
-
-    const config = {
-      method: "post",
-      url: this.baseURL,
-      headers: {
-        Authorization: request.headers.authorization,
-        "Content-Type": "application/json",
-      },
-      data: data,
-    };
-
-    try {
-      const response = await this.axios(config);
-      const responseData = response.data;
-      console.log("responseData", responseData);
-
-      console.log("responseData", responseData);
-
-      // Calculate the count of completed statuses
-      const completedCount = responseData.data.LessonProgressTracking.length;
-
-      console.log(`Number of completed lessons: ${completedCount}`);
-
-      return responseData;
-    } catch (error) {
-      console.error("Error fetching Class data:", error.message);
-      return new ErrorResponse({
-        errorCode: "INTERNAL_SERVER_ERROR",
-        errorMessage: "Unable to fetch Class data. Please try again later.",
-      });
-    }
-  }
-
-  public async lessonProgress2(request, contentIds, studentIds) {
-    console.log("contentIds", contentIds);
-    console.log("studentIds", studentIds);
-
-    const results = [];
-
-    try {
-      for (const contentId of contentIds) {
-        console.log(`Processing for contentId: ${contentId}`);
-
-        const data = {
-          query: `query myQuery($contentId: String!, $studentIds: [uuid!]!) {
-            LessonProgressTracking(where: {
-              lessonId: {_eq: $contentId}, 
-              userId: {_in: $studentIds}, 
-              status: {_eq: completed}
-            }) {
-              courseId
-              lessonId
-              userId
-              status
+  public async getCurrentProgramId(
+    request: any,
+    bmgstoprogramdto: BMGStoProgramDto
+  ) {
+    const programData = {
+      query: `query GetCurrentProgramId ($board:String,$medium:String,$grade:String,$currentDate:date){
+            AssessProgram(where: 
+            {
+              board: {_eq: $board},
+              medium: {_eq: $medium}
+              grade: {_eq: $grade},
+              endDate: {_gte: $currentDate},
+              startDate: {_lte: $currentDate}
+            }) 
+            {
+              programId
             }
           }`,
-          variables: { contentId, studentIds },
-        };
-
-        const config = {
-          method: "post",
-          url: this.baseURL,
-          headers: {
-            Authorization: request.headers.authorization,
-            "Content-Type": "application/json",
-          },
-          data: data,
-        };
-
-        const response = await this.axios(config);
-        const responseData = response.data;
-
-        console.log(`Progress for contentId ${contentId}:`, responseData);
-
-        // Store the response for this contentId
-        results.push({ contentId, data: responseData });
-      }
-
-      return results;
-    } catch (error) {
-      console.error("Error fetching Class data:", error.message);
-      return new ErrorResponse({
-        errorCode: "INTERNAL_SERVER_ERROR",
-        errorMessage: "Unable to fetch Class data. Please try again later.",
-      });
-    }
-  }
-
-  public async lessonProgress3(request, contentIds, studentIds) {
-    console.log("contentIds", contentIds);
-    console.log("studentIds", studentIds);
-
-    const results = [];
-
-    try {
-      for (const contentId of contentIds) {
-        console.log(`Processing for contentId: ${contentId}`);
-
-        for (const studentId of studentIds) {
-          console.log(`Processing for studentId: ${studentId}`);
-
-          const data = {
-            query: `query myQuery($contentId: String!, $studentId: uuid!) {
-              LessonProgressTracking(where: {
-                lessonId: {_eq: $contentId}, 
-                userId: {_eq: $studentId}, 
-                status: {_eq: completed}
-              }) {
-                courseId
-                lessonId
-                userId
-                status
-              }
-            }`,
-            variables: { contentId, studentId },
-          };
-
-          const config = {
-            method: "post",
-            url: this.baseURL,
-            headers: {
-              Authorization: request.headers.authorization,
-              "Content-Type": "application/json",
-            },
-            data: data,
-          };
-
-          const response = await this.axios(config);
-          const responseData = response.data;
-
-          console.log(`Progress for contentId ${contentId}, studentId ${studentId}:`, responseData);
-
-          // Store the response for this contentId and studentId
-          results.push({ contentId, studentId, data: responseData });
-        }
-      }
-
-      return results;
-    } catch (error) {
-      console.error("Error fetching Class data:", error.message);
-      return new ErrorResponse({
-        errorCode: "INTERNAL_SERVER_ERROR",
-        errorMessage: "Unable to fetch Class data. Please try again later.",
-      });
-    }
-  }
-
-  public async lessonProgress4(request, contentIds, studentIds) {
-    console.log("contentIds", contentIds);
-    console.log("studentIds", studentIds);
-
-    const data = {
-      query: `query myQuery($contentIds: [String!]!, $studentIds: [uuid!]!) {
-        LessonProgressTracking(where: {
-          lessonId: {_in: $contentIds}, 
-          userId: {_in: $studentIds}, 
-          status: {_eq: completed}
-        }) {
-          courseId
-          lessonId
-          userId
-          status
-        }
-      }`,
-      variables: { contentIds, studentIds },
+      variables: {
+        board: bmgstoprogramdto.board,
+        medium: bmgstoprogramdto.medium,
+        grade: bmgstoprogramdto.grade,
+        currentDate: bmgstoprogramdto.currentDate,
+      },
     };
 
-    const config = {
+    const configData = {
       method: "post",
-      url: this.baseURL,
+      url: process.env.ALTHASURA,
       headers: {
-        Authorization: request.headers.authorization,
+        "Authorization": request.headers.authorization,
         "Content-Type": "application/json",
       },
-      data: data,
+      data: programData,
     };
 
-    try {
-      const response = await this.axios(config);
-      const responseData = response.data;
+    const response = await this.axios(configData);
 
-      console.log("responseData", responseData);
-
-      // Calculate the count of completed statuses
-      const completedCount = responseData.data.LessonProgressTracking.length;
-      const totalStudentCount = studentIds.length; // Total number of students passed as parameter
-
-      // Calculate percentage completion
-      const completionPercentage = totalStudentCount > 0 ? (completedCount / totalStudentCount) * 100 : 0;
-
-      console.log(`Number of completed lessons: ${completedCount}`);
-      console.log(`Total students: ${totalStudentCount}`);
-      console.log(`Completion percentage: ${completionPercentage.toFixed(2)}%`);
-
-      return {
-        completedCount,
-        totalStudentCount,
-        completionPercentage: completionPercentage.toFixed(2), // Round to 2 decimal places
-        data: responseData.data.LessonProgressTracking,
-      };
-    } catch (error) {
-      console.error("Error fetching Class data:", error.message);
+    if (response?.data?.errors) {
       return new ErrorResponse({
-        errorCode: "INTERNAL_SERVER_ERROR",
-        errorMessage: "Unable to fetch Class data. Please try again later.",
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
       });
     }
-  }
 
-  public async getGroupId(request, medium, grade, board, schoolUdise) {
-    const decoded: any = jwt_decode(request.headers.authorization);
-    const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
-    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    let result = response.data.data.AssessProgram;
 
-    console.log("altUserRoles", altUserRoles);
-    console.log("altUserId", altUserId);
-
-    const data = {
-      query: `query myQuery($medium: String!, $grade: numeric!, $board: String!, $schoolUdise: String!) {
-        Group(where: {medium: {_eq: $medium}, grade: {_eq: $grade}, board: {_eq: $board}, schoolUdise: {_eq: $schoolUdise}, status: {_eq: true}}) {
-          groupId
-          grade
-          medium
-          name
-          status
-          board
-          schoolUdise
-          academicYear
-        }
-      }`,
-      variables: { medium: medium, grade: grade, board: board, schoolUdise: schoolUdise },
-    };
-
-    const config = {
-      method: "post",
-      url: this.baseURL,
-      headers: {
-        Authorization: request.headers.authorization,
-        "x-hasura-role": getUserRole(altUserRoles),
-        "Content-Type": "application/json",
-      },
-      data: data,
-    };
-
-    try {
-      const response = await this.axios(config);
-
-      if (response?.data?.errors) {
-        return new ErrorResponse({
-          errorCode: response.data.errors[0].extensions,
-          errorMessage: response.data.errors[0].message,
-        });
-      }
-
-      const responseData = response.data.data.Group[0].groupId;
-
-      console.log("response.data.data 1009", responseData);
-
-      return responseData
-    } catch (error) {
-      console.error("Error fetching Class data:", error.message);
-
-      return new ErrorResponse({
-        errorCode: "INTERNAL_SERVER_ERROR",
-        errorMessage: "Unable to fetch Class data. Please try again later.",
-      });
+    if (!result.length) {
+      result = `No matching record found for the current combination.`;
     }
+
+    return result;
+
+    // return new SuccessResponse({
+    //   statusCode: 200,
+    //   message: "Ok.",
+    //   data: result,
+    // });
   }
-
-  // public async getLessonProgressStatus(request: any, contentId, userId) {
-  //   console.log("contentId", contentId)
-  //   console.log("userId", userId.userId)
-
-  //   const decoded: any = jwt_decode(request.headers.authorization);
-  //   // const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
-  //   // const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-
-  //   // console.log("altUserRoles", altUserRoles);
-  //   // console.log("altUserId", altUserId);
-
-  //   const data = {
-  //     query: `query myQuery($contentId: String!, $userId: uuid!) {
-  //       LessonProgressTracking(where: {lessonId: {_eq: $contentId}, userId: {_eq: $userId}, status: {_eq: completed}}) {
-  //         courseId
-  //         lessonId
-  //         userId
-  //         status
-  //       }
-  //     }`,
-  //     variables: { contentId: contentId,  userId: userId.userId},
-  //   };
-
-  //   const config = {
-  //     method: "post",
-  //     url: this.baseURL,
-  //     headers: {
-  //       Authorization: request.headers.authorization,
-  //       "Content-Type": "application/json",
-  //     },
-  //     data: data,
-  //   };
-
-  //   try {
-  //     const response = await this.axios(config);
-
-  //     const responseData = response.data;
-
-  //     console.log("responseData", responseData);
-
-  //     return responseData
-
-  //   } catch (error) {
-  //     console.error("Error fetching Class data:", error.message);
-
-  //     return new ErrorResponse({
-  //       errorCode: "INTERNAL_SERVER_ERROR",
-  //       errorMessage: "Unable to fetch Class data. Please try again later.",
-  //     });
-  //   }
-  // }
 
 }

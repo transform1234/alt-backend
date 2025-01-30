@@ -123,8 +123,8 @@ export class ALTTeacherController {
   //   strategy: "excludeAll",
   // })
   classProgress(@Req() request: Request, @Body() body: any) {
-    const { medium, grade, board, schoolUdise } = body
-    return this.altTeacherService.classWiseProgressController(request, medium, grade, board, schoolUdise);
+    const { medium, grade, board, schoolUdise, programId } = body
+    return this.altTeacherService.classWiseProgressController(request, medium, grade, board, schoolUdise, programId);
   }
 
   @Post('studentProgress')
@@ -137,8 +137,8 @@ export class ALTTeacherController {
   //   strategy: "excludeAll",
   // })
   studentProgress(@Req() request: Request, @Body() body: any) {
-    const { medium, grade, board, schoolUdise } = body
-    return this.altTeacherService.studentClassWiseProgressController(request, medium, grade, board, schoolUdise);
+    const { medium, grade, board, schoolUdise, programId } = body
+    return this.altTeacherService.studentClassWiseProgressController(request, medium, grade, board, schoolUdise, programId);
   }
 
   @Post('subjectProgress')
@@ -151,8 +151,8 @@ export class ALTTeacherController {
   //   strategy: "excludeAll",
   // })
   subjectProgress(@Req() request: Request, @Body() body: any) {
-    const { subject, medium, grade, board, schoolUdise } = body
-    return this.altTeacherService.subjectWiseProgressController(request, subject, medium, grade, board, schoolUdise);
+    const { subject, medium, grade, board, schoolUdise, programId } = body
+    return this.altTeacherService.subjectWiseProgressController(request, subject, medium, grade, board, schoolUdise, programId);
   }
 
   @Post('progress')
@@ -161,24 +161,35 @@ export class ALTTeacherController {
   @ApiBasicAuth("access-token")
   @ApiOkResponse({ description: "Progress details." })
   @ApiForbiddenResponse({ description: "Forbidden" })
-  progress(@Req() request: Request, @Body() body: any) {
+  async progress(@Req() request: Request, @Body() body: any) {
     const { subject, studentProgress, medium, grade, board, schoolUdise } = body;
+
+    const currentDate: Date = new Date();
+    //return currentDate
+
+    const getCurrentProgramId = await this.altTeacherService.getCurrentProgramId(request, {board, medium, grade, currentDate})
+
+    console.log("getCurrentProgramId", getCurrentProgramId)
+
+    const programId = getCurrentProgramId[0].programId
+
+    //return programId
 
     if (subject && studentProgress) {
       console.log("subject && studentProgress")
-      return this.altTeacherService.studentSubjectWiseProgressController(request, subject, medium, grade, board, schoolUdise);
+      return this.altTeacherService.studentSubjectWiseProgressController(request, subject, medium, grade, board, schoolUdise, programId);
     }
 
     if (subject) {
       console.log("subject")
-      return this.altTeacherService.subjectWiseProgressController(request, subject, medium, grade, board, schoolUdise);
+      return this.altTeacherService.subjectWiseProgressController(request, subject, medium, grade, board, schoolUdise, programId);
     }
     if (studentProgress) {
       console.log("studentProgress")
-      return this.altTeacherService.studentClassWiseProgressController(request, medium, grade, board, schoolUdise);
+      return this.altTeacherService.studentClassWiseProgressController(request, medium, grade, board, schoolUdise, programId);
     }
     console.log("classProgress")
-    return this.altTeacherService.classWiseProgressController(request, medium, grade, board, schoolUdise);
+    return this.altTeacherService.classWiseProgressController(request, medium, grade, board, schoolUdise, programId);
   }
 
 }
