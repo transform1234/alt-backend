@@ -164,12 +164,20 @@ export class ALTTeacherController {
   progress(@Req() request: Request, @Body() body: any) {
     const { subject, studentProgress, medium, grade, board, schoolUdise } = body;
 
+    if (subject && studentProgress) {
+      console.log("subject && studentProgress")
+      return this.altTeacherService.studentSubjectWiseProgressController(request, subject, medium, grade, board, schoolUdise);
+    }
+
     if (subject) {
+      console.log("subject")
       return this.altTeacherService.subjectWiseProgressController(request, subject, medium, grade, board, schoolUdise);
     }
     if (studentProgress) {
+      console.log("studentProgress")
       return this.altTeacherService.studentClassWiseProgressController(request, medium, grade, board, schoolUdise);
     }
+    console.log("classProgress")
     return this.altTeacherService.classWiseProgressController(request, medium, grade, board, schoolUdise);
   }
 

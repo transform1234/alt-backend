@@ -1411,17 +1411,27 @@ export class ALTTeacherService {
       }
 
       // Calculate the overall class completion percentage
-      const classCompletionPercentage =
-        totalStudentsCount > 0 ? (totalCompletionCount / totalStudentsCount) * 100 : 0;
+      // const classCompletionPercentage =
+      //   totalStudentsCount > 0 ? (totalCompletionCount / totalStudentsCount) * 100 : 0;
 
       // const classResults = this.calculateClassProgress(subjectResults)
+
+      const formatedSubjectResults = this.removeUserCompletionPercentages(subjectResults)
+
+      const totalSubjects = formatedSubjectResults.length;
+      const totalAverageCompletion = formatedSubjectResults.reduce((sum, subject) =>
+        sum + parseFloat(subject.averageCompletionPercentage), 0);
+
+      const classCompletionPercentage = totalSubjects > 0
+        ? (totalAverageCompletion / totalSubjects).toFixed(2)
+        : "0.00";
 
       return new SuccessResponse({
         statusCode: 200,
         message: "Class progress calculated successfully.",
         data: {
-          classCompletionPercentage: classCompletionPercentage.toFixed(2), // Round to 2 decimal places
-          subjectResults,
+          classCompletionPercentage: classCompletionPercentage, // Round to 2 decimal places
+          subjectResults: formatedSubjectResults,
           //classResults
         },
       });
@@ -1580,7 +1590,35 @@ export class ALTTeacherService {
 
     const subjectProgress = await this.subjectProgress(request, rules.ProgramTermAssoc[0].rules, studentDetails, subject)
 
-    //return subjectProgress
+    // return subjectProgress
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Subject progress calculated successfully.",
+      data: subjectProgress
+    });
+
+
+  }
+
+  public async studentSubjectWiseProgressController(request: any, subject, medium, grade, board, schoolUdise) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const altUserId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    console.log("altUserRoles", altUserRoles);
+    console.log("altUserId", altUserId);
+
+
+    const studentDetails = await this.getStudentByClassId(request, medium, grade, board, schoolUdise)
+    console.log("studentDetails", studentDetails.Group[0].GroupMemberships.length)
+    //return studentDetails
+
+    const rules = await this.getRules(request, subject, medium, grade, board, schoolUdise)
+
+    const subjectProgress = await this.subjectProgress(request, rules.ProgramTermAssoc[0].rules, studentDetails, subject)
+
+    // return subjectProgress
 
     return new SuccessResponse({
       statusCode: 200,
@@ -1820,12 +1858,10 @@ export class ALTTeacherService {
       console.log(`Average Completion Percentage: ${averageCompletionPercentage.toFixed(2)}%`);
 
       return {
-        statusCode: 200,
-        message: "Lesson progress calculated successfully.",
-        data: {
-          userCompletionPercentages,
-          averageCompletionPercentage: averageCompletionPercentage.toFixed(2), // Round to 2 decimal places
-        },
+
+        userCompletionPercentages,
+        averageCompletionPercentage: averageCompletionPercentage.toFixed(2), // Round to 2 decimal places
+
       };
     } catch (error) {
       console.error("Error fetching lesson progress data:", error.message);
@@ -1911,8 +1947,9 @@ export class ALTTeacherService {
     return classProgress;
   }
 
-
-
+  public removeUserCompletionPercentages(subjectResults: any[]): any[] {
+    return subjectResults.map(({ userCompletionPercentages, ...rest }) => rest);
+  }
 
   // function for testing
 
