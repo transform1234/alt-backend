@@ -36,7 +36,7 @@ import { SentryInterceptor } from "src/common/sentry.interceptor";
 @ApiTags("ALT Teacher")
 @Controller("teacher")
 export class ALTTeacherController {
-  constructor(private altTeacherService: ALTTeacherService) {}
+  constructor(private altTeacherService: ALTTeacherService) { }
 
   @Get("/:id")
   @UsePipes(ValidationPipe)
@@ -124,7 +124,21 @@ export class ALTTeacherController {
   // })
   classProgress(@Req() request: Request, @Body() body: any) {
     const { medium, grade, board, schoolUdise } = body
-    return this.altTeacherService.classWiseProgress(request, medium, grade, board, schoolUdise);
+    return this.altTeacherService.classWiseProgressController(request, medium, grade, board, schoolUdise);
+  }
+
+  @Post('studentProgress')
+  @UsePipes(ValidationPipe)
+  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "Teacher detail." })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  // @SerializeOptions({
+  //   strategy: "excludeAll",
+  // })
+  studentProgress(@Req() request: Request, @Body() body: any) {
+    const { medium, grade, board, schoolUdise } = body
+    return this.altTeacherService.studentClassWiseProgressController(request, medium, grade, board, schoolUdise);
   }
 
   @Post('subjectProgress')
@@ -140,4 +154,23 @@ export class ALTTeacherController {
     const { subject, medium, grade, board, schoolUdise } = body
     return this.altTeacherService.subjectWiseProgressController(request, subject, medium, grade, board, schoolUdise);
   }
+
+  @Post('progress')
+  @UsePipes(ValidationPipe)
+  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "Progress details." })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  progress(@Req() request: Request, @Body() body: any) {
+    const { subject, studentProgress, medium, grade, board, schoolUdise } = body;
+
+    if (subject) {
+      return this.altTeacherService.subjectWiseProgressController(request, subject, medium, grade, board, schoolUdise);
+    }
+    if (studentProgress) {
+      return this.altTeacherService.studentClassWiseProgressController(request, medium, grade, board, schoolUdise);
+    }
+    return this.altTeacherService.classWiseProgressController(request, medium, grade, board, schoolUdise);
+  }
+
 }
