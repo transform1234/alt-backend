@@ -1311,90 +1311,215 @@ export class ALTHasuraUserService {
       data,
     });
   }
-  public async deleteUser(request, userId) {
-    let client;
-    try {
-      // Verify user token and systemAdmin role
-      const userToken = request.headers.authorization?.split(" ")[1];
-      if (!userToken) {
-        return {
-          success: false,
-          message: "Authorization token is required",
-        };
-      }
-
-      // Verify systemAdmin role
-      const decodedToken: any = jwt_decode(userToken);
-      const hasSystemAdminRole =
-        decodedToken?.resource_access?.["hasura-app"]?.roles?.includes(
-          "systemAdmin"
-        );
-
-      if (!hasSystemAdminRole) {
-        return {
-          success: false,
-          message: "Only system administrators can delete users",
-          status: 403,
-        };
-      }
-      if (
-        request.headers.delete_api_secret &&
-        request.headers.delete_api_secret !== process.env.DELETE_API_SECRET
-      ) {
-        return new ErrorResponse({
-          errorCode: "403",
-          errorMessage: "Invalid Secret Key",
-        });
-      }
-      console.log("VALIDATE KEY->>>", request.headers.delete_api_secret);
-
-      // Create connection string using environment variables
-      const connectionString =
-        process.env.TELEMETRY_DB_URL ||
-        `postgres://${process.env.TELEMETRY_DB_USER}:${encodeURIComponent(
-          process.env.TELEMETRY_DB_PASSWORD
-        )}@${process.env.TELEMETRY_DB_HOST}:${process.env.TELEMETRY_DB_PORT}/${
-          process.env.TELEMETRY_DB_NAME
-        }?sslmode=disable`;
-
-      // Create a connection pool
-      const pool = new Pool({
-        connectionString,
-      });
-
-      // Connect to the database
-      let telemetryClient = await pool.connect();
-
-      console.log("CONNECTION ESTABLISHED ->", telemetryClient);
-
-      const selectTelemetryQuery = `
-        SELECT * FROM djp_events 
-        WHERE message::jsonb -> 'actor' ->> 'id' = 'f29c0973-7f8a-47a2-a1df-dc1080460ed6'
-      `;
-      console.log("selectTelemetryQuery->>>", selectTelemetryQuery);
-
-      const telemetryResult = await telemetryClient.query(selectTelemetryQuery);
-
-      console.log(`Fetched ${telemetryResult} telemetry records`);
-
+  public async deleteUser(request, data) {
+    if (!request.headers.authorization) {
       return {
-        success: true,
-        message: `User fetched successfully`,
-        userId: userId,
-        details: {
-          telemetryRecordsDeleted: telemetryResult,
-        },
+        success: false,
+        message: "Authorization token is required",
       };
-    } catch (telemetryError) {
-      console.log(telemetryError);
+    }
 
-      await client.query("ROLLBACK");
-      console.error("error:", telemetryError);
-      throw new Error(`Database error: ${telemetryError.message}`);
-    } finally {
-      if (client) {
-        client.release();
+    const userToken = request.headers.authorization.split(" ")[1];
+    const decodedToken: any = jwt_decode(userToken);
+    const altUserRoles =
+      decodedToken["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    console.log("altUserRoles->>>>>", altUserRoles);
+
+    // Check for systemAdmin role
+    const hasSystemAdminRole =
+      decodedToken?.resource_access?.["hasura-app"]?.roles?.includes(
+        "systemAdmin"
+      );
+    if (!hasSystemAdminRole) {
+      return {
+        success: false,
+        message: "Only system administrators can delete users",
+        status: 403,
+      };
+    }
+
+    // Verify delete API secret
+    if (
+      !request.headers.delete_api_secret ||
+      request.headers.delete_api_secret !== process.env.DELETE_API_SECRET
+    ) {
+      return {
+        success: false,
+        message: "Invalid or missing Secret Key",
+        status: 403,
+      };
+    }
+    const adminTokenResponse = await this.axios({
+      method: "post",
+      url: `${process.env.ALTKEYCLOAKURL}realms/master/protocol/openid-connect/token`,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      data: new URLSearchParams({
+        grant_type: "password",
+        client_id: "admin-cli",
+        username: process.env.KEYCLOAK_USERNAME,
+        password: process.env.KEYCLOAK_PASSWORD,
+      }).toString(),
+    });
+
+    const adminToken = adminTokenResponse.data.access_token;
+
+    const deletedRecords = [];
+    const tables = [
+      "CourseProgressTracking",
+      "ModuleProgressTracking",
+      "LessonProgressTracking",
+      "LessonProgressAttemptTracking",
+      "GroupMembership",
+      "Students",
+      "Teachers",
+      "Users",
+      "GlaLikedContents",
+      "GlaQuizRating"
+    ];
+
+    const { usernames } = data;
+
+    if (!usernames || usernames.length === 0) {
+      return {
+        success: false,
+        message: "No usernames provided",
+      };
+    }
+
+    for (const username of usernames) {
+      const recordStatus = {
+        username,
+        kcDeleted: false,
+        dbDeleted: false,
+        telemetryDeleted: 0,
+        error: null,
+      };
+
+      try {
+        console.log(`Searching for user ${username} in Keycloak`);
+        const searchUrl = `${process.env.ALTKEYCLOAKURL}admin/realms/hasura-app/users`;
+        const userSearchResponse = await this.axios({
+          method: "get",
+          url: searchUrl,
+          params: { exact: true, username },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${adminToken}`,
+          },
+        });
+        if (!userSearchResponse.data || userSearchResponse.data.length === 0) {
+          deletedRecords.push({
+            ...recordStatus,
+            error: `User ${username} not found in Keycloak`,
+          });
+          continue;
+        }
+        console.log("userSearchResponse->>", userSearchResponse.data);
+
+        const keycloakUserId = userSearchResponse.data[0].id;
+
+        // Delete from database
+        try {
+          for (const table of tables) {
+            const deleteQuery = {
+              query: `
+              mutation Delete${table} {
+                delete_${table}(where: {userId: {_eq: "${keycloakUserId}"}}) {
+                  affected_rows
+                }
+              }`,
+            };
+            const response = await this.axios({
+              method: "post",
+              url: process.env.HASURAURL,
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${userToken}`,
+              },
+              data: deleteQuery,
+            });
+
+            if (response.data.errors) {
+              console.log(response.data.errors);
+
+              throw new Error(`Failed to delete from ${table}`);
+            }
+          }
+          recordStatus.dbDeleted = true;
+        } catch (dbError) {
+          console.error(
+            `Database deletion failed for user ${username}:`,
+            dbError.message
+          );
+          continue;
+        }
+
+        // Delete from Keycloak
+        try {
+          await this.axios({
+            method: "delete",
+            url: `${searchUrl}/${keycloakUserId}`,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${adminToken}`,
+            },
+          });
+          recordStatus.kcDeleted = true;
+        } catch (kcError) {
+          console.error(
+            `Keycloak deletion failed for user ${username}:`,
+            kcError.message
+          );
+          continue;
+        }
+
+        // Delete from telemetry
+        try {
+          // Create connection string using environment variables
+          const connectionString =
+            process.env.TELEMETRY_DB_URL ||
+            `postgres://${process.env.TELEMETRY_DB_USER}:${encodeURIComponent(
+              process.env.TELEMETRY_DB_PASSWORD
+            )}@${process.env.TELEMETRY_DB_HOST}:${
+              process.env.TELEMETRY_DB_PORT
+            }/${process.env.TELEMETRY_DB_NAME}?sslmode=disable`;
+
+          // Create a connection pool
+          const pool = new Pool({
+            connectionString,
+          });
+          let telemetryClient = await pool.connect();
+
+          const deleteTelemetryQuery = `
+            DELETE FROM djp_events 
+            WHERE message::jsonb -> 'actor' ->> 'id' = $1
+          `;
+          const telemetryResult = await telemetryClient.query(
+            deleteTelemetryQuery,
+            [keycloakUserId]
+          );
+          recordStatus.telemetryDeleted = telemetryResult.rowCount;
+          telemetryClient.release();
+        } catch (telemetryError) {
+          console.error(
+            `Telemetry deletion failed for user ${username}:`,
+            telemetryError.message
+          );
+        }
+
+        deletedRecords.push(recordStatus);
+      } catch (error) {
+        console.error(`Failed to process user ${username}:`, error.message);
+        deletedRecords.push({ ...recordStatus, error: error.message });
       }
     }
+
+    return {
+      success: true,
+      message: "User deletions completed",
+      deletedRecords,
+    };
   }
 }
