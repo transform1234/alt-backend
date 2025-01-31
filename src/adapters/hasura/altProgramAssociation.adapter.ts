@@ -2307,93 +2307,93 @@ export class ALTProgramAssociationService {
   //   }
   // }
 
-  async getTeacherByBoard(request, userId, board) {
-    const checkGraphQLQuery = {
-      query: `
-      query MyQuery($board: String!) {
-        School(where: {board: {_ilike: $board}}) {
-          board
-          udiseCode
-          Groups {
-            schoolUdise
-            groupId
-            type
-            grade
-            name
-            GroupMemberships(where: {role: {_eq: "teacher"}}) {
-              groupId
-              User {
-                name
-                userId
-                role
-                email
-              }
-            }
-          }
-        }
-      }
-      `,
-      variables: {
-        board: board,
-      },
-    };
+  // async getTeacherByBoard(request, userId, board) {
+  //   const checkGraphQLQuery = {
+  //     query: `
+  //     query MyQuery($board: String!) {
+  //       School(where: {board: {_ilike: $board}}) {
+  //         board
+  //         udiseCode
+  //         Groups {
+  //           schoolUdise
+  //           groupId
+  //           type
+  //           grade
+  //           name
+  //           GroupMemberships(where: {role: {_eq: "teacher"}}) {
+  //             groupId
+  //             User {
+  //               name
+  //               userId
+  //               role
+  //               email
+  //             }
+  //           }
+  //         }
+  //       }
+  //     }
+  //     `,
+  //     variables: {
+  //       board: board,
+  //     },
+  //   };
 
-    const config_data = {
-      method: "post",
-      url: process.env.ALTHASURA,
-      headers: {
-        Authorization: request.headers.authorization,
-        "Content-Type": "application/json",
-      },
-      data: checkGraphQLQuery,
-    };
+  //   const config_data = {
+  //     method: "post",
+  //     url: process.env.ALTHASURA,
+  //     headers: {
+  //       Authorization: request.headers.authorization,
+  //       "Content-Type": "application/json",
+  //     },
+  //     data: checkGraphQLQuery,
+  //   };
 
-    try {
-      const checkResponse = await this.axios(config_data);
-      console.log("checkResponse", checkResponse.data);
+  //   try {
+  //     const checkResponse = await this.axios(config_data);
+  //     console.log("checkResponse", checkResponse.data);
 
-      if (checkResponse?.data?.errors) {
-        return new SuccessResponse({
-          statusCode: 401,
-          message: checkResponse?.data?.errors,
-          data: checkResponse?.data?.data,
-        });
-      } else if (checkResponse?.data?.data) {
-        if (
-          !checkResponse.data.data?.School ||
-          checkResponse.data.data.School.length === 0
-        ) {
-          return new SuccessResponse({
-            statusCode: 204,
-            message: `No data found for board: ${board}`,
-          });
-        }
-        const formattedData = checkResponse?.data?.data;
-        // const formattedData = this.transformBoardData(
-        //   checkResponse?.data?.data,
-        //   userId
-        // );
+  //     if (checkResponse?.data?.errors) {
+  //       return new SuccessResponse({
+  //         statusCode: 401,
+  //         message: checkResponse?.data?.errors,
+  //         data: checkResponse?.data?.data,
+  //       });
+  //     } else if (checkResponse?.data?.data) {
+  //       if (
+  //         !checkResponse.data.data?.School ||
+  //         checkResponse.data.data.School.length === 0
+  //       ) {
+  //         return new SuccessResponse({
+  //           statusCode: 204,
+  //           message: `No data found for board: ${board}`,
+  //         });
+  //       }
+  //       const formattedData = checkResponse?.data?.data;
+  //       // const formattedData = this.transformBoardData(
+  //       //   checkResponse?.data?.data,
+  //       //   userId
+  //       // );
 
-        return new SuccessResponse({
-          statusCode: 200,
-          message: "User Points fetched successfully.",
-          data: formattedData,
-        });
-      } else {
-        return new SuccessResponse({
-          statusCode: 200,
-          message: "User Points not exists.",
-          data: [],
-        });
-      }
-    } catch (error) {
-      console.error("Axios Error:", error.message);
-      throw new ErrorResponse({
-        errorCode: "AXIOS_ERROR",
-        errorMessage: "Failed to execute the GraphQL mutation.",
-      });
-    }
-  }
+  //       return new SuccessResponse({
+  //         statusCode: 200,
+  //         message: "User Points fetched successfully.",
+  //         data: formattedData,
+  //       });
+  //     } else {
+  //       return new SuccessResponse({
+  //         statusCode: 200,
+  //         message: "User Points not exists.",
+  //         data: [],
+  //       });
+  //     }
+  //   } catch (error) {
+  //     console.error("Axios Error:", error.message);
+  //     throw new ErrorResponse({
+  //       errorCode: "AXIOS_ERROR",
+  //       errorMessage: "Failed to execute the GraphQL mutation.",
+  //     });
+  //   }
+  // }
 
   async assignProgramPoints(request, data) {
     const token = request.headers.authorization?.replace("Bearer ", "");
