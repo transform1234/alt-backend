@@ -1,11 +1,6 @@
 #It is deploying on server 15.206.144.84 For Dev Environment only please note. 
-<<<<<<< HEAD
-name: Deploy to ALT_GLA_PROD
-on:  
-=======
-name: Deploy to DEV
+name: Deploy to PROD
 on: 
->>>>>>> ea1225102b5d2066424a62ad7ab0405bb3e5757c
   push:  
     branches:
       - prod
@@ -42,22 +37,9 @@ jobs:
       - name: Deploy to server
         run: |
           sshpass -p '${{ secrets.EC2_SSH_KEY_ALT_GLA_PROD }}' ssh -v -o StrictHostKeyChecking=no ${{ secrets.USERNAME_ALT_GLA_PROD }}@${{ secrets.HOST_DNS_ALT_GLA_PROD }} <<'ENDSSH'
-<<<<<<< HEAD
-          cd /home/prasad/alt-gla-prod-backend
-          ./deploy.sh
-          ENDSSH
-      - name: Notify on Slack channel
-        uses: iRoachie/slack-github-actions@v2.3.2
-        env:
-         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-         status: ${{ job.status }}
-        if: ${{ always() }}              
-=======
           cd /home/prasad/alt-gla-prod-backend #It is deploying on server 13.203.108.107  For Dev Environment only please note. 
           ./deploy.sh
           ENDSSH
        
                     
 
->>>>>>> ea1225102b5d2066424a62ad7ab0405bb3e5757c
