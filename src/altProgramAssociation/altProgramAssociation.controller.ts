@@ -282,17 +282,17 @@ export class ALTProgramAssociationController {
 
   // Class Teacher API
 
-  @Post("classTeacher")
-  @ApiBasicAuth("access-token")
-  @ApiOkResponse({ description: "ALT Rules" })
-  @ApiForbiddenResponse({ description: "Forbidden" })
-  async classTeacher(@Body() body: any, @Req() request: Request) {
-    const { filters } = body;
+  // @Post("classTeacher")
+  // @ApiBasicAuth("access-token")
+  // @ApiOkResponse({ description: "ALT Rules" })
+  // @ApiForbiddenResponse({ description: "Forbidden" })
+  // async classTeacher(@Body() body: any, @Req() request: Request) {
+  //   const { filters } = body;
 
-    return this.altProgramAssociationService.classTeacher(request, {
-      filters,
-    });
-  }
+  //   return this.altProgramAssociationService.classTeacher(request, {
+  //     filters,
+  //   });
+  // }
 
   @Post("/migration")
   async migartionOfLessonData(@Req() request: Request, @Body() programId) {
