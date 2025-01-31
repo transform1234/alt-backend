@@ -30,8 +30,6 @@ $ npm run test:e2e
 # test coverage
 $ npm run test:cov
 ```
-<<<<<<< HEAD
-=======
 
 ## Support
 
@@ -49,4 +47,3 @@ Nest is [MIT licensed](LICENSE).
 
 #test
 .
->>>>>>> ea1225102b5d2066424a62ad7ab0405bb3e5757c
