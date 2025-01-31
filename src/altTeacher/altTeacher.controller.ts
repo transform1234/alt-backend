@@ -113,47 +113,6 @@ export class ALTTeacherController {
     return this.altTeacherService.getSubject(request, groupId, medium, grade, board, schoolUdise);
   }
 
-  @Post('classProgress')
-  @UsePipes(ValidationPipe)
-  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
-  @ApiBasicAuth("access-token")
-  @ApiOkResponse({ description: "Teacher detail." })
-  @ApiForbiddenResponse({ description: "Forbidden" })
-  // @SerializeOptions({
-  //   strategy: "excludeAll",
-  // })
-  classProgress(@Req() request: Request, @Body() body: any) {
-    const { medium, grade, board, schoolUdise, programId } = body
-    return this.altTeacherService.classWiseProgressController(request, medium, grade, board, schoolUdise, programId);
-  }
-
-  @Post('studentProgress')
-  @UsePipes(ValidationPipe)
-  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
-  @ApiBasicAuth("access-token")
-  @ApiOkResponse({ description: "Teacher detail." })
-  @ApiForbiddenResponse({ description: "Forbidden" })
-  // @SerializeOptions({
-  //   strategy: "excludeAll",
-  // })
-  studentProgress(@Req() request: Request, @Body() body: any) {
-    const { medium, grade, board, schoolUdise, programId } = body
-    return this.altTeacherService.studentClassWiseProgressController(request, medium, grade, board, schoolUdise, programId);
-  }
-
-  @Post('subjectProgress')
-  @UsePipes(ValidationPipe)
-  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
-  @ApiBasicAuth("access-token")
-  @ApiOkResponse({ description: "Teacher detail." })
-  @ApiForbiddenResponse({ description: "Forbidden" })
-  // @SerializeOptions({
-  //   strategy: "excludeAll",
-  // })
-  subjectProgress(@Req() request: Request, @Body() body: any) {
-    const { subject, medium, grade, board, schoolUdise, programId } = body
-    return this.altTeacherService.subjectWiseProgressController(request, subject, medium, grade, board, schoolUdise, programId);
-  }
 
   @Post('progress')
   @UsePipes(ValidationPipe)
