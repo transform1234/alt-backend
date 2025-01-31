@@ -13,6 +13,9 @@ import {
   Request,
   CacheInterceptor,
   Inject,
+  UsePipes,
+  ValidationPipe,
+  Res,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -28,6 +31,7 @@ import { ALTLessonTrackingDto } from "./dto/altLessonTracking.dto";
 import { ALTLessonTrackingService } from "../adapters/hasura/altLessonTracking.adapter";
 import { UpdateALTLessonTrackingDto } from "./dto/updateAltLessonTracking.dto";
 import { ALTLessonTrackingSearch } from "./dto/searchAltLessonTracking.dto";
+import { Response } from 'express';
 
 @ApiTags("ALT Lesson Tracking")
 @Controller("altlessontracking")
@@ -58,6 +62,7 @@ export class ALTLessonTrackingController {
   }
 
   @Post("/altcheckandaddlessontracking")
+  @UsePipes(ValidationPipe)
   @ApiBasicAuth("access-token")
   @ApiCreatedResponse({
     description: "ALTLessonTrack has been created successfully.",
@@ -118,6 +123,23 @@ export class ALTLessonTrackingController {
       request,
       userId,
       altLessonTrackingSearch
+    );
+  }
+  @Post("/altAddLessonTracking")
+  @ApiBasicAuth("access-token")
+  public async addLessonTracking(
+    @Req() request: Request,
+    @Res() response: Response,
+    @Body() altLessonTrackingDto: ALTLessonTrackingDto,
+    @Query("program") programId: string,
+    @Query("subject") subject: string
+  ) {
+    return this.altLessonTrackingService.glaAddLessonTracking(
+      request,
+      altLessonTrackingDto,
+      programId,
+      subject,
+      response
     );
   }
 }

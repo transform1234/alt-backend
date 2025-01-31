@@ -8,9 +8,12 @@ const resolvePath = require("object-resolve-path");
 import { GroupDto } from "src/group/dto/group.dto";
 import { GroupSearchDto } from "src/group/dto/group-search.dto";
 import { IServicelocatorgroup } from "../groupservicelocator";
-import { UserDto } from "src/user/dto/user.dto";
+import { UserDto } from "src/altUser/dto/alt-user.dto";
 import { StudentDto } from "src/student/dto/student.dto";
 export const HasuraGroupToken = "HasuraGroup";
+import { getUserGroup, getUserRole } from "./adapter.utils";
+import { BMtoGroupDto } from "src/group/dto/bmtogroup.dto";
+
 @Injectable()
 export class HasuraGroupService implements IServicelocatorgroup {
   private group: GroupInterface;
@@ -20,25 +23,25 @@ export class HasuraGroupService implements IServicelocatorgroup {
   constructor(private httpService: HttpService) {}
 
   public async getGroup(request: any, groupId: any) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     var groupDetails = {
       query: `query GetGroup($groupId:uuid!) {
         Group_by_pk(groupId: $groupId) {
-        groupId
-        deactivationReason
-        created_at
-        image
-        mediumOfInstruction
-        metaData
-        name
-        option
-        schoolId
-        section
-        teacherId
-        gradeLevel
-        status
-        type
-        updated_at
-        parentGroupId
+          groupId
+          schoolUdise
+          medium
+          grade
+          name
+          type
+          section
+          status
+          createdAt
+          updatedAt
+          createdBy
+          updatedBy
+          board
       }
     }`,
       variables: {
@@ -50,7 +53,8 @@ export class HasuraGroupService implements IServicelocatorgroup {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
         "Content-Type": "application/json",
       },
       data: groupDetails,
@@ -76,6 +80,12 @@ export class HasuraGroupService implements IServicelocatorgroup {
   }
 
   public async createGroup(request: any, groupDto: GroupDto) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    groupDto.createdBy = userId;
+    groupDto.updatedBy = userId;
     let query = "";
     Object.keys(groupDto).forEach((e) => {
       if (groupDto[e] && groupDto[e] != "") {
@@ -103,7 +113,8 @@ export class HasuraGroupService implements IServicelocatorgroup {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
         "Content-Type": "application/json",
       },
       data: data,
@@ -146,7 +157,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
           update_Group(where: {groupId: {_eq: $groupId}}, _set: {${query}}) {
           affected_rows
         }
-}`,
+      }`,
       variables: {
         groupId: groupId,
       },
@@ -156,7 +167,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: data,
@@ -181,53 +192,80 @@ export class HasuraGroupService implements IServicelocatorgroup {
   }
 
   public async searchGroup(request: any, groupSearchDto: GroupSearchDto) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    var axios = require("axios");
     let offset = 0;
     if (groupSearchDto.page > 1) {
       offset = groupSearchDto.limit * (groupSearchDto.page - 1);
     }
 
     let query = "";
+    // Object.keys(groupSearchDto.filters).forEach((e) => {
+    //   if (groupSearchDto.filters[e] && groupSearchDto.filters[e] != "") {
+    //     if (e === "name") {
+    //       query += `${e}:{_ilike: "%${groupSearchDto.filters[e]}%"}`;
+    //     } else {
+    //       query += `${e}:{_eq:"${groupSearchDto.filters[e]}"}`;
+    //     }
+    //   }
+    // });
+
     Object.keys(groupSearchDto.filters).forEach((e) => {
       if (groupSearchDto.filters[e] && groupSearchDto.filters[e] != "") {
-        if (e === "name") {
+        if (
+          e === "management" ||
+          e === "libraryFunctional" ||
+          e === "composition" ||
+          e === "mediumOfInstruction" ||
+          e === "headmaster"
+        ) {
+          query += `${e}: ${groupSearchDto.filters[e]},`;
+        }
+        if (e === "schoolName") {
           query += `${e}:{_ilike: "%${groupSearchDto.filters[e]}%"}`;
         } else {
-          query += `${e}:{_eq:"${groupSearchDto.filters[e]}"}`;
+          query += `${e}:{_eq:"${groupSearchDto.filters[e].eq}"}`;
         }
       }
     });
 
     var data = {
       query: `query SearchGroup($limit:Int, $offset:Int) {
-           Group(where:{${query}}, limit: $limit, offset: $offset,) {
-                groupId
-                deactivationReason
-                created_at
-                image
-                mediumOfInstruction
-                metaData
-                name
-                option
-                schoolId
-                section
-                status
-                teacherId
-                gradeLevel
-                type
-                updated_at
-                parentGroupId
-            }
-          }`,
+        Group_aggregate {
+          aggregate {
+            count
+          }
+        }
+        Group(where:{ ${query}}, limit: $limit, offset: $offset,) {
+          groupId
+          schoolUdise
+          medium
+          grade
+          name
+          type
+          section
+          status
+          createdAt
+          updatedAt
+          createdBy
+          updatedBy
+          board
+        }
+      }`,
       variables: {
         limit: groupSearchDto.limit,
         offset: offset,
       },
     };
+
     var config = {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
         Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
         "Content-Type": "application/json",
       },
       data: data,
@@ -256,37 +294,22 @@ export class HasuraGroupService implements IServicelocatorgroup {
   public async findMembersOfGroup(groupId: string, role: string, request: any) {
     let axios = require("axios");
     let userData = [];
-    
+
     var findMember = {
-      query: `query GetGroupMembership($groupId:uuid,$role:UserRole_enum) {
+      query: `query GetGroupMembership($groupId:uuid,$role:String) {
        GroupMembership(where: {groupId: {_eq: $groupId}, role: {_eq: $role}}) {
         User {
-          birthDate
-          block
-          bloodGroup
-          board
+          dateOfBirth
           createdBy
-          created_at
-          district
+          createdAt
           email
-          father
-          grade
           gender
-          image
-          medium
-          mobileNumber
-          mother
+          mobile
           name
           role
-          school
-          section
-          serialNo
-          state
           status
-          udise
-          uniqueId
           updatedBy
-          updated_at
+          updatedAt
           userId
           username
         }
@@ -302,7 +325,7 @@ export class HasuraGroupService implements IServicelocatorgroup {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: findMember,
@@ -317,20 +340,20 @@ export class HasuraGroupService implements IServicelocatorgroup {
       });
     }
 
-    let result = response.data.data.GroupMembership; 
+    let result = response.data.data.GroupMembership;
 
     const userList = result.map((e: any) => {
       return e.User;
     });
-    
-    if (!userList.length) {      
+
+    if (!userList.length) {
       return new SuccessResponse({
         statusCode: 200,
         message: "ok",
         data: { msg: "No data found for given inputs!" },
       });
-    } 
-    
+    }
+
     const groupResponse = await this.userMappedResponse(userList);
 
     return new SuccessResponse({
@@ -338,31 +361,29 @@ export class HasuraGroupService implements IServicelocatorgroup {
       message: "ok",
       data: groupResponse,
     });
-
   }
 
   public async findGroupsByUserId(userId: string, role: string, request: any) {
+    console.log("userId", userId)
+    console.log("role", role)
     let axios = require("axios");
     var findMember = {
-      query: `query GetGroup($userId:uuid!,$role:UserRole_enum) {
+      query: `query GetGroup($userId:uuid!,$role:String) {
         GroupMembership(where: {userId: {_eq: $userId}, role: {_eq: $role}}) {
           Group {
-            created_at
-            deactivationReason
-            gradeLevel
             groupId
-            image
-            mediumOfInstruction
-            metaData
+            schoolUdise
+            board
+            medium
+            grade
             name
-            option
-            schoolId
             section
             status
-            teacherId
             type
-            updated_at
-            parentGroupId
+            createdAt
+            updatedAt
+            createdBy
+            updatedBy
           }
         }
       }
@@ -377,26 +398,26 @@ export class HasuraGroupService implements IServicelocatorgroup {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: findMember,
     };
     const response = await axios(getMemberData);
-    
+
     if (response?.data?.errors) {
       return new ErrorResponse({
         errorCode: response.data.errors[0].extensions,
         errorMessage: response.data.errors[0].message,
       });
     }
-    
+
     let groupData = response.data.data.GroupMembership;
 
     const groupList = groupData.map((e: any) => {
       return e.Group;
     });
-    
+
     const groupResponse = await this.mappedResponse(groupList);
     return new SuccessResponse({
       statusCode: 200,
@@ -512,30 +533,160 @@ export class HasuraGroupService implements IServicelocatorgroup {
     const groupResponse = result.map((item: any) => {
       const groupMapping = {
         groupId: item?.groupId ? `${item.groupId}` : "",
-        schoolId: item?.schoolId ? `${item.schoolId}` : "",
+        schoolUdise: item?.schoolUdise ? `${item.schoolUdise}` : "",
         name: item?.name ? `${item.name}` : "",
+        grade: item?.grade ? `${item.grade}` : "",
+        medium: item?.medium ? `${item.medium}` : "",
         type: item?.type ? `${item.type}` : "",
         section: item?.section ? `${item.section}` : "",
         status: item?.status ? `${item.status}` : "",
-        deactivationReason: item?.deactivationReason
-          ? `${item.deactivationReason}`
-          : "",
-        mediumOfInstruction: item?.mediumOfInstruction
-          ? `${item.mediumOfInstruction}`
-          : "",
-        teacherId: item?.teacherId ? `${item.teacherId}` : "",
-        parentGroupId: item?.parentGroupId ? `${item.parentGroupId}` : "",
-        image: item?.image ? `${item.image}` : "",
-        metaData: item?.metaData ? item.metaData : [],
-        option: item?.option ? item.option : [],
-        gradeLevel: item?.gradeLevel ? `${item.gradeLevel}` : "",
-        createdAt: item?.created_at ? `${item.created_at}` : "",
-        updatedAt: item?.updated_at ? `${item.updated_at}` : "",
+        createdAt: item?.createdAt ? `${item.createdAt}` : "",
+        updatedAt: item?.updatedAt ? `${item.updatedAt}` : "",
+        createdBy: item?.createdBy ? `${item.createdBy}` : "",
+        updatedBy: item?.updatedBy ? `${item.updatedBy}` : "",
+        board: item?.board ? `${item.board}` : "",
       };
       return new GroupDto(groupMapping);
     });
-    
+
     return groupResponse;
+  }
+
+  public async getGroupList(request: any, bmtogroup: BMtoGroupDto) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const groupDetails = {
+      query: `query GetGroupList($board:String,$medium:String,$schoolUdise:String){
+        Group(where: 
+        {
+          board: {_eq: $board},
+          medium: {_eq: $medium}
+          schoolUdise: {_eq: $schoolUdise}
+        }) 
+        {
+          groupId
+          schoolUdise
+          medium
+          grade
+          name
+          board
+        }
+      }`,
+      variables: {
+        board: bmtogroup.board,
+        medium: bmtogroup.medium,
+        schoolUdise: bmtogroup.schoolUdise,
+      },
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+        "Content-Type": "application/json",
+      },
+      data: groupDetails,
+    };
+
+    const response = await this.axios(config);
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    let result = response.data.data.Group;
+
+    if (!result.length) {
+      result = `No matching record found for the current combination.`;
+    }
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: result,
+    });
+  }
+
+  public async getGroupBySchoolClass(
+    request: any,
+    schoolUdise: string,
+    className: string,
+    year: string
+  ) {
+
+    console.log("schoolUdise", schoolUdise)
+    console.log("className", className)
+    console.log("year", year)
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const groupDetails = {
+      query: `query GetGroupList($board:String,$medium:String,$schoolUdise:String,$name:String,$year:numeric) {
+        Group(where: 
+        {
+          academicYear: {_eq: $year}
+          status: {_eq: true}
+          name: {_eq: $name}
+          schoolUdise: {_eq: $schoolUdise}
+        }) 
+        {
+          groupId
+          schoolUdise
+          medium
+          grade
+          name
+          status
+          academicYear
+          board
+        }
+      }`,
+      variables: {
+        schoolUdise: schoolUdise,
+        name: className,
+        year: year,
+      },
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+        "Content-Type": "application/json",
+      },
+      data: groupDetails,
+    };
+
+    const response = await this.axios(config);
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    let result: any[] = response.data.data.Group;
+
+    if (!result.length) {
+      const msg = `No matching record found for the current combination of school and class.`;
+      return new SuccessResponse({
+        statusCode: 404,
+        message: msg,
+        data: result,
+      });
+    }
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: result,
+    });
   }
 
   public async StudentMappedResponse(result: any) {
@@ -632,33 +783,140 @@ export class HasuraGroupService implements IServicelocatorgroup {
         userId: item?.userId ? `${item.userId}` : "",
         name: item?.name ? `${item.name}` : "",
         username: item?.username ? `${item.username}` : "",
-        father: item?.father ? `${item.father}` : "",
-        mother: item?.mother ? `${item.mother}` : "",
-        uniqueId: item?.uniqueId ? `${item.uniqueId}` : "",
-        school: item?.school ? `${item.school}` : "",
         email: item?.email ? `${item.email}` : "",
-        mobileNumber: item?.mobileNumber ? item.mobileNumber : "",
+        mobile: item?.mobile ? item.mobile : "",
         gender: item?.gender ? `${item.gender}` : "",
-        udise: item?.udise ? `${item.udise}` : "",
-        board: item?.board ? `${item.board}` : "",
-        medium: item?.medium ? `${item.medium}` : "",
-        grade: item?.grade ? `${item.grade}` : "",
-        section: item?.section ? `${item.section}` : "",
-        birthDate: item?.birthDate ? `${item.birthDate}` : "",
+        dateOfBirth: item?.dateOfBirth ? `${item.dateOfBirth}` : "",
         status: item?.status ? `${item.status}` : "",
-        image: item?.image ? `${item.image}` : "",
-        block: item?.block ? `${item.block}` : "",
-        district: item?.district ? `${item.district}` : "",
-        state: item?.state ? `${item.state}` : "",
         role: item?.role ? `${item.role}` : "",
-        created_at: item?.created_at ? `${item.created_at}` : "",
-        updated_at: item?.updated_at ? `${item.updated_at}` : "",
+        createdAt: item?.createdAt ? `${item.createdAt}` : "",
+        updatedAt: item?.updatedAt ? `${item.updatedAt}` : "",
         createdBy: item?.createdBy ? `${item.createdBy}` : "",
         updatedBy: item?.updatedBy ? `${item.updatedBy}` : "",
       };
-      return new UserDto(userMapping);
+      return new UserDto(userMapping, false);
     });
 
     return userResponse;
+  }
+
+  public async deactivateGroups(
+    request: any,
+    altUserRoles: string[],
+    schoolUdiseList: string[]
+  ) {
+    const data = {
+      query: `mutation GroupsDeactivate($schoolUdiseList:[String!], $year:numeric!) {
+        update_Group(where: {schoolUdise: {_in: $schoolUdiseList}, academicYear: {_neq: $year}}, _set: {status: false}) {
+          affected_rows
+          returning {
+            status
+            groupId
+            schoolUdise
+            academicYear
+            board
+            medium
+          }
+        }
+      }`,
+      variables: {
+        schoolUdiseList: schoolUdiseList,
+        year: new Date().getFullYear().toString(),
+      },
+    };
+
+    const headers = {
+      Authorization: request.headers.authorization,
+      "x-hasura-role": getUserRole(altUserRoles),
+      "Content-Type": "application/json",
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: headers,
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    } else {
+      const result = response.data.data.update_Group;
+      // const userData = await this.mappedResponse(result, false);
+      return new SuccessResponse({
+        statusCode: response.status,
+        message: "Ok.",
+        data: result,
+      });
+    }
+  }
+
+  public async createMultipleGroups(request: any, groupDtos: GroupDto[]) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    const newGroupData = groupDtos.map((groupDto) => {
+      let query = "";
+      groupDto.createdBy = userId;
+      groupDto.updatedBy = userId;
+      Object.keys(groupDto).forEach((e) => {
+        if (groupDto[e] && groupDto[e] != "") {
+          if (e === "role") {
+            query += `${e}: ${groupDto[e]},`;
+          } else if (Array.isArray(groupDto[e])) {
+            query += `${e}: ${JSON.stringify(groupDto[e])}, `;
+          } else {
+            query += `${e}: "${groupDto[e]}", `;
+          }
+        }
+      });
+      return "{" + query + "}";
+    });
+
+    var data = {
+      query: `mutation CreateGroups {
+        insert_Group(objects: [${newGroupData}] ) {
+          affected_rows
+        }
+      }
+      `,
+      variables: {},
+    };
+
+    var config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      console.error(response?.data?.errors);
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const result = response.data.data.insert_Group;
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: result,
+    });
   }
 }

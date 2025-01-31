@@ -46,12 +46,11 @@ export class ALTModuleTrackingDto {
 
   @Expose()
   @IsNotEmpty()
-  @IsString()
   @ApiProperty({
     type: Number,
-    description: "Score of the Module",
+    description: "Time spent on the Module",
   })
-  calculatedScore: number;
+  timeSpent: number;
 
   @Expose()
   @IsNotEmpty()
@@ -61,6 +60,11 @@ export class ALTModuleTrackingDto {
     description: "Status of module",
   })
   status: string;
+
+  @Expose()
+  @IsNotEmpty()
+  @IsString()
+  programId: String;
 
   @Expose()
   createdBy: string;

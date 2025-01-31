@@ -451,4 +451,5 @@ export class QuestionService implements IServicelocator {
 
     return questionResponse;
   }
+  getQuestionList(request: any, body: any,limit:string) {}
 }

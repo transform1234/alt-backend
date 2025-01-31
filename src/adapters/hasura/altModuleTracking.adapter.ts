@@ -29,7 +29,7 @@ export class ALTModuleTrackingService {
         userId: item?.userId ? `${item.userId}` : "",
         courseId: item?.courseId ? `${item.courseId}` : "",
         moduleId: item?.moduleId ? `${item.moduleId}` : "",
-        calculatedScore: item?.calculatedScore ? `${item.calculatedScore}` : 0,
+        timeSpent: item?.timeSpent ? `${item.timeSpent}` : 0,
         status: item?.status ? `${item.status}` : "",
         totalNumberOfLessonsCompleted: item?.totalNumberOfLessonsCompleted
           ? `${item.totalNumberOfLessonsCompleted}`
@@ -64,7 +64,7 @@ export class ALTModuleTrackingService {
             moduleId
             courseId
             status
-            calculatedScore
+            timeSpent
             totalNumberOfLessonsCompleted
             totalNumberOfLessons
             created_at
@@ -83,7 +83,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altModuleTrackingRecord,
@@ -120,7 +120,7 @@ export class ALTModuleTrackingService {
                   moduleId
                   userId
                   status
-                  calculatedScore
+                  timeSpent
                   totalNumberOfLessonsCompleted
                   totalNumberOfLessons
                   created_at
@@ -140,7 +140,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: ALTModuleTrackingData,
@@ -171,12 +171,14 @@ export class ALTModuleTrackingService {
     programId: string,
     subject: string,
     noOfModules: number,
+    repeatAttempt: boolean,
     altModuleTrackingDto: ALTModuleTrackingDto
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     altModuleTrackingDto.userId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
     let errorExRec = "";
+    altModuleTrackingDto.programId = programId;
 
     // userId=""
     let recordList: any = {};
@@ -239,10 +241,12 @@ export class ALTModuleTrackingService {
             } else {
               altModuleTrackingDto.status = "ongoing";
             }
+            // timeSpent same as first content played
             courseAck = await this.moduleToCourseTracking(
               request,
               altModuleTrackingDto,
-              noOfModules
+              noOfModules,
+              repeatAttempt
             );
             if (courseAck.statusCode != 200) {
               return new ErrorResponse({
@@ -257,7 +261,8 @@ export class ALTModuleTrackingService {
             }
           } else if (
             numberOfRecords === 1 &&
-            recordList.data[0].status !== "completed"
+            recordList.data[0].status !== "completed" &&
+            !repeatAttempt
           ) {
             if (
               parseInt(recordList.data[0].totalNumberOfLessonsCompleted) + 1 ===
@@ -265,34 +270,72 @@ export class ALTModuleTrackingService {
             ) {
               altModuleTrackingDto.status = "completed";
             }
+
             altModuleTrackingDto.totalNumberOfLessonsCompleted =
               recordList.data[0].totalNumberOfLessonsCompleted + 1;
 
-            if (altModuleTrackingDto.status === "completed") {
-              courseAck = await this.moduleToCourseTracking(
-                request,
-                altModuleTrackingDto,
-                noOfModules
-              );
+            courseAck = await this.moduleToCourseTracking(
+              request,
+              altModuleTrackingDto,
+              noOfModules,
+              repeatAttempt
+            );
 
-              if (courseAck.statusCode != 200) {
-                return new ErrorResponse({
-                  errorCode: "400",
-                  errorMessage: courseAck.errorMessage,
-                });
-              }
+            if (courseAck.statusCode != 200) {
+              return new ErrorResponse({
+                errorCode: "400",
+                errorMessage: courseAck.errorMessage,
+              });
             }
+
+            altModuleTrackingDto.timeSpent =
+              parseInt(recordList.data[0].timeSpent) +
+              altModuleTrackingDto.timeSpent;
+
             return await this.updateALTModuleTracking(
               request,
               altModuleTrackingDto.moduleId,
               altModuleTrackingDto.courseId,
               altModuleTrackingDto
             );
-          } else if (
-            numberOfRecords === 1 &&
-            recordList.data[0].status === "completed"
-          ) {
-            console.log("recal scorehere");
+          } else if (numberOfRecords === 1 && repeatAttempt) {
+            // for repeat attempts
+
+            // keep existing lesson count as it is
+            altModuleTrackingDto.totalNumberOfLessonsCompleted =
+              recordList.data[0].totalNumberOfLessonsCompleted;
+
+            if (
+              parseInt(recordList.data[0].totalNumberOfLessons) ===
+              parseInt(recordList.data[0].totalNumberOfLessonsCompleted)
+            ) {
+              altModuleTrackingDto.status = "completed";
+            }
+
+            courseAck = await this.moduleToCourseTracking(
+              request,
+              altModuleTrackingDto,
+              noOfModules,
+              repeatAttempt
+            );
+
+            if (courseAck.statusCode != 200) {
+              return new ErrorResponse({
+                errorCode: "400",
+                errorMessage: courseAck.errorMessage,
+              });
+            }
+
+            altModuleTrackingDto.timeSpent =
+              parseInt(recordList.data[0].timeSpent) +
+              altModuleTrackingDto.timeSpent;
+
+            return await this.updateALTModuleTracking(
+              request,
+              altModuleTrackingDto.moduleId,
+              altModuleTrackingDto.courseId,
+              altModuleTrackingDto
+            );
           } else {
             return new ErrorResponse({
               errorCode: "400",
@@ -335,21 +378,21 @@ export class ALTModuleTrackingService {
                 courseId
                 moduleId
                 moduleProgressId
-                calculatedScore
+                timeSpent
                 totalNumberOfLessonsCompleted
                 totalNumberOfLessons
                 createdBy
-                created_at                
+                created_at  
+                programId              
           }
         }`,
       variables: {},
     };
-
     const configDataforCreate = {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altLessonTrackingData,
@@ -422,7 +465,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altModuleUpdateTrackingData,
@@ -479,7 +522,7 @@ export class ALTModuleTrackingService {
           courseId
           moduleId
           status
-          calculatedScore
+          timeSpent
           totalNumberOfLessonsCompleted
           totalNumberOfLessons
           created_at
@@ -497,7 +540,7 @@ export class ALTModuleTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: searchData,
@@ -525,14 +568,15 @@ export class ALTModuleTrackingService {
   public async moduleToCourseTracking(
     request: any,
     altModuleTrackingDto: ALTModuleTrackingDto,
-    tnoOfModules: number
+    tnoOfModules: number,
+    repeatAttempt: boolean
   ) {
     let altCourseTracking = {
       userId: altModuleTrackingDto.userId,
       courseId: altModuleTrackingDto.courseId,
       totalNumberOfModulesCompleted: 0,
       totalNumberOfModules: tnoOfModules,
-      calculatedScore: 0,
+      timeSpent: altModuleTrackingDto.timeSpent,
       status: altModuleTrackingDto.status,
       createdBy: altModuleTrackingDto.createdBy,
       updatedBy: altModuleTrackingDto.updatedBy,
@@ -544,7 +588,8 @@ export class ALTModuleTrackingService {
     courseTracking = await this.altCourseTrackingService.addALTCourseTracking(
       request,
       altCourseTrackingDto,
-      altModuleTrackingDto.status
+      altModuleTrackingDto.status,
+      repeatAttempt
     );
 
     if (courseTracking?.statusCode != 200) {
@@ -568,4 +613,161 @@ export class ALTModuleTrackingService {
       }
     }
   }
+  /*
+  public async glaCheckAndAddALTModuleTracking(
+    request: any,
+    programId: string,
+    subject: string,
+    noOfModules: number,
+    repeatAttempt: boolean,
+    altModuleTrackingDto: ALTModuleTrackingDto
+  ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    altModuleTrackingDto.userId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    let errorExRec = "";
+    altModuleTrackingDto.programId = programId;
+
+    // userId=""
+    let recordList: any = {};
+    recordList = await this.getExistingModuleTrackingRecords(
+      request,
+      altModuleTrackingDto.moduleId,
+      altModuleTrackingDto.courseId
+    ).catch(function (error) {
+      errorExRec = error;
+    });
+
+    if (!recordList?.data) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: recordList?.errorMessage,
+      });
+    }
+    let flag = false;
+    let courseAck: any;
+
+    if (altModuleTrackingDto.userId) {
+      const numberOfRecords = parseInt(recordList?.data.length);
+
+      if (numberOfRecords === 0) {
+        if (
+          altModuleTrackingDto.totalNumberOfLessons ===
+          altModuleTrackingDto.totalNumberOfLessonsCompleted
+        ) {
+          altModuleTrackingDto.status = "completed";
+        } else {
+          altModuleTrackingDto.status = "ongoing";
+        }
+        // timeSpent same as first content played
+        courseAck = await this.glaModuleToCourseTracking(
+          request,
+          altModuleTrackingDto,
+          noOfModules
+        );
+
+        if (courseAck.statusCode != 200) {
+          return new ErrorResponse({
+            errorCode: "400",
+            errorMessage: courseAck.errorMessage,
+          });
+        } else {
+          return await this.createALTModuleTracking(
+            request,
+            altModuleTrackingDto
+          );
+        }
+      } else if (
+        numberOfRecords === 1 &&
+        recordList.data[0].status !== "completed"
+      ) {
+        if (
+          parseInt(recordList.data[0].totalNumberOfLessonsCompleted) + 1 ===
+          parseInt(recordList.data[0].totalNumberOfLessons)
+        ) {
+          altModuleTrackingDto.status = "completed";
+        }
+
+        altModuleTrackingDto.totalNumberOfLessonsCompleted =
+          recordList.data[0].totalNumberOfLessonsCompleted + 1;
+
+        courseAck = await this.glaModuleToCourseTracking(
+          request,
+          altModuleTrackingDto,
+          noOfModules
+        );
+
+        if (courseAck.statusCode != 200) {
+          return new ErrorResponse({
+            errorCode: "400",
+            errorMessage: courseAck.errorMessage,
+          });
+        }
+
+        altModuleTrackingDto.timeSpent =
+          parseInt(recordList.data[0].timeSpent) +
+          altModuleTrackingDto.timeSpent;
+
+        return await this.updateALTModuleTracking(
+          request,
+          altModuleTrackingDto.moduleId,
+          altModuleTrackingDto.courseId,
+          altModuleTrackingDto
+        );
+      } else {
+        return new ErrorResponse({
+          errorCode: "400",
+          errorMessage: "Duplicate entry found in DataBase for Course Module",
+        });
+      }
+    }
+  }
+  public async glaModuleToCourseTracking(
+    request: any,
+    altModuleTrackingDto: ALTModuleTrackingDto,
+    tnoOfModules: number
+  ) {
+    let altCourseTracking = {
+      userId: altModuleTrackingDto.userId,
+      courseId: altModuleTrackingDto.courseId,
+      totalNumberOfModulesCompleted: 0,
+      totalNumberOfModules: tnoOfModules,
+      timeSpent: altModuleTrackingDto.timeSpent,
+      status: altModuleTrackingDto.status,
+      createdBy: altModuleTrackingDto.createdBy,
+      updatedBy: altModuleTrackingDto.updatedBy,
+    };
+
+    const altCourseTrackingDto = new ALTCourseTrackingDto(altCourseTracking);
+
+    let courseTracking: any;
+    courseTracking =
+      await this.altCourseTrackingService.glaAddALTCourseTracking(
+        request,
+        altCourseTrackingDto,
+        altModuleTrackingDto.status
+      );
+
+    if (courseTracking?.statusCode != 200) {
+      return new ErrorResponse({
+        errorCode: courseTracking?.statusCode,
+        errorMessage: "Error in creating Course Tracking",
+      });
+    } else {
+      if (courseTracking?.data?.courseProgressId) {
+        return new SuccessResponse({
+          statusCode: courseTracking?.statusCode,
+          message: "Ok.",
+          data: { ack: "Course Tracking created" },
+        });
+      } else {
+        return new SuccessResponse({
+          statusCode: courseTracking?.statusCode,
+          message: "Ok.",
+          data: { ack: "Course Tracking updated" },
+        });
+      }
+    }
+  }
+  */
 }

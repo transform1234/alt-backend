@@ -6,22 +6,25 @@ export class GroupMembershipDto {
   @Expose()
   groupMembershipId: string;
 
-  @ApiProperty()
+  // @ApiProperty()
   @Expose()
   groupId: string;
 
-  @ApiProperty()
+  // @ApiProperty()
   @Expose()
   schoolId: string;
-
+ 
+  @ApiProperty()
   @Expose()
   @IsNotEmpty()
   @IsUUID()
   userId: string;
 
-  @ApiProperty()
+  // @ApiProperty()
   @Expose()
   role: string;
+
+
 
   @Expose()
   createdBy: string;
@@ -46,17 +49,17 @@ export class GroupMembershipDtoById {
 
   @ApiProperty()
   @Expose()
-  groupId: string;
+  schoolUdise: string;
 
   @ApiProperty()
   @Expose()
-  schoolId: string;
+  userId: string;
 
   @ApiProperty()
   @Expose()
   @IsNotEmpty()
   @IsUUID()
-  userId: string;
+  groupId: string;
 
   @ApiProperty()
   @Expose()
@@ -69,13 +72,27 @@ export class GroupMembershipDtoById {
   updatedBy: string;
 
   @Expose()
-  created_at: string;
+  createdAt: string;
 
   @Expose()
-  updated_at: string;
+  updatedAt: string;
+
+  @Expose()
+  groupName: string;
 
   constructor(obj: any) {
-    Object.assign(this, obj);
+    this.groupMembershipId = obj?.groupMembershipId
+      ? `${obj?.groupMembershipId}`
+      : "";
+    this.schoolUdise = obj?.schoolUdise ? `${obj.schoolUdise}` : "";
+    this.userId = obj?.userId ? `${obj.userId}` : "";
+    this.groupId = obj?.groupId ? `${obj.groupId}` : "";
+    this.role = obj?.role ? `${obj.role}` : "";
+    this.createdBy = obj?.createdBy ? `${obj.createdBy}` : "";
+    this.updatedBy = obj?.updatedBy ? `${obj.updatedBy}` : "";
+    this.createdAt = obj?.createdAt ? `${obj.createdAt}` : "";
+    this.updatedAt = obj?.updatedAt ? `${obj.updatedAt}` : "";
+
+    this.groupName = obj?.groupName ? `${obj.groupName}` : "";
   }
 }
-

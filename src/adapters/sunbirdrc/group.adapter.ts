@@ -13,6 +13,7 @@ import { GroupSearchDto } from "src/group/dto/group-search.dto";
 import { IServicelocatorgroup } from "../groupservicelocator";
 import { StudentDto } from "src/student/dto/student.dto";
 import { UserDto } from "src/user/dto/user.dto";
+import { BMtoGroupDto } from "src/group/dto/bmtogroup.dto";
 export const SunbirdGroupToken = "SunbirdGroup";
 @Injectable()
 export class SunbirdGroupService implements IServicelocatorgroup {
@@ -67,6 +68,9 @@ export class SunbirdGroupService implements IServicelocatorgroup {
         })
       );
   }
+
+  getGroupList(bmtogroupdto: BMtoGroupDto, request: any) {}
+
   public async updateGroup(groupId: string, request: any, groupDto: GroupDto) {
     var axios = require("axios");
     var data = groupDto;

@@ -11,6 +11,8 @@ import {
   Req,
   Request,
   CacheInterceptor,
+  UsePipes,
+  ValidationPipe,
 } from "@nestjs/common";
 import { SchoolDto } from "./dto/school.dto";
 import {
@@ -23,12 +25,15 @@ import {
 } from "@nestjs/swagger";
 import { SchoolSearchDto } from "./dto/school-search.dto";
 import { SchoolAdapter } from "./schooladapter";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
+@UseInterceptors(SentryInterceptor)
 @ApiTags("School")
 @Controller("school")
 export class SchoolController {
   constructor(private schoolAdapter: SchoolAdapter) {}
 
   @Get("/:id")
+  @UsePipes(ValidationPipe)
   @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
   @ApiBasicAuth("access-token")
   @ApiOkResponse({ description: "School detail." })
@@ -41,6 +46,7 @@ export class SchoolController {
   }
 
   @Post()
+  @UsePipes(ValidationPipe)
   @ApiBasicAuth("access-token")
   @ApiCreatedResponse({ description: "School has been created successfully." })
   @ApiBody({ type: SchoolDto })
@@ -56,6 +62,7 @@ export class SchoolController {
   }
 
   @Put("/:id")
+  @UsePipes(ValidationPipe)
   @ApiBasicAuth("access-token")
   @ApiCreatedResponse({ description: "School has been updated successfully." })
   @ApiForbiddenResponse({ description: "Forbidden" })
@@ -69,7 +76,9 @@ export class SchoolController {
       .buildSchoolAdapter()
       .updateSchool(id, request, schoolDto);
   }
+
   @Post("/search")
+  @UsePipes(ValidationPipe)
   @ApiBasicAuth("access-token")
   @ApiCreatedResponse({ description: "School list." })
   @ApiBody({ type: SchoolSearchDto })
@@ -85,5 +94,17 @@ export class SchoolController {
     return this.schoolAdapter
       .buildSchoolAdapter()
       .searchSchool(request, schoolSearchDto);
+  }
+
+  @Get("")
+  @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
+  @ApiBasicAuth("access-token")
+  @ApiOkResponse({ description: "School detail." })
+  @ApiForbiddenResponse({ description: "Forbidden" })
+  @SerializeOptions({
+    strategy: "excludeAll",
+  })
+  public async getAllSchool(@Req() request: Request) {
+    return this.schoolAdapter.buildSchoolAdapter().getAllSchool(request);
   }
 }

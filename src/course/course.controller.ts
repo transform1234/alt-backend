@@ -28,12 +28,16 @@ import { IServicelocator } from "src/adapters/courseservicelocator";
 import { KhanAcademyCourseToken } from "src/adapters/khanAcademy/khanAcademyCourse.adapter";
 import { GroupSearchDto } from "src/group/dto/group-search.dto";
 import { CourseSearchDto } from "./dto/course.search.dto";
+import { SunbirdCourseToken } from "src/adapters/sunbird/sunbirdCourse.adapter";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Course")
 @Controller("course")
 export class CourseController {
   constructor(
     @Inject(DikshaCourseToken) private dikshaProvider: IServicelocator,
+    @Inject(SunbirdCourseToken) private sunbirdProvider: IServicelocator,
     @Inject(KhanAcademyCourseToken)
     private khanAcademyProvider: IServicelocator
   ) {}
@@ -67,6 +71,16 @@ export class CourseController {
         limit,
         request
       );
+    } else if (adapter === "sunbird") {
+      return this.sunbirdProvider.getAllCourse(
+        channel,
+        subject,
+        audience,
+        className,
+        medium,
+        limit,
+        request
+      );
     } else if (adapter === "khanacademy") {
       return this.khanAcademyProvider.getAllCourse(
         channel,
@@ -92,10 +106,13 @@ export class CourseController {
   ) {
     if (adapter === "diksha") {
       return this.dikshaProvider.getCoursesByIds(courseIds, request);
+    } else if (adapter === "sunbird") {
+      return this.sunbirdProvider.getCoursesByIds(courseIds, request);
     } else if (adapter === "khanacademy") {
       return this.khanAcademyProvider.getCoursesByIds(courseIds, request);
     }
   }
+
   @Get(":adapter/hierarchy/contentid")
   @UseInterceptors(ClassSerializerInterceptor, CacheInterceptor)
   @ApiOkResponse({ description: "Get content hierarchy detail." })
@@ -107,8 +124,13 @@ export class CourseController {
     @Query("type") type: string,
     @Req() request: Request
   ) {
+    console.log("adapter", adapter)
     if (adapter === "diksha") {
+      console.log("adapter", adapter)
       return this.dikshaProvider.getCourseHierarchy(courseId, type, request);
+    } else if (adapter === "sunbird") {
+      console.log("adapter", adapter)
+      return this.sunbirdProvider.getCourseHierarchy(courseId, type, request);
     } else if (adapter === "khanacademy") {
       return this.khanAcademyProvider.getCourseHierarchy(
         courseId,
@@ -130,6 +152,8 @@ export class CourseController {
   ) {
     if (adapter === "diksha") {
       return this.dikshaProvider.getCourseDetail(courseId, request);
+    } else if (adapter === "sunbird") {
+      return this.sunbirdProvider.getCourseDetail(courseId, request);
     } else if (adapter === "khanacademy") {
       return this.khanAcademyProvider.getCourseDetail(courseId, request);
     }
@@ -137,15 +161,9 @@ export class CourseController {
 
   @Post("/questionset")
   @ApiBody({ type: CourseSearchDto })
-  @UseInterceptors(ClassSerializerInterceptor)
   @ApiCreatedResponse({ description: "Get all Course detail." })
-  // @ApiForbiddenResponse({ description: "Forbidden" })
-  @SerializeOptions({
-    strategy: "excludeAll",
-  })
-  public async getQuestionset(@Body() CourseSearchDto: CourseSearchDto) {
-    return this.dikshaProvider.getQuestionset(CourseSearchDto);
-    //return { id: "sdgkf" };
+  public async getQuestionset(@Body() courseSearchDto: CourseSearchDto) {
+    return this.dikshaProvider.getQuestionset(courseSearchDto);
   }
 
   @Get(":questionset/questionsetid")

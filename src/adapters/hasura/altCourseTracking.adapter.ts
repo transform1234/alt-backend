@@ -6,7 +6,8 @@ import { ALTCourseTrackingDto } from "src/altCourseTracking/dto/altCourseTrackin
 import { UpdateALTCourseTrackingDto } from "src/altCourseTracking/dto/updatealtCourseTracking.dto";
 import { ALTCourseTrackingSearch } from "src/altCourseTracking/dto/searchaltCourseTracking.dto";
 import { ErrorResponse } from "src/error-response";
-import { HasuraUserService } from "./user.adapter";
+// import { HasuraUserService } from "./user.adapter";
+import { ALTHasuraUserService } from "src/adapters/hasura/altUser.adapter";
 
 @Injectable()
 export class ALTCourseTrackingService {
@@ -14,7 +15,7 @@ export class ALTCourseTrackingService {
 
   constructor(
     private httpService: HttpService,
-    private hasuraUserService: HasuraUserService
+    private hasuraUserService: ALTHasuraUserService
   ) {}
 
   public async mappedResponse(data: any) {
@@ -28,7 +29,7 @@ export class ALTCourseTrackingService {
         totalNumberOfModules: item?.totalNumberOfModules
           ? `${item.totalNumberOfModules}`
           : 0,
-        calculatedScore: item?.calculatedScore ? `${item.calculatedScore}` : 0,
+        timeSpent: item?.timeSpent ? `${item.timeSpent}` : 0,
         status: item?.status ? `${item.status}` : "",
         createdBy: item?.createdBy ? `${item.createdBy}` : "",
         updatedBy: item?.updatedBy ? `${item.updatedBy}` : "",
@@ -76,7 +77,7 @@ export class ALTCourseTrackingService {
                   userId
                   totalNumberOfModulesCompleted
                   totalNumberOfModules
-                  calculatedScore
+                  timeSpent
                   status
                   created_at
                   updated_at
@@ -95,7 +96,7 @@ export class ALTCourseTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: ALTCourseTrackingData,
@@ -153,13 +154,14 @@ export class ALTCourseTrackingService {
               courseProgressId
               courseId
               userId
-              calculatedScore
+              timeSpent
               status
               created_at
               updated_at
               createdBy
               updatedBy
-          }
+              programId
+            }
         }`,
       variables: {},
     };
@@ -168,7 +170,7 @@ export class ALTCourseTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altCourseTrackingData,
@@ -236,7 +238,7 @@ export class ALTCourseTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altCourseUpdateTrackingQuery,
@@ -293,7 +295,7 @@ export class ALTCourseTrackingService {
           userId
           courseId
           status
-          calculatedScore
+          timeSpent
           status
           created_at
           updated_at
@@ -310,7 +312,7 @@ export class ALTCourseTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: searchData,
@@ -338,7 +340,8 @@ export class ALTCourseTrackingService {
   public async addALTCourseTracking(
     request: any,
     altCourseTrackingDto: ALTCourseTrackingDto,
-    moduleStatus: string
+    moduleStatus: string,
+    repeatAttempt: boolean
   ) {
     let errorExRec = "";
     let recordList: any = {};
@@ -368,12 +371,17 @@ export class ALTCourseTrackingService {
       } else if (moduleStatus === "completed") {
         altCourseTrackingDto.status = "ongoing";
       }
-      altCourseTrackingDto.totalNumberOfModulesCompleted =
-        altCourseTrackingDto.totalNumberOfModulesCompleted + 1;
+
+      if (moduleStatus === "completed") {
+        altCourseTrackingDto.totalNumberOfModulesCompleted =
+          altCourseTrackingDto.totalNumberOfModulesCompleted + 1;
+      }
+
       return this.createALTCourseTracking(request, altCourseTrackingDto);
     } else if (
       numberOfRecords === 1 &&
-      recordList.data[0].status !== "completed"
+      recordList.data[0].status !== "completed" &&
+      !repeatAttempt
     ) {
       if (
         parseInt(recordList.data[0].totalNumberOfModulesCompleted) + 1 ===
@@ -388,6 +396,27 @@ export class ALTCourseTrackingService {
         altCourseTrackingDto.totalNumberOfModulesCompleted =
           parseInt(recordList.data[0].totalNumberOfModulesCompleted) + 1;
       }
+
+      altCourseTrackingDto.timeSpent =
+        parseInt(recordList.data[0].timeSpent) + altCourseTrackingDto.timeSpent;
+
+      return await this.updateALTCourseTracking(request, altCourseTrackingDto);
+    } else if (numberOfRecords === 1 && repeatAttempt) {
+      // for repeat attempts
+
+      if (
+        parseInt(recordList.data[0].totalNumberOfModules) ===
+        parseInt(recordList.data[0].totalNumberOfModulesCompleted)
+      ) {
+        altCourseTrackingDto.status = "completed";
+      }
+
+      // keep existing module count as it is
+      altCourseTrackingDto.totalNumberOfModulesCompleted =
+        recordList.data[0].totalNumberOfModulesCompleted;
+
+      altCourseTrackingDto.timeSpent =
+        parseInt(recordList.data[0].timeSpent) + altCourseTrackingDto.timeSpent;
 
       return await this.updateALTCourseTracking(request, altCourseTrackingDto);
     } else if (numberOfRecords > 1) {
@@ -419,7 +448,7 @@ export class ALTCourseTrackingService {
                     status
                     totalNumberOfModulesCompleted
                     totalNumberOfModules
-                    calculatedScore
+                    timeSpent
                     status
                     createdBy
                     updatedBy
@@ -438,29 +467,119 @@ export class ALTCourseTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-          "Authorization": request.headers.authorization,
-          "Content-Type": "application/json",
-        },
-        data: ALTCourseTrackingData,
-      };
-  
-      const response = await this.axios(configData);
-  
-      if (response?.data?.errors) {
-        return new ErrorResponse({
-          errorCode: response.data.errors[0].extensions,
-          errorMessage: response.data.errors[0].message,
-        });
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: ALTCourseTrackingData,
+    };
+
+    const response = await this.axios(configData);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const result = response.data.data.CourseProgressTracking;
+
+    const data = await this.mappedResponse(result);
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: data,
+    });
+  }
+
+  /*
+  public async glaAddALTCourseTracking(
+    request: any,
+    altCourseTrackingDto: ALTCourseTrackingDto,
+    moduleStatus: string
+  ) {
+    let recordList: any = {};
+    try {
+      // Fetch existing course tracking records based on courseId and request parameters
+      recordList = await this.getExistingCourseTrackingRecords(
+        request,
+        altCourseTrackingDto.courseId,
+        null
+      );
+    } catch (error) {
+      return new ErrorResponse({
+        errorCode: "500",
+        errorMessage: "Error retrieving course tracking records.",
+      });
+    }
+
+    if (!recordList?.data) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Course tracking record not found.",
+      });
+    }
+
+    const numberOfRecords = parseInt(recordList?.data.length);
+
+    // Case: No existing records (create a new one)
+    if (numberOfRecords === 0) {
+      if (
+        altCourseTrackingDto.totalNumberOfModulesCompleted + 1 ===
+        altCourseTrackingDto.totalNumberOfModules
+      ) {
+        altCourseTrackingDto.status = "completed"; // Set status to completed
+      } else {
+        altCourseTrackingDto.status = "ongoing"; // Set status to ongoing
       }
-  
-      const result = response.data.data.CourseProgressTracking;
-  
-      const data = await this.mappedResponse(result);
-  
+
+      if (moduleStatus === "completed") {
+        altCourseTrackingDto.totalNumberOfModulesCompleted++; // Increment completed modules
+      }
+
+      return this.createALTCourseTracking(request, altCourseTrackingDto); // Create new record
+    }
+    // Case: One existing record found, and course is not completed
+    else if (
+      numberOfRecords === 1 &&
+      recordList.data[0].status !== "completed"
+    ) {
+      // Check if total modules completed (including current module) matches total number of modules
+      if (
+        parseInt(recordList.data[0].totalNumberOfModulesCompleted) + 1 ===
+        parseInt(recordList.data[0].totalNumberOfModules)
+      ) {
+        altCourseTrackingDto.status = "completed"; // Set status to completed
+      } else {
+        altCourseTrackingDto.status = "ongoing"; // Set status to ongoing
+      }
+
+      // If the module is marked as completed, increment the completed modules count
+      if (moduleStatus === "completed") {
+        altCourseTrackingDto.totalNumberOfModulesCompleted =
+          parseInt(recordList.data[0].totalNumberOfModulesCompleted) + 1;
+      }
+
+      altCourseTrackingDto.timeSpent =
+        parseInt(recordList.data[0].timeSpent) + altCourseTrackingDto.timeSpent; // Update timeSpent
+
+      return await this.updateALTCourseTracking(request, altCourseTrackingDto); // Update existing record
+    }
+    // Case: Duplicate records found
+    else if (numberOfRecords > 1) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Duplicate entry found in DataBase for Course",
+      });
+    }
+    // Case: Course already completed
+    else if (recordList.data[0].status === "completed") {
       return new SuccessResponse({
         statusCode: 200,
-        message: "Ok.",
-        data: data,
+        message: "Course is already completed.",
       });
+    }
   }
+  */
 }

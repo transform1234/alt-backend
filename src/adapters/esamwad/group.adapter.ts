@@ -7,6 +7,7 @@ import { StudentGroupMembershipDto } from "src/group/dto/studentGroupMembership.
 import { UserDto } from "src/user/dto/user.dto";
 import { GroupSearchDto } from "src/group/dto/group-search.dto";
 import { StudentDto } from "src/student/dto/student.dto";
+import { BMtoGroupDto } from "src/group/dto/bmtogroup.dto";
 export const EsamwadGroupToken = "EsamwadGroup";
 
 @Injectable()
@@ -52,6 +53,8 @@ export class EsamwadGroupService implements IServicelocatorgroup {
       data: groupResponse,
     });
   }
+
+  getGroupList(bmtogroupdto: BMtoGroupDto, request: any) {}
 
   public async findMembersOfGroup(id: string, role: string, request: any) {
     if (role == "Student") {

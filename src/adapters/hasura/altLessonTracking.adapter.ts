@@ -11,7 +11,9 @@ import { ALTModuleTrackingService } from "../../adapters/hasura/altModuleTrackin
 import { ErrorResponse } from "src/error-response";
 import { TermsProgramtoRulesDto } from "src/altProgramAssociation/dto/altTermsProgramtoRules.dto";
 import { ALTModuleTrackingDto } from "src/altModuleTracking/dto/altModuleTracking.dto";
-import { HasuraUserService } from "./user.adapter";
+// import { HasuraUserService } from "./user.adapter";
+import { ALTHasuraUserService } from "src/adapters/hasura/altUser.adapter";
+import { ALTProgramAssociationSearch } from "src/altProgramAssociation/dto/searchAltProgramAssociation.dto";
 
 @Injectable()
 export class ALTLessonTrackingService {
@@ -22,7 +24,7 @@ export class ALTLessonTrackingService {
     private programService: ProgramService,
     private altProgramAssociationService: ALTProgramAssociationService,
     private altModuleTrackingService: ALTModuleTrackingService,
-    private hasuraUserService: HasuraUserService
+    private hasuraUserService: ALTHasuraUserService
   ) {}
 
   public async mappedResponse(data: any) {
@@ -36,6 +38,8 @@ export class ALTLessonTrackingService {
         score: item?.score ? `${item.score}` : 0,
         status: item?.status ? `${item.status}` : 0,
         scoreDetails: item?.scoreDetails ? `${item.scoreDetails}` : "",
+        timeSpent: item?.timeSpent ? `${item.timeSpent}` : 0,
+        contentType: item?.contentType ? `${item.contentType}` : "",
       };
 
       return new ALTLessonTrackingDto(altLessonMapping);
@@ -46,7 +50,7 @@ export class ALTLessonTrackingService {
   public async getExistingLessonTrackingRecords(
     request: any,
     lessonId: string,
-    moduleId: string
+    moduleId?: string
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserId =
@@ -54,7 +58,9 @@ export class ALTLessonTrackingService {
 
     const altLessonTrackingRecord = {
       query: `query GetLessonTrackingData ($userId:uuid!, $lessonId:String, $moduleId:String) {
-          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}, moduleId: {_eq: $moduleId}}) {
+          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId},${
+            moduleId ? `, moduleId: {_eq: $moduleId}` : ""
+          }}) {
             userId
             moduleId
             lessonId
@@ -62,11 +68,14 @@ export class ALTLessonTrackingService {
             createdBy
             status
             attempts
+            timeSpent
+            contentType
+            lessonProgressId
         } }`,
       variables: {
         userId: altUserId,
         lessonId: lessonId,
-        moduleId: moduleId,
+        ...(moduleId && { moduleId }),
       },
     };
 
@@ -74,7 +83,7 @@ export class ALTLessonTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altLessonTrackingRecord,
@@ -106,10 +115,15 @@ export class ALTLessonTrackingService {
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-
+    console.log(
+      "getLastLessonTrackingRecord-->>",
+      lessonId,
+      moduleId,
+      attemptNumber
+    );
     const altLastLessonTrackingRecord = {
-      query: `query GetLastLessonTrackingRecord ($userId:uuid!, $lessonId:String, $moduleId:String, $attemptNumber: Int) {
-          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}, moduleId: {_eq: $moduleId}, attempts: {_eq: $attemptNumber}}) {
+      query: `query GetLastLessonTrackingRecord ($userId:uuid!, $lessonId:String, $moduleId:String) {
+          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}, moduleId: {_eq: $moduleId}}) {
             created_at
             createdBy
             status
@@ -119,7 +133,6 @@ export class ALTLessonTrackingService {
         userId: userId,
         lessonId: lessonId,
         moduleId: moduleId,
-        attemptNumber: attemptNumber,
       },
     };
 
@@ -127,7 +140,7 @@ export class ALTLessonTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altLastLessonTrackingRecord,
@@ -182,6 +195,8 @@ export class ALTLessonTrackingService {
                   attempts
                   status
                   score
+                  timeSpent
+                  contentType
                   scoreDetails
                 }
               }                 
@@ -196,7 +211,7 @@ export class ALTLessonTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: ALTLessonTrackingData,
@@ -228,12 +243,41 @@ export class ALTLessonTrackingService {
     subject: string,
     altLessonTrackingDto: ALTLessonTrackingDto
   ) {
+    const scoreDetails = altLessonTrackingDto?.scoreDetails;
+
+    // Not allowing blank array and objects in database
+    if (Array.isArray(scoreDetails) && !scoreDetails.length) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Score Details is empty",
+      });
+    }
+
+    if (Object.keys(scoreDetails).length === 0) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Score Details is empty",
+      });
+    }
+
+    if (
+      JSON.stringify(scoreDetails) === "{}" ||
+      JSON.stringify(scoreDetails) === "[]"
+    ) {
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Score Details is empty",
+      });
+    }
+
     const decoded: any = jwt_decode(request.headers.authorization);
     altLessonTrackingDto.userId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
     altLessonTrackingDto.createdBy = altLessonTrackingDto.userId;
     altLessonTrackingDto.updatedBy = altLessonTrackingDto.userId;
-
+    altLessonTrackingDto.timeSpent =
+      altLessonTrackingDto.timeSpent > 0 ? altLessonTrackingDto.timeSpent : 0;
+    altLessonTrackingDto.programId = programId;
     let errorExRec = "";
     let recordList: any;
     recordList = await this.getExistingLessonTrackingRecords(
@@ -251,7 +295,7 @@ export class ALTLessonTrackingService {
     if (!recordList?.data) {
       return new ErrorResponse({
         errorCode: "400",
-        errorMessage: errorExRec,
+        errorMessage: recordList?.errorMessage,
       });
     }
 
@@ -301,8 +345,10 @@ export class ALTLessonTrackingService {
           const numberOfRecords = parseInt(recordList?.data.length);
           const allowedAttempts = parseInt(course.allowedAttempts);
           if (course.contentType == "assessment" && allowedAttempts === 1) {
+            // handling baseline assessment
             if (numberOfRecords === 0) {
               altLessonTrackingDto.attempts = 1;
+
               return await this.createALTLessonTracking(
                 request,
                 altLessonTrackingDto
@@ -333,9 +379,9 @@ export class ALTLessonTrackingService {
               });
             }
           } else if (course.contentType == "course" && allowedAttempts === 0) {
+            // if course content handling creation and updation of lesson with module
             if (numberOfRecords === 0) {
               altLessonTrackingDto.attempts = 1;
-
               const lessonTrack: any = await this.createALTLessonTracking(
                 request,
                 altLessonTrackingDto
@@ -349,7 +395,8 @@ export class ALTLessonTrackingService {
                   request,
                   altLessonTrackingDto,
                   programId,
-                  subject
+                  subject,
+                  false
                 );
               }
 
@@ -370,17 +417,16 @@ export class ALTLessonTrackingService {
                 });
               });
 
-              if (!lastRecord[0].status) {
+              if (!lastRecord[0]?.status) {
                 return new ErrorResponse({
                   errorCode: "400",
-                  errorMessage:
-                    lastRecord +
-                    "Duplicate entry found in DataBase for Baseline Assessment",
+                  errorMessage: lastRecord + "Error getting last record",
                 });
               }
 
               if (lastRecord[0]?.status !== "completed") {
-                const lessonTrack : any = await this.updateALTLessonTracking(
+                // if last record is not completed complete it first and update
+                const lessonTrack: any = await this.updateALTLessonTracking(
                   request,
                   altLessonTrackingDto.lessonId,
                   altLessonTrackingDto,
@@ -390,13 +436,15 @@ export class ALTLessonTrackingService {
                 // Adding to module only when its first attempt and increasing count in module for lesson
                 if (
                   altLessonTrackingDto.status === "completed" &&
-                  lastRecord[0].attempts === 1 && lessonTrack?.statusCode === 200
+                  lastRecord[0].attempts === 1 &&
+                  lessonTrack?.statusCode === 200
                 ) {
                   tracklessonModule = await this.lessonToModuleTracking(
                     request,
                     altLessonTrackingDto,
                     programId,
-                    subject
+                    subject,
+                    false
                   );
                 }
 
@@ -405,11 +453,27 @@ export class ALTLessonTrackingService {
                   tracking: tracklessonModule,
                 };
               } else if (lastRecord[0]?.status === "completed") {
+                // for repeat attempts
                 altLessonTrackingDto.attempts = numberOfRecords + 1;
-                const lessonTrack = await this.createALTLessonTracking(
+                const lessonTrack: any = await this.createALTLessonTracking(
                   request,
                   altLessonTrackingDto
                 );
+
+                // modify module time here
+                if (
+                  altLessonTrackingDto.status === "completed" &&
+                  lessonTrack?.statusCode === 200
+                ) {
+                  tracklessonModule = await this.lessonToModuleTracking(
+                    request,
+                    altLessonTrackingDto,
+                    programId,
+                    subject,
+                    true
+                  );
+                }
+
                 return {
                   lessonTrack: lessonTrack,
                   tracking: "Multiple attempt for lesson added",
@@ -458,6 +522,9 @@ export class ALTLessonTrackingService {
         }
       }
     });
+    if (altLessonTrackingDto?.score === 0) {
+      newAltLessonTracking += `score:${altLessonTracking?.score}`;
+    }
 
     const altLessonTrackingData = {
       query: `mutation CreateALTLessonTracking {
@@ -470,17 +537,21 @@ export class ALTLessonTrackingService {
                 moduleId
                 lessonProgressId
                 score
-                scoreDetails                
+                timeSpent
+                contentType
+                scoreDetails  
+                programId
           }
         }`,
       variables: {},
     };
+    console.log(altLessonTrackingData.query);
 
     const configDataforCreate = {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altLessonTrackingData,
@@ -507,15 +578,17 @@ export class ALTLessonTrackingService {
   public async updateALTLessonTracking(
     request: any,
     lessonId: string,
-    updateAltLessonTrackDto: UpdateALTLessonTrackingDto,
-    lastAttempt: number
+    updateAltLessonTrackDto: any,
+    lastAttempt: number,
+    data?: any
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    const courseId = data?.courseId;
+    const moduleId = data?.moduleId;
 
-    const updateAltLessonTracking = new UpdateALTLessonTrackingDto(
-      updateAltLessonTrackDto
-    );
+    const updateAltLessonTracking = updateAltLessonTrackDto;
+
     let newUpdateAltLessonTracking = "";
     Object.keys(updateAltLessonTrackDto).forEach((key) => {
       if (
@@ -533,31 +606,47 @@ export class ALTLessonTrackingService {
       }
     });
 
-    let altLessonUpdateTrackingData = {};
+    let altLessonUpdateTrackingData;
 
     if (!lastAttempt) {
       altLessonUpdateTrackingData = {
-        query: `mutation updateAltLessonTracking ($userId:uuid!, $lessonId:String) {
-              update_LessonProgressTracking(where: {lessonId: {_eq: $lessonId}, userId: {_eq: $userId}}, _set: {${newUpdateAltLessonTracking}}) {
+        query: `mutation updateAltLessonTracking ($userId:uuid!, $lessonId:String, $courseId: String, $moduleId: String) {
+              update_LessonProgressTracking(where: {lessonId: {_eq: $lessonId}, userId: {_eq: $userId},courseId: {_eq: $courseId}, moduleId: {_eq:$moduleId} }, _set: {${newUpdateAltLessonTracking}}) {
               affected_rows
+              returning{
+              lessonProgressId
+              }
             }
         }`,
         variables: {
           userId: userId,
           lessonId: lessonId,
+          courseId: courseId,
+          moduleId: moduleId,
         },
       };
     } else {
+      // newUpdateAltLessonTracking[attemp] = lastAttempt + 1;
+      lastAttempt = lastAttempt + 1;
+      newUpdateAltLessonTracking += `attempts: ${lastAttempt}, `;
+      if (updateAltLessonTrackDto?.score === 0) {
+        newUpdateAltLessonTracking += `score:${updateAltLessonTrackDto?.score}`;
+      }
+
       altLessonUpdateTrackingData = {
-        query: `mutation updateAltLessonTracking ($userId:uuid!, $lessonId:String, $lastAttempt:Int) {
-              update_LessonProgressTracking(where: {lessonId: {_eq: $lessonId}, userId: {_eq: $userId} ,attempts: {_eq: $lastAttempt}}, _set: {${newUpdateAltLessonTracking}}) {
+        query: `mutation updateAltLessonTracking ($userId:uuid!, $lessonId:String, $courseId: String, $moduleId: String) {
+              update_LessonProgressTracking(where: {lessonId: {_eq: $lessonId}, userId: {_eq: $userId}, courseId: {_eq: $courseId}, moduleId: {_eq:$moduleId}}, _set: {${newUpdateAltLessonTracking}}) {
               affected_rows
+              returning{
+              lessonProgressId
+              }
             }
         }`,
         variables: {
           userId: userId,
           lessonId: lessonId,
-          lastAttempt: lastAttempt,
+          courseId: courseId,
+          moduleId: moduleId,
         },
       };
     }
@@ -566,7 +655,7 @@ export class ALTLessonTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: altLessonUpdateTrackingData,
@@ -576,7 +665,7 @@ export class ALTLessonTrackingService {
 
     if (response?.data?.errors) {
       return new ErrorResponse({
-        errorCode: response.data.errors[0].extensions,
+        errorCode: "422",
         errorMessage: response.data.errors[0].message,
       });
     }
@@ -626,6 +715,8 @@ export class ALTLessonTrackingService {
           status
           attempts
           score
+          timeSpent
+          contentType
           scoreDetails
         }
     }`,
@@ -638,7 +729,7 @@ export class ALTLessonTrackingService {
       method: "post",
       url: process.env.ALTHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: searchData,
@@ -667,7 +758,8 @@ export class ALTLessonTrackingService {
     request: any,
     altLessonTrackingDto: ALTLessonTrackingDto,
     programId: string,
-    subject: string
+    subject: string,
+    repeatAttempt: boolean
   ) {
     const currentUrl = process.env.SUNBIRDURL;
 
@@ -693,7 +785,7 @@ export class ALTLessonTrackingService {
       status: "ongoing",
       totalNumberOfLessonsCompleted: 1,
       totalNumberOfLessons: currentModule.children.length,
-      calculatedScore: 0,
+      timeSpent: altLessonTrackingDto.timeSpent,
       createdBy: altLessonTrackingDto.userId,
       updatedBy: altLessonTrackingDto.userId,
     };
@@ -707,6 +799,7 @@ export class ALTLessonTrackingService {
         programId,
         subject,
         noOfModules,
+        repeatAttempt,
         altModuleTrackingDto
       );
 
@@ -736,6 +829,778 @@ export class ALTLessonTrackingService {
           data: { ack: "Course completed" },
         });
       }
+    }
+  }
+  public async glaAddLessonTracking(
+    request: any,
+    altLessonTrackingDto: ALTLessonTrackingDto,
+    programId: string,
+    subject: string,
+    response: any
+  ) {
+    //  Validate the `scoreDetails` field
+    const scoreDetails = altLessonTrackingDto?.scoreDetails;
+
+    if (Array.isArray(scoreDetails) && !scoreDetails.length) {
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: "Score Details is empty",
+        })
+      );
+    }
+
+    if (Object.keys(scoreDetails).length === 0) {
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: "Score Details is empty",
+        })
+      );
+    }
+    let lessonProgressId;
+    //  Decode the JWT token for user identification
+
+    const decoded: any = jwt_decode(request.headers.authorization);
+    altLessonTrackingDto.userId =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    altLessonTrackingDto.createdBy = altLessonTrackingDto.userId;
+    altLessonTrackingDto.updatedBy = altLessonTrackingDto.userId;
+    altLessonTrackingDto.timeSpent =
+      altLessonTrackingDto.timeSpent > 0
+        ? Math.round(altLessonTrackingDto.timeSpent)
+        : 0;
+    altLessonTrackingDto.programId = programId;
+
+    //  Fetch existing lesson tracking records
+    let recordList: any;
+    try {
+      recordList = await this.getExistingLessonTrackingRecords(
+        request,
+        altLessonTrackingDto.lessonId
+      );
+    } catch (error) {
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage:
+            error?.response?.data?.errorMessage ||
+            "Can't fetch existing records.",
+        })
+      );
+    }
+    if (!recordList?.data) {
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: recordList?.errorMessage,
+        })
+      );
+    }
+
+    // Determine if a record already exists
+    lessonProgressId = recordList?.data[0]
+      ? recordList?.data[0]?.lessonProgressId
+      : 0;
+
+    //  Fetch program details
+    let currentProgramDetails: any = {};
+    try {
+      currentProgramDetails = await this.programService.getProgramDetailsById(
+        request,
+        programId
+      );
+    } catch (error) {
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage:
+            error?.response?.data?.errorMessage ||
+            "Can't fetch program details.",
+        })
+      );
+    }
+
+    // Map program details to DTO for fetching rules
+
+    const paramData = new TermsProgramtoRulesDto(currentProgramDetails.data);
+    //  Fetch program rules for the given subject
+
+    let progTermData: any = {};
+    try {
+      progTermData = await this.altProgramAssociationService.getRules(request, {
+        programId: programId,
+        board: paramData[0].board,
+        medium: paramData[0].medium,
+        grade: paramData[0].grade,
+        subject: subject,
+      });
+    } catch (error) {
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: "Program Rules not found for given subject!",
+        })
+      );
+    }
+
+    let programRules: any;
+    if (progTermData?.data[0]?.rules) {
+      programRules = JSON.parse(progTermData.data[0].rules);
+    } else {
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: "Program Rules not found for given subject!",
+        })
+      );
+    }
+    //  Loop through program rules to process the lesson tracking
+
+    //  Check lessonId and courseId in programRules
+    const currentLessonId = altLessonTrackingDto.lessonId;
+    let courseId;
+    let questionIdFlag; //to identify if the do_id is lesson or questionSet
+    for (const program of programRules.prog) {
+      if (
+        program.contentId === currentLessonId ||
+        program.lesson_questionset === currentLessonId
+      ) {
+        courseId = program; // Fetch courseId for the matched lessonId
+        break;
+      }
+    }
+
+    if (!courseId) {
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: `Program details not available for LessonId ${currentLessonId}`,
+        })
+      );
+    } else if (!courseId?.courseId) {
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: `Course Id not available in the program rules for LessonId ${currentLessonId}`,
+        })
+      );
+    }
+
+    // Call checkLessonAndModuleExistInCourse with the found courseId
+    const checkLessonExist = await this.checkLessonAndModuleExistInCourse({
+      ...altLessonTrackingDto,
+      courseId,
+    });
+    if (checkLessonExist instanceof ErrorResponse) {
+      return response.status(422).json({
+        // Return the error directly
+        errorCode: "422",
+        errorMessage: checkLessonExist,
+      });
+    }
+
+    const moduleId = checkLessonExist.data;
+    altLessonTrackingDto.courseId = courseId?.courseId;
+    altLessonTrackingDto.moduleId = moduleId;
+
+    let flag = false;
+    // let tracklessonModule;
+
+    if (altLessonTrackingDto.userId) {
+      for (const course of programRules?.prog) {
+        const numberOfRecords = parseInt(recordList?.data.length);
+        // Check if the course matches
+        if (
+          course.contentId == altLessonTrackingDto.lessonId ||
+          course.lesson_questionset == altLessonTrackingDto.lessonId
+        ) {
+          flag = true;
+          questionIdFlag = course.lesson_questionset === currentLessonId; //if current content is questionSet
+          // if course content handling creation and updation of lesson with module
+
+          if (numberOfRecords === 0) {
+            altLessonTrackingDto.attempts = 1;
+            altLessonTrackingDto.score = altLessonTrackingDto?.score;
+            const lessonTrack: any = await this.createALTLessonTracking(
+              request,
+              altLessonTrackingDto
+            );
+
+            lessonProgressId = lessonTrack?.data?.lessonProgressId;
+
+            if (
+              altLessonTrackingDto.status === "completed" &&
+              lessonTrack?.statusCode === 200
+            ) {
+              // tracklessonModule = await this.glalessonToModuleTracking(
+              //   request,
+              //   altLessonTrackingDto,
+              //   programId,
+              //   subject,
+              //   false
+              // );
+            }
+            //ASSIGNING REWARD POINTS FOR ASSESSMENT OR LESSON COMPLETION OR SUBJECT COMPLETION
+            let assignRewardPoints;
+            let subjectAssignRewardPoints;
+            //if the current do_id is the questionSetId
+            if (!questionIdFlag) {
+              assignRewardPoints =
+                await this.altProgramAssociationService.addUserPoints(request, {
+                  identifier: "lesson_completion",
+                  description: "Student has completed lesson and earned",
+                  earning_context: {
+                    contentId: altLessonTrackingDto.lessonId,
+                    programId: altLessonTrackingDto.programId,
+                    subject: subject,
+                  },
+                });
+            } else {
+              //assign points for the first attempt of completion
+              assignRewardPoints =
+                await this.altProgramAssociationService.addUserPoints(request, {
+                  identifier: "assesment_completion",
+                  description: "Student has completed assessment and earned",
+                  earning_context: {
+                    contentId: altLessonTrackingDto.lessonId,
+                    programId: altLessonTrackingDto.programId,
+                    subject: subject,
+                  },
+                });
+            }
+
+            /*
+            CHECK IF EVERY CONTENT OF THE RULES OBJECT HAS BEEN COMPLETED 
+              IF ALL CONTENT(LESSON AND QUESTION SET) HAS BEEN WATCHED -> ASSIGN SUBJECT COMPLETION POINTS FOR THE FIRST ATTEMPT ONLY 
+            */
+            const assignSubjectPoints = await this.checkContentCompletion(
+              request,
+              programRules,
+              altLessonTrackingDto.programId,
+              subject
+            );
+            if (assignSubjectPoints) {
+              subjectAssignRewardPoints =
+                await this.altProgramAssociationService.addUserPoints(request, {
+                  identifier: "subject_completion",
+                  description: "Student has completed subject and has earned",
+                  earning_context: {
+                    programId: altLessonTrackingDto.programId,
+                    subject: subject,
+                  },
+                });
+            }
+
+            const rewardPoints = assignSubjectPoints
+              ? {
+                  subject_completion:
+                    subjectAssignRewardPoints.data.insert_UserPoints_one || {},
+                  lesson_completion:
+                    assignRewardPoints.data.insert_UserPoints_one || {},
+                }
+              : {
+                  lesson_completion:
+                    assignRewardPoints.data.insert_UserPoints_one || {},
+                };
+            // Log progress tracking after insertion
+            const loggedAttempt = await this.logLessonAttemptProgressTracking(
+              request,
+              altLessonTrackingDto,
+              lessonProgressId
+            );
+            return response.status(200).json({
+              lessonTrack: lessonTrack,
+              assignRewardPoints: rewardPoints,
+              //tracking: tracklessonModule,
+              loggedAttempt: loggedAttempt,
+            });
+          } else if (numberOfRecords >= 1) {
+            //fetching the last records from database and checking its status
+            const lastRecord = await this.getLastLessonTrackingRecord(
+              request,
+              altLessonTrackingDto.lessonId,
+              altLessonTrackingDto.moduleId,
+              numberOfRecords
+            ).catch(function (error) {
+              return response.status(422).json(
+                new ErrorResponse({
+                  errorCode: "422",
+                  errorMessage: error,
+                })
+              );
+            });
+
+            if (!lastRecord[0]?.status) {
+              return response.status(422).json(
+                new ErrorResponse({
+                  errorCode: "422",
+                  errorMessage: lastRecord + "Error getting last record",
+                })
+              );
+            }
+
+            if (lastRecord[0]?.status !== "completed") {
+              const lessonTrack: any = await this.updateALTLessonTracking(
+                request,
+                altLessonTrackingDto.lessonId,
+                altLessonTrackingDto,
+                lastRecord[0]?.attempts,
+                {
+                  courseId: altLessonTrackingDto.courseId,
+                  moduleId: altLessonTrackingDto.moduleId,
+                }
+              );
+
+              // Adding to module only when its first attempt and increasing count in module for lesson
+              if (
+                altLessonTrackingDto.status === "completed" &&
+                lessonTrack?.statusCode === 200
+              ) {
+                // tracklessonModule = await this.glalessonToModuleTracking(
+                //   request,
+                //   altLessonTrackingDto,
+                //   programId,
+                //   subject,
+                //   false
+                // );
+              }
+              //ASSIGNING REWARD POINTS FOR ASSESSMENT OR LESSON COMPLETION
+              let assignRewardPoints;
+              let subjectAssignRewardPoints;
+              //if content is a lesson
+              if (!questionIdFlag) {
+                assignRewardPoints =
+                  await this.altProgramAssociationService.addUserPoints(
+                    request,
+                    {
+                      identifier: "lesson_completion",
+                      description: "Student has completed lesson and earned",
+                      earning_context: {
+                        contentId: altLessonTrackingDto.lessonId,
+                        programId: altLessonTrackingDto.programId,
+                        subject: subject,
+                      },
+                    }
+                  );
+              } else {
+                //if content is a assessment
+                assignRewardPoints =
+                  await this.altProgramAssociationService.addUserPoints(
+                    request,
+                    {
+                      identifier: "assesment_completion",
+                      description:
+                        "Student has completed assessment and earned",
+                      earning_context: {
+                        contentId: altLessonTrackingDto.lessonId,
+                        programId: altLessonTrackingDto.programId,
+                        subject: subject,
+                      },
+                    }
+                  );
+              }
+
+              /*
+              CHECK IF  EVERY CONTENT OF THE RULES OBJECT HAS BEEN MATCHED 
+              IF ALL CONTENT(LESSON AND QUESTION SET) HAS BEEN WATCHED -> ASSIGN SUBJECT COMPLETION POINTS FOR THE FIRST ATTEMPT ONLY 
+            */
+              const assignSubjectPoints = await this.checkContentCompletion(
+                request,
+                programRules,
+                altLessonTrackingDto.programId,
+                subject
+              );
+              if (assignSubjectPoints) {
+                assignRewardPoints =
+                  await this.altProgramAssociationService.addUserPoints(
+                    request,
+                    {
+                      identifier: "subject_completion",
+                      description:
+                        "Student has completed subject and has earned",
+                      earning_context: {
+                        programId: altLessonTrackingDto.programId,
+                        subject: subject,
+                      },
+                    }
+                  );
+              }
+
+              const rewardPoints = assignSubjectPoints
+                ? {
+                    subject_completion:
+                      subjectAssignRewardPoints.data.insert_UserPoints_one ||
+                      {},
+                    lesson_completion:
+                      assignRewardPoints.data.insert_UserPoints_one || {},
+                  }
+                : {
+                    lesson_completion:
+                      assignRewardPoints.data.insert_UserPoints_one || {},
+                  };
+              // Log progress tracking after insertion
+              const loggedAttempt = await this.logLessonAttemptProgressTracking(
+                request,
+                altLessonTrackingDto,
+                lessonProgressId
+              );
+
+              return response.status(201).json({
+                lessonTrack: lessonTrack,
+                assignedRewardPoints: rewardPoints,
+                // tracking: tracklessonModule,
+                loggedAttempt: loggedAttempt,
+              });
+            } else if (lastRecord[0]?.status === "completed") {
+              const { status, ...altLessonTrackingDtoWithoutStatus } =
+                altLessonTrackingDto;
+
+              altLessonTrackingDto.score = altLessonTrackingDto.score;
+              const lessonTrack: any = await this.updateALTLessonTracking(
+                request,
+                altLessonTrackingDto.lessonId,
+                altLessonTrackingDtoWithoutStatus,
+                lastRecord[0]?.attempts,
+                {
+                  courseId: altLessonTrackingDto.courseId,
+                  moduleId: altLessonTrackingDto.moduleId,
+                }
+              );
+              const loggedAttempt = await this.logLessonAttemptProgressTracking(
+                request,
+                altLessonTrackingDto,
+                lessonProgressId
+              );
+
+              return response.status(201).json({
+                lessonTrack: lessonTrack,
+                // tracking: tracklessonModule,
+                loggedAttempt: loggedAttempt,
+              });
+            } else {
+              return response.status(422).json(
+                new ErrorResponse({
+                  errorCode: "422",
+                  errorMessage: lastRecord,
+                })
+              );
+            }
+          }
+        }
+      }
+    }
+
+    //If no valid course is found in the program
+    if (!flag) {
+      return response.status(422).json(
+        new ErrorResponse({
+          errorCode: "422",
+          errorMessage: `Course provided does not exist in the current program.`,
+        })
+      );
+    }
+  }
+  public async logLessonAttemptProgressTracking(
+    request,
+    data,
+    lessonProgressId
+  ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    const query = {
+      query: `mutation MyMutation($score: Int, $scoreDetails: String, $status: String, $timeSpent: Int, $userId: uuid, $createdBy: String, $updatedBy: String, $lessonProgressId: Int) {
+  insert_LessonProgressAttemptTracking(objects: {score: $score, scoreDetails: $scoreDetails, status: $status, timeSpent: $timeSpent, userId: $userId, createdBy: $createdBy, updatedBy: $updatedBy, lessonProgressId: $lessonProgressId}) {
+    affected_rows
+  }
+}
+
+
+`,
+      variables: {
+        userId: userId,
+        createdBy: userId,
+        updatedBy: userId,
+        score: data.score,
+        scoreDetails: data.scoreDetails,
+        status: data.status,
+        timeSpent: data.timeSpent,
+        lessonProgressId: lessonProgressId,
+      },
+    };
+    const configData = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: query,
+    };
+    const response = await this.axios(configData);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const result = response.data.data.update_LessonProgressTracking;
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: result,
+    });
+  }
+  public async checkLessonAndModuleExistInCourse(altLessonTrackingDto: any) {
+    console.log("caltourseId-->>", altLessonTrackingDto?.courseId?.courseId);
+    const currentUrl = process.env.SUNBIRDURL;
+    const config = {
+      method: "get",
+      url: `${currentUrl}/api/course/v1/hierarchy/${altLessonTrackingDto.courseId?.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`,
+    };
+
+    // console.log("axiosherer-->>>", config.url);
+    const courseHierarchy = await this.axios(config);
+    const data = courseHierarchy?.data.result.content;
+    // console.log("axiosData-->>", data);
+
+    let moduleId = null;
+
+    for (const module of data.children) {
+      if (module.children) {
+        // Search for the lesson in the nested `children` array
+        const foundLesson = module.children.find(
+          (lesson) => lesson.identifier === altLessonTrackingDto.lessonId
+        );
+
+        if (foundLesson) {
+          // Assign the `parent` of the lesson as `moduleId`
+          moduleId = foundLesson.parent;
+          break; // Exit the loop once the lesson is found
+        }
+      }
+    }
+
+    // Check if the lesson was found
+    if (!moduleId) {
+      return new ErrorResponse({
+        errorCode: "404",
+        errorMessage: "ModuleId Not Found",
+      });
+    }
+    // If lesson is found, return success response
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Lesson found in the course hierarchy",
+      data: moduleId,
+    });
+  }
+  // public async glalessonToModuleTracking(
+  //   request: any,
+  //   altLessonTrackingDto: ALTLessonTrackingDto,
+  //   programId: string,
+  //   subject: string,
+  //   repeatAttempt: boolean
+  // ) {
+  //   //add or update the recond in the moduleTRacking table
+  //   const currentUrl = process.env.SUNBIRDURL;
+
+  //   let config = {
+  //     method: "get",
+  //     url:
+  //       currentUrl +
+  //       `/api/course/v1/hierarchy/${altLessonTrackingDto.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`,
+  //   };
+
+  //   const courseHierarchy = await this.axios(config);
+  //   const data = courseHierarchy?.data.result.content;
+  //   let noOfModules = data.children.length;
+
+  //   let currentModule = data.children.find((item) => {
+  //     return item.identifier === altLessonTrackingDto.moduleId;
+  //   });
+
+  //   let altModuleTracking = {
+  //     userId: altLessonTrackingDto.userId,
+  //     courseId: altLessonTrackingDto.courseId,
+  //     moduleId: altLessonTrackingDto.moduleId,
+  //     status: "ongoing",
+  //     totalNumberOfLessonsCompleted: 1,
+  //     totalNumberOfLessons: currentModule.children.length,
+  //     timeSpent: altLessonTrackingDto.timeSpent,
+  //     createdBy: altLessonTrackingDto.userId,
+  //     updatedBy: altLessonTrackingDto.userId,
+  //   };
+
+  //   const altModuleTrackingDto = new ALTModuleTrackingDto(altModuleTracking);
+  //   let moduleTracking: any;
+  //   moduleTracking =
+  //     await this.altModuleTrackingService.glaCheckAndAddALTModuleTracking(
+  //       request,
+  //       programId,
+  //       subject,
+  //       noOfModules,
+  //       repeatAttempt,
+  //       altModuleTrackingDto
+  //     );
+
+  //   if (moduleTracking?.statusCode != 200) {
+  //     return new ErrorResponse({
+  //       errorCode: moduleTracking?.statusCode,
+  //       errorMessage:
+  //         moduleTracking?.errorMessage + "Could not create Module Tracking",
+  //     });
+  //   } else {
+  //     if (moduleTracking.data.moduleProgressId) {
+  //       return new SuccessResponse({
+  //         statusCode: moduleTracking?.statusCode,
+  //         message: "Ok.",
+  //         data: { ack: "Module and Course Tracking created" },
+  //       });
+  //     } else if (moduleTracking.data.affected_rows) {
+  //       return new SuccessResponse({
+  //         statusCode: moduleTracking?.statusCode,
+  //         message: "Ok.",
+  //         data: { ack: "Module and Course Tracking updated" },
+  //       });
+  //     } else {
+  //       return new SuccessResponse({
+  //         statusCode: moduleTracking?.statusCode,
+  //         message: "Ok.",
+  //         data: { ack: "Course completed" },
+  //       });
+  //     }
+  //   }
+  // }
+  // Add this function to check content completion using counts
+
+  public async checkContentCompletion(
+    request,
+    programRules,
+    programId,
+    subject
+  ): Promise<boolean> {
+    try {
+      // Decode userId from request headers
+      const decoded: any = jwt_decode(request.headers.authorization);
+      const userId =
+        decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+      // Check if the same userId, programId, and subject already exist in UserPoints table
+      const checkExistingPointsQuery = {
+        query: `
+          query CheckExistingPoints($userId: uuid!, $programId: uuid!, $subject: String!) {
+            UserPoints(
+              where: {
+                user_id: { _eq: $userId },
+                identifier: { _eq: "subject_completion" },
+                earning_context: { 
+                  _contains: { 
+                    programId: $programId,
+                    subject: $subject
+                  } 
+                }
+              }
+            ) {
+              user_id
+              points
+              earning_context
+            }
+          }
+        `,
+        variables: {
+          userId: userId,
+          programId: programId,
+          subject: subject,
+        },
+      };
+      const config = {
+        method: "post",
+        url: process.env.ALTHASURA,
+        headers: {
+          Authorization: request.headers.authorization,
+          "Content-Type": "application/json",
+        },
+        data: checkExistingPointsQuery,
+      };
+      const existingPointsResponse = await this.axios(config);
+
+      if (existingPointsResponse.data.data.UserPoints.length > 0) {
+        console.log("Points already assigned for this user and program");
+        return false;
+      }
+      // Extract both contentIds and lesson_questionset IDs from programRules.prog
+      const lessonIdsToCheck = programRules.prog
+        .flatMap((rule) => [rule.contentId, rule.lesson_questionset])
+        .filter(Boolean); // Remove any null/undefined values
+
+      if (lessonIdsToCheck.length === 0) {
+        return false;
+      }
+
+      // Query to check completed lessons
+      const completedLessonsQuery = {
+        query: `
+          query GetCompletedLessons($userId: uuid!, $lessonIds: [String!]!, $programId: uuid!) {
+            LessonProgressTracking_aggregate(
+              where: {
+                userId: { _eq: $userId },
+                lessonId: { _in: $lessonIds },
+                status: { _eq: completed },
+                programId: { _eq: $programId }
+              }
+            ) {
+              aggregate{
+              count
+              }
+            }
+          }
+        `,
+        variables: {
+          userId: userId,
+          lessonIds: lessonIdsToCheck,
+          programId: programId,
+        },
+      };
+
+      const configData = {
+        method: "post",
+        url: process.env.ALTHASURA,
+        headers: {
+          Authorization: request.headers.authorization,
+          "Content-Type": "application/json",
+        },
+        data: completedLessonsQuery,
+      };
+
+      const response = await this.axios(configData);
+
+      if (response?.data?.errors) {
+        console.log(response?.data?.errors);
+
+        return false;
+      }
+
+      // Compare the number of completed lessons with the total required lessons
+      const completedLessonsCount =
+        response.data.data.LessonProgressTracking_aggregate.aggregate.count;
+      const requiredLessonsCount = lessonIdsToCheck.length;
+      console.log(
+        "completedLessonsCount === requiredLessonsCount->>>>>>.",
+        completedLessonsCount,
+        requiredLessonsCount
+      );
+
+      return completedLessonsCount === requiredLessonsCount;
+    } catch (error) {
+      console.error("Error checking lesson completion:", error);
+      throw new ErrorResponse({
+        errorCode: "500",
+        errorMessage: "Failed to check lesson completion status",
+      });
     }
   }
 }
