@@ -5,6 +5,8 @@ import { ResponseUserDto, UserDto } from "src/altUser/dto/alt-user.dto";
 import jwt_decode from "jwt-decode";
 import { UserSearchDto } from "src/user/dto/user-search.dto";
 import { ErrorResponse } from "src/error-response";
+import pkg from "pg";
+const { Pool } = pkg;
 import {
   getUserRole,
   getToken,
@@ -21,7 +23,7 @@ import { ALTUserUpdateDto } from "src/altUser/dto/alt-user-update.dto";
 export class ALTHasuraUserService {
   axios = require("axios");
 
-  constructor(private httpService: HttpService) { }
+  constructor(private httpService: HttpService) {}
 
   public async getUser(userId: string, request: any) {
     const decoded: any = jwt_decode(request.headers.authorization);
@@ -892,8 +894,9 @@ export class ALTHasuraUserService {
     const [firstName, lastName] = obj.name.split(" ");
 
     // Step 1: Extract initials
-    const initials = `${firstName[0].toLowerCase()}${lastName ? lastName[0].toLowerCase() : ""
-      }`;
+    const initials = `${firstName[0].toLowerCase()}${
+      lastName ? lastName[0].toLowerCase() : ""
+    }`;
 
     const dob = obj.dateOfBirth
       .trim()
@@ -1004,9 +1007,6 @@ export class ALTHasuraUserService {
   //     // const altUserRoles = userInfo["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
   //     // const username = userInfo.preferred_username;
 
-
-
-
   //     // Decode the token
   //     const decoded: any = jwt_decode(token);
   //     //Check if token has expired
@@ -1107,14 +1107,16 @@ export class ALTHasuraUserService {
   //   }
   // }
 
-
-
   async validateToken(request: any, res: any) {
     try {
       // Extract the Authorization header
       const authToken = request.headers.authorization;
       if (!authToken) {
-        return this.sendErrorResponse(res, 400, "Authorization header is missing");
+        return this.sendErrorResponse(
+          res,
+          400,
+          "Authorization header is missing"
+        );
       }
 
       // Ensure token starts with "Bearer "
@@ -1135,6 +1137,8 @@ export class ALTHasuraUserService {
         return this.sendErrorResponse(res, 401, "Invalid token");
       }
 
+      console.log("userInfo", userInfo)
+
       // Decode the token
       const decoded: any = jwt_decode(token);
       const currentTimestamp = Math.floor(Date.now() / 1000);
@@ -1143,7 +1147,8 @@ export class ALTHasuraUserService {
       }
 
       // Extract user roles and username
-      const roles = decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+      const roles =
+        decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
       const username = decoded.preferred_username;
 
       // Fetch user details from GraphQL
@@ -1155,18 +1160,17 @@ export class ALTHasuraUserService {
       // Fetch user points
       const userPoints = await this.getUserPoints(request, token);
 
-      console.log("userPoints", userPoints)
+      console.log("userPoints", userPoints);
 
       // Append points to user data if available
       if (userPoints) {
-        userData[0].points = userPoints.aggregate.sum.points
+        userData[0].points = userPoints.aggregate.sum.points;
       } else {
-        userData[0].points = 0
+        userData[0].points = 0;
       }
 
       // Send success response
       return this.sendSuccessResponse(res, 200, "Authenticated", userData);
-
     } catch (error) {
       console.error("Error validating token:", error.message);
       return this.sendErrorResponse(res, 400, "Invalid token");
@@ -1190,7 +1194,7 @@ export class ALTHasuraUserService {
   }
 
   async fetchUserData(username: string, token: string, roles: string[]) {
-    console.log("fetchUserData username", username)
+    console.log("fetchUserData username", username);
     const query = {
       query: `
       query searchUser($username: String!) {
@@ -1238,6 +1242,7 @@ export class ALTHasuraUserService {
 
     try {
       const response = await this.axios(config);
+      console.log("response.data.data", response.data)
       return response.data.data.Users || null;
     } catch (error) {
       console.error("GraphQL fetch error:", error.message);
@@ -1276,7 +1281,7 @@ export class ALTHasuraUserService {
 
     try {
       const response = await this.axios(config);
-      console.log("response", response.data)
+      console.log("response", response.data);
       return response.data.data.UserPoints_aggregate || {};
     } catch (error) {
       console.error("Error fetching user points:", error.message);
@@ -1293,7 +1298,12 @@ export class ALTHasuraUserService {
     });
   }
 
-  sendSuccessResponse(res: any, statusCode: number, message: string, data: any) {
+  sendSuccessResponse(
+    res: any,
+    statusCode: number,
+    message: string,
+    data: any
+  ) {
     return res.status(statusCode).send({
       success: true,
       status: "Authenticated",
@@ -1301,7 +1311,215 @@ export class ALTHasuraUserService {
       data,
     });
   }
+  public async deleteUser(request, data) {
+    if (!request.headers.authorization) {
+      return {
+        success: false,
+        message: "Authorization token is required",
+      };
+    }
 
+    const userToken = request.headers.authorization.split(" ")[1];
+    const decodedToken: any = jwt_decode(userToken);
+    const altUserRoles =
+      decodedToken["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    console.log("altUserRoles->>>>>", altUserRoles);
 
+    // Check for systemAdmin role
+    const hasSystemAdminRole =
+      decodedToken?.resource_access?.["hasura-app"]?.roles?.includes(
+        "systemAdmin"
+      );
+    if (!hasSystemAdminRole) {
+      return {
+        success: false,
+        message: "Only system administrators can delete users",
+        status: 403,
+      };
+    }
 
+    // Verify delete API secret
+    if (
+      !request.headers.delete_api_secret ||
+      request.headers.delete_api_secret !== process.env.DELETE_API_SECRET
+    ) {
+      return {
+        success: false,
+        message: "Invalid or missing Secret Key",
+        status: 403,
+      };
+    }
+    const adminTokenResponse = await this.axios({
+      method: "post",
+      url: `${process.env.ALTKEYCLOAKURL}realms/master/protocol/openid-connect/token`,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      data: new URLSearchParams({
+        grant_type: "password",
+        client_id: "admin-cli",
+        username: process.env.KEYCLOAK_USERNAME,
+        password: process.env.KEYCLOAK_PASSWORD,
+      }).toString(),
+    });
+
+    const adminToken = adminTokenResponse.data.access_token;
+
+    const deletedRecords = [];
+    const tables = [
+      "CourseProgressTracking",
+      "ModuleProgressTracking",
+      "LessonProgressTracking",
+      "LessonProgressAttemptTracking",
+      "GroupMembership",
+      "Students",
+      "Teachers",
+      "Users",
+      "GlaLikedContents",
+      "GlaQuizRating"
+    ];
+
+    const { usernames } = data;
+
+    if (!usernames || usernames.length === 0) {
+      return {
+        success: false,
+        message: "No usernames provided",
+      };
+    }
+
+    for (const username of usernames) {
+      const recordStatus = {
+        username,
+        kcDeleted: false,
+        dbDeleted: false,
+        telemetryDeleted: 0,
+        error: null,
+      };
+
+      try {
+        console.log(`Searching for user ${username} in Keycloak`);
+        const searchUrl = `${process.env.ALTKEYCLOAKURL}admin/realms/hasura-app/users`;
+        const userSearchResponse = await this.axios({
+          method: "get",
+          url: searchUrl,
+          params: { exact: true, username },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${adminToken}`,
+          },
+        });
+        if (!userSearchResponse.data || userSearchResponse.data.length === 0) {
+          deletedRecords.push({
+            ...recordStatus,
+            error: `User ${username} not found in Keycloak`,
+          });
+          continue;
+        }
+        console.log("userSearchResponse->>", userSearchResponse.data);
+
+        const keycloakUserId = userSearchResponse.data[0].id;
+
+        // Delete from database
+        try {
+          for (const table of tables) {
+            const deleteQuery = {
+              query: `
+              mutation Delete${table} {
+                delete_${table}(where: {userId: {_eq: "${keycloakUserId}"}}) {
+                  affected_rows
+                }
+              }`,
+            };
+            const response = await this.axios({
+              method: "post",
+              url: process.env.HASURAURL,
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${userToken}`,
+              },
+              data: deleteQuery,
+            });
+
+            if (response.data.errors) {
+              console.log(response.data.errors);
+
+              throw new Error(`Failed to delete from ${table}`);
+            }
+          }
+          recordStatus.dbDeleted = true;
+        } catch (dbError) {
+          console.error(
+            `Database deletion failed for user ${username}:`,
+            dbError.message
+          );
+          continue;
+        }
+
+        // Delete from Keycloak
+        try {
+          await this.axios({
+            method: "delete",
+            url: `${searchUrl}/${keycloakUserId}`,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${adminToken}`,
+            },
+          });
+          recordStatus.kcDeleted = true;
+        } catch (kcError) {
+          console.error(
+            `Keycloak deletion failed for user ${username}:`,
+            kcError.message
+          );
+          continue;
+        }
+
+        // Delete from telemetry
+        try {
+          // Create connection string using environment variables
+          const connectionString =
+            process.env.TELEMETRY_DB_URL ||
+            `postgres://${process.env.TELEMETRY_DB_USER}:${encodeURIComponent(
+              process.env.TELEMETRY_DB_PASSWORD
+            )}@${process.env.TELEMETRY_DB_HOST}:${
+              process.env.TELEMETRY_DB_PORT
+            }/${process.env.TELEMETRY_DB_NAME}?sslmode=disable`;
+
+          // Create a connection pool
+          const pool = new Pool({
+            connectionString,
+          });
+          let telemetryClient = await pool.connect();
+
+          const deleteTelemetryQuery = `
+            DELETE FROM djp_events 
+            WHERE message::jsonb -> 'actor' ->> 'id' = $1
+          `;
+          const telemetryResult = await telemetryClient.query(
+            deleteTelemetryQuery,
+            [keycloakUserId]
+          );
+          recordStatus.telemetryDeleted = telemetryResult.rowCount;
+          telemetryClient.release();
+        } catch (telemetryError) {
+          console.error(
+            `Telemetry deletion failed for user ${username}:`,
+            telemetryError.message
+          );
+        }
+
+        deletedRecords.push(recordStatus);
+      } catch (error) {
+        console.error(`Failed to process user ${username}:`, error.message);
+        deletedRecords.push({ ...recordStatus, error: error.message });
+      }
+    }
+
+    return {
+      success: true,
+      message: "User deletions completed",
+      deletedRecords,
+    };
+  }
 }
