@@ -1337,6 +1337,8 @@ export class ALTHasuraUserService {
         status: 403,
       };
     }
+    console.log("headers ->>>>>>>>>>",request.headers);
+    
     console.log("headers key->>>",request.headers.delete_api_secret);
     console.log("env key->>>",process.env.DELETE_API_SECRET);
     
