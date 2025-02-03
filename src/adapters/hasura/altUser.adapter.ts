@@ -1337,12 +1337,17 @@ export class ALTHasuraUserService {
         status: 403,
       };
     }
-
+    console.log("headers key->>>",request.headers.delete_api_secret);
+    console.log("env key->>>",process.env.DELETE_API_SECRET);
+    
+    
     // Verify delete API secret
     if (
       !request.headers.delete_api_secret ||
       request.headers.delete_api_secret !== process.env.DELETE_API_SECRET
     ) {
+      console.log("INSIDE IF CONDITION IF KEY IS MISSING OR NOT MATCHED");
+      
       return {
         success: false,
         message: "Invalid or missing Secret Key",
