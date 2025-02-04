@@ -1298,7 +1298,7 @@ export class ALTProgramAssociationService {
               created_at
               updated_at
             }
-            total: UserPoints_aggregate(where: {user_id: {_eq: $userId}}, order_by: {created_at: desc}, limit: $limit, offset: $offset) {
+            total: UserPoints_aggregate(where: {user_id: {_eq: $userId}}, order_by: {created_at: desc}) {
               aggregate {
                 count
               }
@@ -1313,7 +1313,6 @@ export class ALTProgramAssociationService {
         offset: numericOffset,
       },
     };
-    console.log();
 
     const config_data = {
       method: "post",
