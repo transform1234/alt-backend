@@ -213,6 +213,11 @@ export class StudentDto {
   @Expose()
   @IsString()
   @IsOptional()
+  academicYear: string;
+
+  @Expose()
+  @IsString()
+  @IsOptional()
   state: string;
 
   @Expose()
