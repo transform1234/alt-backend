@@ -133,7 +133,9 @@ export class ALTStudentService {
     // promotion blank means new user
     if (!studentDto.promotion) {
       // when creating student with individual api and bulk both
-      const year = studentDto.academicYear ?? new Date().getFullYear().toString();
+      const year = studentDto.academicYear || new Date().getFullYear().toString();
+
+      console.log("year 138", year)
       studentDto.groups = [];
       const groupRes: any = await this.groupService.getGroupBySchoolClass(
         request,
