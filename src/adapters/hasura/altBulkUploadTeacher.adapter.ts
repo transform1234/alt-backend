@@ -62,7 +62,7 @@ export class ALTBulkUploadTeacherService {
 
         for (let teacherClass of teacherClasses) {
           console.log("teacherClass 64", teacherClass)
-          let academicYear = teacher.academicYear ?? new Date().getFullYear().toString();
+          const academicYear = teacher.academicYear || new Date().getFullYear().toString();
           const groupRes: any = await this.groupService.getGroupBySchoolClass(
             request,
             teacher.schoolUdise,
