@@ -1722,6 +1722,10 @@ export class ALTProgramAssociationService {
   }
 
   async getPointsByBoard(request, userId, board, startDate, endDate) {
+    console.log("userId", userId)
+    console.log("board", board)
+    console.log("startDate", startDate)
+    console.log("endDate", endDate)
     const checkGraphQLQuery = {
       query: `
       query MyQuery($board: String!, $startDate: timestamptz, $endDate: timestamptz) {
