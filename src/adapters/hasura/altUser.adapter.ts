@@ -1137,7 +1137,7 @@ export class ALTHasuraUserService {
         return this.sendErrorResponse(res, 401, "Invalid token");
       }
 
-      console.log("userInfo", userInfo)
+      console.log("userInfo", userInfo);
 
       // Decode the token
       const decoded: any = jwt_decode(token);
@@ -1307,6 +1307,7 @@ export class ALTHasuraUserService {
       const response = await this.axios(config);
       console.log("response.data.data", response.data)
       
+      console.log("response.data.data", response.data);
       return response.data.data.Users || null;
     } catch (error) {
       console.error("GraphQL fetch error:", error.message);
@@ -1375,7 +1376,7 @@ export class ALTHasuraUserService {
       data,
     });
   }
-  public async deleteUser(request, data) {
+  public async deleteUser(request, deleteSecretKey, data) {
     if (!request.headers.authorization) {
       return {
         success: false,
@@ -1401,12 +1402,12 @@ export class ALTHasuraUserService {
         status: 403,
       };
     }
+    console.log("provided key->>>", deleteSecretKey);
 
     // Verify delete API secret
-    if (
-      !request.headers.delete_api_secret ||
-      request.headers.delete_api_secret !== process.env.DELETE_API_SECRET
-    ) {
+    if (!deleteSecretKey || deleteSecretKey !== process.env.DELETE_API_SECRET) {
+      console.log("KEY NOT MATCHED");
+
       return {
         success: false,
         message: "Invalid or missing Secret Key",
@@ -1440,7 +1441,7 @@ export class ALTHasuraUserService {
       "Teachers",
       "Users",
       "GlaLikedContents",
-      "GlaQuizRating"
+      "GlaQuizRating",
     ];
 
     const { usernames } = data;

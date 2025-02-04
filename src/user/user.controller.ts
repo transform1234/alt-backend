@@ -154,8 +154,9 @@ export class UserController {
   @Delete("/deleteUserData")
   public async deletUserFromKCAndDB(
     @Req() request: Request,
+    @Query("deleteSecretKey") deleteSecretKey:string,
     @Body() data: { usernames: string[] }
   ) {
-    return await this.altHasuraUserService.deleteUser(request, data);
+    return await this.altHasuraUserService.deleteUser(request, deleteSecretKey,data);
   }
 }
