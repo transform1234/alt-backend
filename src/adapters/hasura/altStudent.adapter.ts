@@ -135,7 +135,7 @@ export class ALTStudentService {
       // when creating student with individual api and bulk both
       const year = studentDto.academicYear || new Date().getFullYear().toString();
 
-      console.log("year 138", year)
+      console.log("year", year)
       studentDto.groups = [];
       const groupRes: any = await this.groupService.getGroupBySchoolClass(
         request,
