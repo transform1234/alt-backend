@@ -42,6 +42,7 @@ enum CurrentRole {
   Head_Teacher = "Head_Teacher",
   Head_Teacher_In_Charge = "Head_Teacher_In_Charge",
   Community_Academic_Volunteer = "Community_Academic_Volunteer",
+  School_Admin = "School_Admin"
 }
 
 export class TeacherDto {
