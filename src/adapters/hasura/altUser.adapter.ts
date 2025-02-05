@@ -1330,7 +1330,7 @@ export class ALTHasuraUserService {
   }
 
   async fetchTeacherUserData(username: string, token: string, roles: string[]) {
-    console.log("fetchUserData username", username);
+    console.log("fetchTeacherUserData username", username);
     const query = {
       query: `
       query searchUser($username: String!) {
