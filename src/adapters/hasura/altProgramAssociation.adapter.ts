@@ -1828,6 +1828,140 @@ export class ALTProgramAssociationService {
     }
   }
 
+  async getPointsByBoard1(request, userId, board, startDate, endDate) {
+    console.log("userId", userId)
+    console.log("board", board)
+    console.log("startDate", startDate)
+    console.log("endDate", endDate)
+
+
+    const checkGraphQLQuery = {
+      query: `
+      query MyQuery($board: String!) {
+        School(where: {board: {_eq: $board}}) {
+          board
+          udiseCode
+        }
+      }
+      `,
+      variables: {
+        board: board
+      },
+    };
+
+    const config_data = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "Content-Type": "application/json",
+      },
+      data: checkGraphQLQuery,
+    };
+
+    try {
+      const checkResponse = await this.axios(config_data);
+      console.log("checkResponse", checkResponse.data);
+
+      const udiseCodes = checkResponse.data.data?.School.map(item => item.udiseCode);
+
+      console.log("udiseCodes", udiseCodes);
+
+      // const cleanedUdiseCodes = udiseCodes.filter(code => /^[0-9]+$/.test(code));
+
+      // console.log("cleanedUdiseCodes", cleanedUdiseCodes);
+      //return udiseCodes
+
+      // Group
+      const checkGraphQLQuery2 = {
+        query: `
+        query MyQuery($udiseCodes: [String!]!) {
+          Group(where: {schoolUdise: {_in: $udiseCodes}}) {
+            schoolUdise
+            groupId
+          }
+        }
+        `,
+        variables: {
+          udiseCodes: udiseCodes
+        },
+      };
+
+      console.log("checkGraphQLQuery2", checkGraphQLQuery2)
+  
+      const config_data2 = {
+        method: "post",
+        url: process.env.ALTHASURA,
+        headers: {
+          Authorization: request.headers.authorization,
+          "Content-Type": "application/json",
+        },
+        data: checkGraphQLQuery2,
+      };
+
+      const checkResponse2 = await this.axios(config_data2);
+      console.log("checkResponse2", checkResponse2.data);
+
+      //return checkResponse2.data.data.Group
+
+      const groupids = checkResponse2.data.data.Group.map(item => item.groupId);
+
+      //return groupids;
+
+
+      // Group
+      const checkGraphQLQuery3 = {
+        query: `
+        query MyQuery($groupids: [uuid!]!) {
+          GroupMembership(where: {groupId: {_in: $groupids}}) {
+            groupId
+            userId
+          }
+        }
+        `,
+        variables: {
+          groupids: groupids
+        },
+      };
+
+      console.log("checkGraphQLQuery3", checkGraphQLQuery3)
+  
+      const config_data3 = {
+        method: "post",
+        url: process.env.ALTHASURA,
+        headers: {
+          Authorization: request.headers.authorization,
+          "Content-Type": "application/json",
+        },
+        data: checkGraphQLQuery3,
+      };
+
+      const checkResponse3 = await this.axios(config_data3);
+      console.log("checkResponse3", checkResponse3.data);
+
+      //return checkResponse3.data.data
+
+      const userIds = checkResponse3.data.data.GroupMembership.map(item => item.groupId);
+
+      return userIds;
+
+
+
+
+
+
+
+
+     
+    } catch (error) {
+      console.error("Axios Error:", error.message);
+      throw new ErrorResponse({
+        errorCode: "AXIOS_ERROR",
+        errorMessage: "Failed to execute the GraphQL mutation.",
+      });
+    }
+  }
+
   async getDateRange(
     timeframes: string
   ): Promise<{ startDate: string; endDate: string }> {
