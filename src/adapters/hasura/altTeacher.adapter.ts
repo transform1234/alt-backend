@@ -803,11 +803,7 @@ export class ALTTeacherService {
     }
   }
 
-
-
-
-
-  // Progress api for class, subject and user list
+  // progress API for class subject
 
   public async classWiseProgressController(request: any, medium: string, grade: string, board: string, schoolUdise: string, programId) {
     const decoded: any = jwt_decode(request.headers.authorization);
@@ -1384,7 +1380,6 @@ export class ALTTeacherService {
     }
   }
 
-
   public async subjectProgress(request, rules, studentDetails, subject) {
     try {
       console.log("subject", subject);
@@ -1434,38 +1429,37 @@ export class ALTTeacherService {
 
     // Iterate over subject results
     subjectResults.forEach((subjectData) => {
-        if (subjectData.userCompletionPercentages) {  // No `.data` property in actual data
-            subjectData.userCompletionPercentages.forEach((student) => {
-                const { userId, username, completionPercentage } = student;
-                const percentage = parseFloat(completionPercentage);
+      if (subjectData.userCompletionPercentages) {  // No `.data` property in actual data
+        subjectData.userCompletionPercentages.forEach((student) => {
+          const { userId, username, completionPercentage } = student;
+          const percentage = parseFloat(completionPercentage);
 
-                if (!studentProgressMap.has(userId)) {
-                    studentProgressMap.set(userId, {
-                        userId,
-                        username,
-                        totalSubjects: 0,
-                        totalPercentage: 0,
-                    });
-                }
-
-                const studentData = studentProgressMap.get(userId);
-                studentData.totalSubjects += 1;
-                studentData.totalPercentage += percentage;
+          if (!studentProgressMap.has(userId)) {
+            studentProgressMap.set(userId, {
+              userId,
+              username,
+              totalSubjects: 0,
+              totalPercentage: 0,
             });
-        }
+          }
+
+          const studentData = studentProgressMap.get(userId);
+          studentData.totalSubjects += 1;
+          studentData.totalPercentage += percentage;
+        });
+      }
     });
 
     // Convert the map to an array and calculate the final completion percentage
     const classProgress = Array.from(studentProgressMap.values()).map(student => ({
-        ...student,
-        completionPercentage: student.totalSubjects > 0 
-            ? parseFloat((student.totalPercentage / student.totalSubjects).toFixed(2)) 
-            : 0
+      ...student,
+      completionPercentage: student.totalSubjects > 0
+        ? parseFloat((student.totalPercentage / student.totalSubjects).toFixed(2))
+        : 0
     }));
 
     return classProgress;
-}
-
+  }
 
   public removeUserCompletionPercentages(subjectResults: any[]): any[] {
     return subjectResults.map(({ userCompletionPercentages, ...rest }) => rest);

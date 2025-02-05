@@ -1,5 +1,5 @@
 #It is deploying on server 15.206.144.84 For Dev Environment only please note. 
-name: Deploy to DEV
+name: Deploy to PROD
 on: 
   push:  
     branches:

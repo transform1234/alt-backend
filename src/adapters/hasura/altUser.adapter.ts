@@ -23,7 +23,7 @@ import { ALTUserUpdateDto } from "src/altUser/dto/alt-user-update.dto";
 export class ALTHasuraUserService {
   axios = require("axios");
 
-  constructor(private httpService: HttpService) {}
+  constructor(private httpService: HttpService) { }
 
   public async getUser(userId: string, request: any) {
     const decoded: any = jwt_decode(request.headers.authorization);
@@ -894,9 +894,8 @@ export class ALTHasuraUserService {
     const [firstName, lastName] = obj.name.split(" ");
 
     // Step 1: Extract initials
-    const initials = `${firstName[0].toLowerCase()}${
-      lastName ? lastName[0].toLowerCase() : ""
-    }`;
+    const initials = `${firstName[0].toLowerCase()}${lastName ? lastName[0].toLowerCase() : ""
+      }`;
 
     const dob = obj.dateOfBirth
       .trim()
@@ -1108,6 +1107,7 @@ export class ALTHasuraUserService {
   // }
 
   async validateToken(request: any, res: any) {
+    console.log("validateToken calling")
     try {
       // Extract the Authorization header
       const authToken = request.headers.authorization;
@@ -1133,6 +1133,7 @@ export class ALTHasuraUserService {
 
       // Validate token using Keycloak
       const userInfo = await this.validateWithKeycloak(token);
+      console.log("userInfo 1137", userInfo)
       if (!userInfo) {
         return this.sendErrorResponse(res, 401, "Invalid token");
       }
@@ -1150,6 +1151,20 @@ export class ALTHasuraUserService {
       const roles =
         decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
       const username = decoded.preferred_username;
+
+      console.log("roles", roles)
+
+      //Fetch teacher Role
+      if (roles[0] === 'teacher') {
+        //return this.fetchTeacherRole(username, token, roles)
+
+        const userData = await this.fetchTeacherRole(username, token, roles);
+        if (!userData) {
+          return this.sendErrorResponse(res, 404, "User not found or inactive");
+        }
+
+        return this.sendSuccessResponse(res, 200, "Authenticated", userData);
+      }
 
       // Fetch user details from GraphQL
       const userData = await this.fetchUserData(username, token, roles);
@@ -1178,6 +1193,7 @@ export class ALTHasuraUserService {
   }
 
   async validateWithKeycloak(token: string) {
+    console.log("validateWithKeycloak")
     try {
       const response = await this.axios({
         method: "GET",
@@ -1194,6 +1210,7 @@ export class ALTHasuraUserService {
   }
 
   async fetchUserData(username: string, token: string, roles: string[]) {
+    console.log("roles", roles)
     console.log("fetchUserData username", username);
     const query = {
       query: `
@@ -1243,9 +1260,7 @@ export class ALTHasuraUserService {
     try {
       const response = await this.axios(config);
       console.log("response.data.data", response.data)
-      if(response.data.data.Users[0].role === 'teacher') {
-        return this.fetchTeacherRole(username, token, roles)
-      }
+
       return response.data.data.Users || null;
     } catch (error) {
       console.error("GraphQL fetch error:", error.message);
@@ -1254,7 +1269,7 @@ export class ALTHasuraUserService {
   }
 
   async fetchTeacherRole(username: string, token: string, roles: string[]) {
-    console.log("fetchUserData username", username);
+    console.log("fetchUserData teacher username", username);
     const query = {
       query: `
       query searchUser($username: String!) {
@@ -1305,8 +1320,8 @@ export class ALTHasuraUserService {
 
     try {
       const response = await this.axios(config);
-      console.log("response.data.data", response.data)
-      
+      console.log("response.data.data teacher", response.data)
+
       return response.data.data.Users || null;
     } catch (error) {
       console.error("GraphQL fetch error:", error.message);
@@ -1546,8 +1561,7 @@ export class ALTHasuraUserService {
             process.env.TELEMETRY_DB_URL ||
             `postgres://${process.env.TELEMETRY_DB_USER}:${encodeURIComponent(
               process.env.TELEMETRY_DB_PASSWORD
-            )}@${process.env.TELEMETRY_DB_HOST}:${
-              process.env.TELEMETRY_DB_PORT
+            )}@${process.env.TELEMETRY_DB_HOST}:${process.env.TELEMETRY_DB_PORT
             }/${process.env.TELEMETRY_DB_NAME}?sslmode=disable`;
 
           // Create a connection pool
