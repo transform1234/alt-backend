@@ -14,7 +14,7 @@ Injectable();
 export class ALTProgramAssociationService {
   axios = require("axios");
 
-  constructor(private readonly httpService: HttpService) {}
+  constructor(private readonly httpService: HttpService) { }
 
   public async mappedResponse(data: any) {
     const programResponse = data.map((item: any) => {
@@ -1533,7 +1533,7 @@ export class ALTProgramAssociationService {
     const checkGraphQLQuery = {
       query: `
       query MyQuery($groupId: uuid!, $startDate: timestamptz, $endDate: timestamptz) {
-        Group(where: { groupId: { _eq: $groupId } }) {
+        Group(where: { groupId: { _eq: $groupId } }, order_by: { grade: desc }) {
           groupId
           type
           grade
@@ -1547,11 +1547,10 @@ export class ALTProgramAssociationService {
             name
             userId
             totalPoints: Points_aggregate(
-              ${
-                startDate && endDate
-                  ? "where: { created_at: { _gte: $startDate, _lte: $endDate } }"
-                  : ""
-              }
+              ${startDate && endDate
+          ? "where: { created_at: { _gte: $startDate, _lte: $endDate } }"
+          : ""
+        }
             ) {
               aggregate {
                 sum {
@@ -1625,7 +1624,7 @@ export class ALTProgramAssociationService {
     const checkGraphQLQuery = {
       query: `
       query MyQuery($schoolUdise: String!, $startDate: timestamptz, $endDate: timestamptz) {
-        Group(where: { schoolUdise: { _eq: $schoolUdise } }) {
+        Group(where: { schoolUdise: { _eq: $schoolUdise } }, order_by: { grade: desc }) {
           groupId
           type
           grade
@@ -1826,6 +1825,165 @@ export class ALTProgramAssociationService {
       });
     }
   }
+
+  // async getPointsByBoard1(request, userId, board, startDate, endDate) {
+  //   console.log("userId", userId)
+  //   console.log("board", board)
+  //   console.log("startDate", startDate)
+  //   console.log("endDate", endDate)
+  //   const checkGraphQLQuery = {
+  //     query: `
+  //     query MyQuery($board: String!) {
+  //       School(where: {board: {_eq: $board}}) {
+  //         board
+  //         udiseCode
+  //       }
+  //     }
+  //     `,
+  //     variables: {
+  //       board: board
+  //     },
+  //   };
+  //   const config_data = {
+  //     method: "post",
+  //     url: process.env.ALTHASURA,
+  //     headers: {
+  //       Authorization: request.headers.authorization,
+  //       "Content-Type": "application/json",
+  //     },
+  //     data: checkGraphQLQuery,
+  //   };
+  //   try {
+  //     const checkResponse = await this.axios(config_data);
+  //     console.log("checkResponse", checkResponse.data);
+  //     const udiseCodes = checkResponse.data.data?.School.map(item => item.udiseCode);
+  //     console.log("udiseCodes", udiseCodes);
+  //     // const cleanedUdiseCodes = udiseCodes.filter(code => /^[0-9]+$/.test(code));
+  //     // console.log("cleanedUdiseCodes", cleanedUdiseCodes);
+  //     //return udiseCodes
+  //     // Group
+  //     const checkGraphQLQuery2 = {
+  //       query: `
+  //       query MyQuery($udiseCodes: [String!]!) {
+  //         Group(where: {schoolUdise: {_in: $udiseCodes}}) {
+  //           schoolUdise
+  //           groupId
+  //         }
+  //       }
+  //       `,
+  //       variables: {
+  //         udiseCodes: udiseCodes
+  //       },
+  //     };
+  //     console.log("checkGraphQLQuery2", checkGraphQLQuery2)
+
+  //     const config_data2 = {
+  //       method: "post",
+  //       url: process.env.ALTHASURA,
+  //       headers: {
+  //         Authorization: request.headers.authorization,
+  //         "Content-Type": "application/json",
+  //       },
+  //       data: checkGraphQLQuery2,
+  //     };
+  //     const checkResponse2 = await this.axios(config_data2);
+  //     console.log("checkResponse2", checkResponse2.data);
+  //     //return checkResponse2.data.data.Group
+  //     const groupids = checkResponse2.data.data.Group.map(item => item.groupId);
+  //     //return groupids;
+  //     // Group
+  //     const checkGraphQLQuery3 = {
+  //       query: `
+  //       query MyQuery($groupids: [uuid!]!) {
+  //         GroupMembership(where: {groupId: {_in: $groupids}}) {
+  //           groupId
+  //           userId
+  //         }
+  //       }
+  //       `,
+  //       variables: {
+  //         groupids: groupids
+  //       },
+  //     };
+  //     console.log("checkGraphQLQuery3", checkGraphQLQuery3)
+
+  //     const config_data3 = {
+  //       method: "post",
+  //       url: process.env.ALTHASURA,
+  //       headers: {
+  //         Authorization: request.headers.authorization,
+  //         "Content-Type": "application/json",
+  //       },
+  //       data: checkGraphQLQuery3,
+  //     };
+  //     const checkResponse3 = await this.axios(config_data3);
+  //     console.log("checkResponse3", checkResponse3.data);
+  //     //return checkResponse3.data.data
+  //     const userIds = checkResponse3.data.data.GroupMembership.map(item => item.groupId);
+  //     console.log("userIds", userIds)
+  //     //return userIds;
+
+  //     // UserPoints
+
+  //     const responses = [];
+
+  //     for (const userId of userIds) {
+  //       const checkGraphQLQuery4 = {
+  //         query: `
+  //           query MyQuery($userId: uuid!) {
+  //             UserPoints(where: {user_id: {_eq: $userId}}) {
+  //               user_id
+  //               points
+  //             }
+  //           }
+  //         `,
+  //         variables: {
+  //           userId: userId,
+  //         },
+  //       };
+
+  //       const config_data4 = {
+  //         method: "post",
+  //         url: process.env.ALTHASURA,
+  //         headers: {
+  //           Authorization: request.headers.authorization,
+  //           "Content-Type": "application/json",
+  //         },
+  //         data: checkGraphQLQuery4,
+  //       };
+
+  //       try {
+  //         const checkResponse4 = await this.axios(config_data4);
+  //         console.log(`Response for User ID ${userId}:`, checkResponse4.data.data);
+    
+  //         // Push the response to the array
+  //         responses.push({
+  //           userId: userId,
+  //           data: checkResponse4.data.data.UserPoints, // Assuming UserPoints holds the relevant data
+  //         });
+  //       } catch (error) {
+  //         console.error(`Error for User ID ${userId}:`, error.response?.data || error.message);
+    
+  //         // Optionally, push error info if needed
+  //         responses.push({
+  //           userId: userId,
+  //           error: error.response?.data || error.message,
+  //         });
+  //       }
+
+
+  //     }
+
+
+  //   } catch (error) {
+  //     console.error("Axios Error:", error.message);
+  //     throw new ErrorResponse({
+  //       errorCode: "AXIOS_ERROR",
+  //       errorMessage: "Failed to execute the GraphQL mutation.",
+  //     });
+  //   }
+  // }
+
 
   async getDateRange(
     timeframes: string
@@ -2687,5 +2845,5 @@ export class ALTProgramAssociationService {
       data: insertResponse.data.data,
     });
   }
-  
+
 }
