@@ -1137,7 +1137,7 @@ export class ALTHasuraUserService {
         return this.sendErrorResponse(res, 401, "Invalid token");
       }
 
-      console.log("userInfo", userInfo)
+      console.log("userInfo", userInfo);
 
       // Decode the token
       const decoded: any = jwt_decode(token);
@@ -1243,6 +1243,71 @@ export class ALTHasuraUserService {
     try {
       const response = await this.axios(config);
       console.log("response.data.data", response.data)
+      if(response.data.data.Users[0].role === 'teacher') {
+        return this.fetchTeacherRole(username, token, roles)
+      }
+      return response.data.data.Users || null;
+    } catch (error) {
+      console.error("GraphQL fetch error:", error.message);
+      return null;
+    }
+  }
+
+  async fetchTeacherRole(username: string, token: string, roles: string[]) {
+    console.log("fetchUserData username", username);
+    const query = {
+      query: `
+      query searchUser($username: String!) {
+        Users(where: {username: {_eq: $username}, status: {_eq: true}}) {
+          userId
+          name
+          username
+          email
+          mobile
+          gender
+          dateOfBirth
+          role
+          status
+          createdAt
+          updatedAt
+          Teachers {
+            currentRole
+          }
+          GroupMemberships(where: {status: {_eq: true}}) {
+            Group {
+              board
+              medium
+              grade
+              groupId
+              schoolUdise
+            }
+            School {
+              name
+              udiseCode
+            }
+          }
+        }
+      }
+    `,
+      variables: { username },
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "x-hasura-role": getUserRole(roles),
+        "Content-Type": "application/json",
+      },
+      data: query,
+    };
+
+    try {
+      const response = await this.axios(config);
+      console.log("response.data.data", response.data)
+      
+      console.log("response.data.data", response.data);
       return response.data.data.Users || null;
     } catch (error) {
       console.error("GraphQL fetch error:", error.message);
@@ -1311,7 +1376,7 @@ export class ALTHasuraUserService {
       data,
     });
   }
-  public async deleteUser(request, data) {
+  public async deleteUser(request, deleteSecretKey, data) {
     if (!request.headers.authorization) {
       return {
         success: false,
@@ -1337,12 +1402,12 @@ export class ALTHasuraUserService {
         status: 403,
       };
     }
+    console.log("provided key->>>", deleteSecretKey);
 
     // Verify delete API secret
-    if (
-      !request.headers.delete_api_secret ||
-      request.headers.delete_api_secret !== process.env.DELETE_API_SECRET
-    ) {
+    if (!deleteSecretKey || deleteSecretKey !== process.env.DELETE_API_SECRET) {
+      console.log("KEY NOT MATCHED");
+
       return {
         success: false,
         message: "Invalid or missing Secret Key",
@@ -1376,7 +1441,7 @@ export class ALTHasuraUserService {
       "Teachers",
       "Users",
       "GlaLikedContents",
-      "GlaQuizRating"
+      "GlaQuizRating",
     ];
 
     const { usernames } = data;
