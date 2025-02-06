@@ -689,6 +689,87 @@ export class HasuraGroupService implements IServicelocatorgroup {
     });
   }
 
+  // getClassesbySchoolUdise
+
+  public async getClassesbySchoolUdise(
+    request: any,
+    schoolUdise: string,
+    //className: string,
+    year: string
+  ) {
+
+    console.log("schoolUdise", schoolUdise)
+    //console.log("className", className)
+    console.log("year", year)
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const groupDetails = {
+      query: `query GetGroupList($board:String,$medium:String,$schoolUdise:String,$year:numeric) {
+        Group(where: 
+        {
+          academicYear: {_eq: $year}
+          status: {_eq: true}
+          
+          schoolUdise: {_eq: $schoolUdise}
+        }) 
+        {
+          groupId
+          schoolUdise
+          medium
+          grade
+          name
+          status
+          academicYear
+          board
+        }
+      }`,
+      variables: {
+        schoolUdise: schoolUdise,
+        // name: className,
+        year: year,
+      },
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+        "Content-Type": "application/json",
+      },
+      data: groupDetails,
+    };
+
+    const response = await this.axios(config);
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    let result: any[] = response.data.data.Group;
+
+    if (!result.length) {
+      const msg = `No matching record found for the current combination of school and class.`;
+      return new SuccessResponse({
+        statusCode: 404,
+        message: msg,
+        data: result,
+      });
+    }
+
+    return result
+
+    // return new SuccessResponse({
+    //   statusCode: 200,
+    //   message: "Ok.",
+    //   data: result,
+    // });
+  }
+
   public async StudentMappedResponse(result: any) {
     const studentResponse = result.map((item: any) => {
       const studentMapping = {
