@@ -1349,7 +1349,7 @@ export class ALTHasuraUserService {
           Teachers {
             currentRole
           }
-          GroupMemberships(where: {status: {_eq: true}}) {
+          GroupMemberships(where: {status: {_eq: true}}, order_by: {Group: {grade: desc}}) {
             Group {
               board
               medium
