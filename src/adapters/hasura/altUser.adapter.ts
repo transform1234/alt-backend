@@ -23,7 +23,7 @@ import { ALTUserUpdateDto } from "src/altUser/dto/alt-user-update.dto";
 export class ALTHasuraUserService {
   axios = require("axios");
 
-  constructor(private httpService: HttpService) {}
+  constructor(private httpService: HttpService) { }
 
   public async getUser(userId: string, request: any) {
     const decoded: any = jwt_decode(request.headers.authorization);
@@ -894,9 +894,8 @@ export class ALTHasuraUserService {
     const [firstName, lastName] = obj.name.split(" ");
 
     // Step 1: Extract initials
-    const initials = `${firstName[0].toLowerCase()}${
-      lastName ? lastName[0].toLowerCase() : ""
-    }`;
+    const initials = `${firstName[0].toLowerCase()}${lastName ? lastName[0].toLowerCase() : ""
+      }`;
 
     const dob = obj.dateOfBirth
       .trim()
@@ -1151,6 +1150,21 @@ export class ALTHasuraUserService {
         decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
       const username = decoded.preferred_username;
 
+
+      // Fetch Teacher data with currentRole
+      if (roles[0] === 'teacher') {
+        console.log("fetchTeacherUserData")
+
+        const userData = await this.fetchTeacherUserData(username, token, roles);
+        if (!userData) {
+          return this.sendErrorResponse(res, 404, "User not found or inactive");
+        }
+
+        // Send success response
+        return this.sendSuccessResponse(res, 200, "Authenticated", userData);
+
+      }
+
       // Fetch user details from GraphQL
       const userData = await this.fetchUserData(username, token, roles);
       if (!userData) {
@@ -1307,6 +1321,66 @@ export class ALTHasuraUserService {
       const response = await this.axios(config);
       console.log("response.data.data", response.data)
       
+      console.log("response.data.data", response.data);
+      return response.data.data.Users || null;
+    } catch (error) {
+      console.error("GraphQL fetch error:", error.message);
+      return null;
+    }
+  }
+
+  async fetchTeacherUserData(username: string, token: string, roles: string[]) {
+    console.log("fetchTeacherUserData username", username);
+    const query = {
+      query: `
+      query searchUser($username: String!) {
+        Users(where: {username: {_eq: $username}, status: {_eq: true}}) {
+          userId
+          name
+          username
+          email
+          mobile
+          gender
+          dateOfBirth
+          role
+          status
+          createdAt
+          updatedAt
+          Teachers {
+            currentRole
+          }
+          GroupMemberships(where: {status: {_eq: true}}, order_by: {Group: {grade: desc}}) {
+            Group {
+              board
+              medium
+              grade
+              groupId
+              schoolUdise
+            }
+            School {
+              name
+              udiseCode
+            }
+          }
+        }
+      }
+    `,
+      variables: { username },
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.ALTHASURA,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "x-hasura-role": getUserRole(roles),
+        "Content-Type": "application/json",
+      },
+      data: query,
+    };
+
+    try {
+      const response = await this.axios(config);
       console.log("response.data.data", response.data);
       return response.data.data.Users || null;
     } catch (error) {
@@ -1547,8 +1621,7 @@ export class ALTHasuraUserService {
             process.env.TELEMETRY_DB_URL ||
             `postgres://${process.env.TELEMETRY_DB_USER}:${encodeURIComponent(
               process.env.TELEMETRY_DB_PASSWORD
-            )}@${process.env.TELEMETRY_DB_HOST}:${
-              process.env.TELEMETRY_DB_PORT
+            )}@${process.env.TELEMETRY_DB_HOST}:${process.env.TELEMETRY_DB_PORT
             }/${process.env.TELEMETRY_DB_NAME}?sslmode=disable`;
 
           // Create a connection pool
