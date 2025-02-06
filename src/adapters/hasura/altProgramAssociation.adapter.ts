@@ -1726,7 +1726,8 @@ export class ALTProgramAssociationService {
     console.log("endDate", endDate)
     const checkGraphQLQuery = {
       query: `
-      query MyQuery($board: String!, $startDate: timestamptz, $endDate: timestamptz) {
+      query MyQuery($board: String!, $startDate: timestamptz, $endDate: timestamptz) 
+      @cached(ttl: 300, refresh: true) {
         School(where: { board: { _ilike: $board } }) {
           board
           udiseCode
@@ -1762,12 +1763,10 @@ export class ALTProgramAssociationService {
         }
       }
       `,
-      variables: {
-        board: board,
-        startDate,
-        endDate,
-      },
+      variables: { board, startDate, endDate },
     };
+
+    
 
     const config_data = {
       method: "post",
@@ -1833,6 +1832,115 @@ export class ALTProgramAssociationService {
   //   console.log("endDate", endDate)
   //   const checkGraphQLQuery = {
   //     query: `
+  //     query MyQuery($board: String!, $startDate: timestamptz, $endDate: timestamptz) {
+  //       School(where: { board: { _ilike: $board } }) {
+  //         board
+  //         udiseCode
+  //         Groups {
+  //           schoolUdise
+  //           groupId
+  //           type
+  //           grade
+  //           name
+  //           topUsers: GroupMemberships(
+  //             order_by: { User: { Points_aggregate: { sum: { points: asc } } } }
+  //           ) {
+  //             groupId
+  //             User {
+  //               name
+  //               userId
+  //               totalPoints: Points_aggregate(where: { created_at: { _gte: $startDate, _lte: $endDate } }) {
+  //                 aggregate {
+  //                   sum {
+  //                     points
+  //                   }
+  //                 }
+  //               }
+  //               Points(order_by: {created_at: desc}, limit: 1) {
+  //                 points
+  //                 created_at
+  //                 description
+  //                 identifier
+  //               }
+  //             }
+  //           }
+  //         }
+  //       }
+  //     }
+  //     `,
+  //     variables: {
+  //       board: board,
+  //       startDate,
+  //       endDate,
+  //     },
+  //   };
+
+    
+
+  //   const config_data = {
+  //     method: "post",
+  //     url: process.env.ALTHASURA,
+  //     headers: {
+  //       Authorization: request.headers.authorization,
+  //       "Content-Type": "application/json",
+  //     },
+  //     data: checkGraphQLQuery,
+  //   };
+
+  //   try {
+  //     const checkResponse = await this.axios(config_data);
+  //     console.log("checkResponse", checkResponse.data);
+
+  //     if (checkResponse?.data?.errors) {
+  //       return new SuccessResponse({
+  //         statusCode: 401,
+  //         message: checkResponse?.data?.errors,
+  //         data: checkResponse?.data?.data,
+  //       });
+  //     } else if (checkResponse?.data?.data) {
+  //       if (
+  //         !checkResponse.data.data?.School ||
+  //         checkResponse.data.data.School.length === 0
+  //       ) {
+  //         return new SuccessResponse({
+  //           statusCode: 204,
+  //           message: `No data found for board: ${board}`,
+  //         });
+  //       }
+
+  //       const formattedData = this.transformBoardData(
+  //         checkResponse?.data?.data,
+  //         userId
+  //       );
+
+  //       return new SuccessResponse({
+  //         statusCode: 200,
+  //         message: "User Points fetched successfully.",
+  //         data: formattedData,
+  //       });
+  //     } else {
+  //       return new SuccessResponse({
+  //         statusCode: 200,
+  //         message: "User Points not exists.",
+  //         data: [],
+  //       });
+  //     }
+  //   } catch (error) {
+  //     console.error("Axios Error:", error.message);
+  //     throw new ErrorResponse({
+  //       errorCode: "AXIOS_ERROR",
+  //       errorMessage: "Failed to execute the GraphQL mutation.",
+  //     });
+  //   }
+  // }
+
+  // async getPointsByBoard2(request, userId, board, startDate, endDate) {
+  //   console.log("userId", userId)
+  //   console.log("board", board)
+  //   console.log("startDate", startDate)
+  //   console.log("endDate", endDate)
+  //   const checkGraphQLQuery = {
+  //     query: `
   //     query MyQuery($board: String!) {
   //       School(where: {board: {_eq: $board}}) {
   //         board
@@ -1858,8 +1966,7 @@ export class ALTProgramAssociationService {
   //     console.log("checkResponse", checkResponse.data);
   //     const udiseCodes = checkResponse.data.data?.School.map(item => item.udiseCode);
   //     console.log("udiseCodes", udiseCodes);
-  //     // const cleanedUdiseCodes = udiseCodes.filter(code => /^[0-9]+$/.test(code));
-  //     // console.log("cleanedUdiseCodes", cleanedUdiseCodes);
+      
   //     //return udiseCodes
   //     // Group
   //     const checkGraphQLQuery2 = {
@@ -1921,7 +2028,7 @@ export class ALTProgramAssociationService {
   //     //return checkResponse3.data.data
   //     const userIds = checkResponse3.data.data.GroupMembership.map(item => item.groupId);
   //     console.log("userIds", userIds)
-  //     //return userIds;
+  //     return userIds;
 
   //     // UserPoints
 
