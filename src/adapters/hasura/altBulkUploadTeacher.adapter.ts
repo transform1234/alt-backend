@@ -60,28 +60,69 @@ export class ALTBulkUploadTeacherService {
         teacher.groups = [];
         let groupInfo;
 
-        for (let teacherClass of teacherClasses) {
-          console.log("teacherClass 64", teacherClass)
+        if(teacher.currentRole === 'School_Admin') {
           const academicYear = teacher.academicYear || new Date().getFullYear().toString();
-          const groupRes: any = await this.groupService.getGroupBySchoolClass(
+
+          const getClassesbySchoolUdise = await this.groupService.getClassesbySchoolUdise(
             request,
-            teacher.schoolUdise,
-            teacherClass,
-            academicYear
-          );
+              teacher.schoolUdise,
+              academicYear
+          )
 
-          console.log("groupRes", groupRes)
+          console.log("getClassesbySchoolUdise", getClassesbySchoolUdise)
+          const schoolAdminClasses: any = getClassesbySchoolUdise
+          
 
-          if (!groupRes.data[0].groupId) {
-            errors.push({
-              name: teacher.name,
-              groupRes,
-            });
-          } else {
-            groupInfo = groupRes;
-            teacher.groups.push(groupRes.data[0].groupId);
+          for (let teacherClass of schoolAdminClasses) {
+            console.log("teacherClass 64", teacherClass)
+            const className = teacherClass.name
+            //const academicYear = teacher.academicYear || new Date().getFullYear().toString();
+            const groupRes: any = await this.groupService.getGroupBySchoolClass(
+              request,
+              teacher.schoolUdise,
+              className,
+              academicYear
+            );
+  
+            console.log("groupRes 73", groupRes)
+  
+            if (!groupRes.data[0].groupId) {
+              errors.push({
+                name: teacher.name,
+                groupRes,
+              });
+            } else {
+              groupInfo = groupRes;
+              teacher.groups.push(groupRes.data[0].groupId);
+            }
+          }
+
+        } else {
+          for (let teacherClass of teacherClasses) {
+            console.log("teacherClass 64", teacherClass)
+            const academicYear = teacher.academicYear || new Date().getFullYear().toString();
+            const groupRes: any = await this.groupService.getGroupBySchoolClass(
+              request,
+              teacher.schoolUdise,
+              teacherClass,
+              academicYear
+            );
+  
+            console.log("groupRes 73", groupRes)
+  
+            if (!groupRes.data[0].groupId) {
+              errors.push({
+                name: teacher.name,
+                groupRes,
+              });
+            } else {
+              groupInfo = groupRes;
+              teacher.groups.push(groupRes.data[0].groupId);
+            }
           }
         }
+
+        
 
         if (!teacher.groups.length) {
           errors.push({
