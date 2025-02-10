@@ -60,52 +60,125 @@ export class ALTBulkUploadTeacherService {
         teacher.groups = [];
         let groupInfo;
 
-        for (let teacherClass of teacherClasses) {
-          console.log("teacherClass 64", teacherClass)
-          const academicYear = teacher.academicYear || new Date().getFullYear().toString();
-          const groupRes: any = await this.groupService.getGroupBySchoolClass(
+        if(teacher.currentRole === 'School_Admin') {
+          const academicYear = new Date().getFullYear().toString();
+          const academicYearList: any = [(parseInt(academicYear) - 1).toString(), academicYear]
+
+          console.log("academicYearList", academicYearList)
+
+          const getClassesbySchoolUdise = await this.groupService.getClassesbySchoolUdise(
             request,
-            teacher.schoolUdise,
-            teacherClass,
-            academicYear
-          );
+              teacher.schoolUdise,
+              academicYearList
+          )
 
-          console.log("groupRes", groupRes)
+          console.log("getClassesbySchoolUdise", getClassesbySchoolUdise)
+          const schoolAdminClasses: any = getClassesbySchoolUdise
+          
 
-          if (!groupRes.data[0].groupId) {
+          for (let teacherClass of schoolAdminClasses) {
+            console.log("teacherClass 64", teacherClass)
+            const className = teacherClass.name
+            //const academicYear = teacher.academicYear || new Date().getFullYear().toString();
+            // const groupRes: any = await this.groupService.getGroupBySchoolClass(
+            //   request,
+            //   teacher.schoolUdise,
+            //   className,
+            //   academicYear
+            // );
+
+            const groupId = teacherClass.groupId
+  
+            console.log("groupId 92", groupId)
+  
+            if (!groupId) {
+              errors.push({
+                name: teacher.name,
+                groupId,
+              });
+            } else {
+              groupInfo = teacherClass;
+              teacher.groups.push(groupId);
+            }
+          }
+
+          if (!teacher.groups.length) {
             errors.push({
               name: teacher.name,
-              groupRes,
+              msg: "No Group found",
             });
           } else {
-            groupInfo = groupRes;
-            teacher.groups.push(groupRes.data[0].groupId);
+            teacher.board = groupInfo.board;
+            teacher.password = getPassword(8);
+            teacher.status = true;
+            const teacherRes: any = await this.teacherService.createAndAddToGroup(
+              request,
+              teacher,
+              bulkToken
+            );
+            if (teacherRes?.statusCode === 200) {
+              responses.push(teacherRes.data);
+            } else {
+              errors.push({
+                name: teacher.name,
+                teacherRes,
+              });
+            }
           }
-        }
 
-        if (!teacher.groups.length) {
-          errors.push({
-            name: teacher.name,
-            msg: "No Group found",
-          });
         } else {
-          teacher.board = groupInfo.data[0].board;
-          teacher.password = getPassword(8);
-          teacher.status = true;
-          const teacherRes: any = await this.teacherService.createAndAddToGroup(
-            request,
-            teacher,
-            bulkToken
-          );
-          if (teacherRes?.statusCode === 200) {
-            responses.push(teacherRes.data);
-          } else {
+          for (let teacherClass of teacherClasses) {
+            console.log("teacherClass 64", teacherClass)
+            const academicYear = teacher.academicYear || new Date().getFullYear().toString();
+            const groupRes: any = await this.groupService.getGroupBySchoolClass(
+              request,
+              teacher.schoolUdise,
+              teacherClass,
+              academicYear
+            );
+  
+            console.log("groupRes 73", groupRes)
+  
+            if (!groupRes.data[0].groupId) {
+              errors.push({
+                name: teacher.name,
+                groupRes,
+              });
+            } else {
+              groupInfo = groupRes;
+              teacher.groups.push(groupRes.data[0].groupId);
+            }
+          }
+
+          if (!teacher.groups.length) {
             errors.push({
               name: teacher.name,
-              teacherRes,
+              msg: "No Group found",
             });
+          } else {
+            teacher.board = groupInfo.data[0].board;
+            teacher.password = getPassword(8);
+            teacher.status = true;
+            const teacherRes: any = await this.teacherService.createAndAddToGroup(
+              request,
+              teacher,
+              bulkToken
+            );
+            if (teacherRes?.statusCode === 200) {
+              responses.push(teacherRes.data);
+            } else {
+              errors.push({
+                name: teacher.name,
+                teacherRes,
+              });
+            }
           }
+
         }
+
+        
+
+        
       }
 
       const result = {

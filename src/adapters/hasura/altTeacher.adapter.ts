@@ -100,6 +100,8 @@ export class ALTTeacherService {
     teacherDto: TeacherDto,
     bulkToken: string
   ) {
+
+    console.log("teacherDto 104", teacherDto)
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];

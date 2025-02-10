@@ -23,7 +23,7 @@ import { ALTUserUpdateDto } from "src/altUser/dto/alt-user-update.dto";
 export class ALTHasuraUserService {
   axios = require("axios");
 
-  constructor(private httpService: HttpService) { }
+  constructor(private httpService: HttpService) {}
 
   public async getUser(userId: string, request: any) {
     const decoded: any = jwt_decode(request.headers.authorization);
@@ -894,8 +894,9 @@ export class ALTHasuraUserService {
     const [firstName, lastName] = obj.name.split(" ");
 
     // Step 1: Extract initials
-    const initials = `${firstName[0].toLowerCase()}${lastName ? lastName[0].toLowerCase() : ""
-      }`;
+    const initials = `${firstName[0].toLowerCase()}${
+      lastName ? lastName[0].toLowerCase() : ""
+    }`;
 
     const dob = obj.dateOfBirth
       .trim()
@@ -1150,19 +1151,21 @@ export class ALTHasuraUserService {
         decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
       const username = decoded.preferred_username;
 
-
       // Fetch Teacher data with currentRole
-      if (roles[0] === 'teacher') {
-        console.log("fetchTeacherUserData")
+      if (roles[0] === "teacher") {
+        console.log("fetchTeacherUserData");
 
-        const userData = await this.fetchTeacherUserData(username, token, roles);
+        const userData = await this.fetchTeacherUserData(
+          username,
+          token,
+          roles
+        );
         if (!userData) {
           return this.sendErrorResponse(res, 404, "User not found or inactive");
         }
 
         // Send success response
         return this.sendSuccessResponse(res, 200, "Authenticated", userData);
-
       }
 
       // Fetch user details from GraphQL
@@ -1256,9 +1259,9 @@ export class ALTHasuraUserService {
 
     try {
       const response = await this.axios(config);
-      console.log("response.data.data", response.data)
-      if(response.data.data.Users[0].role === 'teacher') {
-        return this.fetchTeacherRole(username, token, roles)
+      console.log("response.data.data", response.data);
+      if (response.data.data.Users[0].role === "teacher") {
+        return this.fetchTeacherRole(username, token, roles);
       }
       return response.data.data.Users || null;
     } catch (error) {
@@ -1319,8 +1322,8 @@ export class ALTHasuraUserService {
 
     try {
       const response = await this.axios(config);
-      console.log("response.data.data", response.data)
-      
+      console.log("response.data.data", response.data);
+
       console.log("response.data.data", response.data);
       return response.data.data.Users || null;
     } catch (error) {
@@ -1548,17 +1551,58 @@ export class ALTHasuraUserService {
             Authorization: `Bearer ${adminToken}`,
           },
         });
-        if (!userSearchResponse.data || userSearchResponse.data.length === 0) {
-          deletedRecords.push({
-            ...recordStatus,
-            error: `User ${username} not found in Keycloak`,
-          });
-          continue;
-        }
+        // if (!userSearchResponse.data || userSearchResponse.data.length === 0) {
+        //   deletedRecords.push({
+        //     ...recordStatus,
+        //     error: `User ${username} not found in Keycloak`,
+        //   });
+        //   continue;
+        // }
         console.log("userSearchResponse->>", userSearchResponse.data);
 
-        const keycloakUserId = userSearchResponse.data[0].id;
+        let keycloakUserId = userSearchResponse?.data[0]?.id;
 
+        // If Keycloak user is not found, check in Hasura
+        if (!keycloakUserId) {
+          console.log(
+            `User ${username} not found in Keycloak, checking Hasura`
+          );
+          const hasuraQuery = {
+            query: `
+            query GetUser($username: String ) {
+              Users(where: {username: {_eq: $username}}){
+                userId
+              }
+            }`,
+            variables: { username },
+          };
+          const hasuraResponse = await this.axios({
+            method: "post",
+            url: process.env.HASURAURL,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${userToken}`,
+            },
+            data: hasuraQuery,
+          });
+
+          if (
+            hasuraResponse.data &&
+            hasuraResponse.data.data &&
+            hasuraResponse.data.data.Users.length > 0
+          ) {
+            keycloakUserId = hasuraResponse.data.data.Users[0].userId;
+            console.log(
+              `User ${username} found in Hasura with userId: ${keycloakUserId}`
+            );
+          } else {
+            deletedRecords.push({
+              ...recordStatus,
+              error: `User ${username} not found in Keycloak or Hasura`,
+            });
+            continue;
+          }
+        }
         // Delete from database
         try {
           for (const table of tables) {
@@ -1595,23 +1639,28 @@ export class ALTHasuraUserService {
           continue;
         }
 
-        // Delete from Keycloak
-        try {
-          await this.axios({
-            method: "delete",
-            url: `${searchUrl}/${keycloakUserId}`,
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${adminToken}`,
-            },
-          });
-          recordStatus.kcDeleted = true;
-        } catch (kcError) {
-          console.error(
-            `Keycloak deletion failed for user ${username}:`,
-            kcError.message
+        // Delete from Keycloak only if user was found there
+        if (userSearchResponse?.data.length > 0) {
+          try {
+            await this.axios({
+              method: "delete",
+              url: `${searchUrl}/${keycloakUserId}`,
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${adminToken}`,
+              },
+            });
+            recordStatus.kcDeleted = true;
+          } catch (kcError) {
+            console.error(
+              `Keycloak deletion failed for user ${username}:`,
+              kcError.message
+            );
+          }
+        } else {
+          console.log(
+            `Skipping Keycloak deletion for ${username} as user was not found there`
           );
-          continue;
         }
 
         // Delete from telemetry
@@ -1621,7 +1670,8 @@ export class ALTHasuraUserService {
             process.env.TELEMETRY_DB_URL ||
             `postgres://${process.env.TELEMETRY_DB_USER}:${encodeURIComponent(
               process.env.TELEMETRY_DB_PASSWORD
-            )}@${process.env.TELEMETRY_DB_HOST}:${process.env.TELEMETRY_DB_PORT
+            )}@${process.env.TELEMETRY_DB_HOST}:${
+              process.env.TELEMETRY_DB_PORT
             }/${process.env.TELEMETRY_DB_NAME}?sslmode=disable`;
 
           // Create a connection pool
