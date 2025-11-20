@@ -153,22 +153,31 @@ export class SunbirdCourseService implements IServicelocator {
 
   public async getCourseHierarchy(value: any, type: any) {
     console.log("value", value)
+    console.log("type", type)
     console.log("url", this.currentUrl)
     var axios = require("axios");
     if (type == "assessment") {
+      let assessmentUrl = this.currentUrl + `/learner/questionset/v1/hierarchy/${value}?orgdetails=orgName,email&licenseDetails=name,description,url`;
+      console.log("constructed assessment url", assessmentUrl);
       let config = {
         method: "get",
-        url:
-          this.currentUrl +
-          `/learner/questionset/v1/hierarchy/${value}?orgdetails=orgName,email&licenseDetails=name,description,url`,
+        url: assessmentUrl,
       };
-      const response = await axios(config);
-      const data = response?.data.result.questionSet;
-      return new SuccessResponse({
-        statusCode: 200,
-        message: "ok",
-        data: data,
-      });
+      try {
+        const response = await axios(config);
+        const data = response?.data.result.questionSet;
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "ok",
+          data: data,
+        });
+      } catch (error) {
+        console.error("Error fetching assessment hierarchy:", error.message);
+        console.error("Error URL that failed:", assessmentUrl);
+        console.error("Error status:", error.response?.status);
+        console.error("Error response:", error.response?.data);
+        throw error;
+      }
     } else {
       // Check if currentUrl contains /interface/v1/action/content/v3, use that format
       // Otherwise use the standard sunbird hierarchy endpoint
@@ -224,6 +233,8 @@ export class SunbirdCourseService implements IServicelocator {
         });
       } catch (error) {
         console.error("Error fetching course hierarchy:", error.message);
+        console.error("Error URL that failed:", url);
+        console.error("Error status:", error.response?.status);
         console.error("Error response:", error.response?.data);
         throw error;
       }
