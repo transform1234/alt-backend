@@ -189,18 +189,33 @@ export class SunbirdCourseService implements IServicelocator {
         const response = await axios(config);
         console.log("assessment response status", response.status);
         console.log("assessment response data keys", Object.keys(response.data || {}));
+        console.log("assessment response.data structure:", JSON.stringify(Object.keys(response.data || {})).substring(0, 200));
         
         // Handle different response structures for assessment
         let data;
-        if (response?.data?.result?.questionSet) {
+        // Check for content first (interface API pattern)
+        if (response?.data?.content) {
+          // For interface API, extract content directly
+          console.log("Extracting from response.data.content");
+          data = response.data.content;
+        } else if (response?.data?.result?.questionSet) {
           data = response.data.result.questionSet;
         } else if (response?.data?.questionSet) {
           data = response.data.questionSet;
         } else if (response?.data?.result) {
           data = response.data.result;
         } else {
+          console.log("Using response.data directly");
           data = response.data;
         }
+        
+        // If data still has a content wrapper, extract it (handle nested content)
+        if (data && typeof data === 'object' && data.content && Object.keys(data).length === 1) {
+          console.log("Unwrapping nested content");
+          data = data.content;
+        }
+        
+        console.log("Final data keys:", Object.keys(data || {}));
         
         return new SuccessResponse({
           statusCode: 200,
