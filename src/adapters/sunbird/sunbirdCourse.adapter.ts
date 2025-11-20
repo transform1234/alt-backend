@@ -170,20 +170,63 @@ export class SunbirdCourseService implements IServicelocator {
         data: data,
       });
     } else {
+      // Check if currentUrl contains /interface/v1/action/content/v3, use that format
+      // Otherwise use the standard sunbird hierarchy endpoint
+      let url = this.currentUrl.trim();
+      
+      // Remove trailing slash if present
+      if (url.endsWith('/')) {
+        url = url.slice(0, -1);
+      }
+      
+      // Check if URL contains the interface API pattern
+      if (url.includes('/interface/v1/action/content/v3')) {
+        // If it already ends with /read, just append the content ID
+        if (url.endsWith('/read')) {
+          url = `${url}/${value}`;
+        } else {
+          // Otherwise, append /read/{contentId}
+          url = `${url}/read/${value}`;
+        }
+      } else {
+        // Use standard sunbird hierarchy endpoint
+        url = `${url}/api/course/v1/hierarchy/${value}?orgdetails=orgName,email&licenseDetails=name,description,url`;
+      }
+      
+      console.log("constructed url", url);
+      
       let config = {
         method: "get",
-        url:
-          this.currentUrl +
-          `/api/course/v1/hierarchy/${value}?orgdetails=orgName,email&licenseDetails=name,description,url`,
+        url: url,
       };
 
-      const response = await axios(config);
-      const data = response?.data.result.content;
-      return new SuccessResponse({
-        statusCode: 200,
-        message: "ok",
-        data: data,
-      });
+      try {
+        const response = await axios(config);
+        console.log("response status", response.status);
+        console.log("response data keys", Object.keys(response.data || {}));
+        
+        // Handle different response structures
+        let data;
+        if (response?.data?.result?.content) {
+          data = response.data.result.content;
+        } else if (response?.data?.content) {
+          data = response.data.content;
+        } else if (response?.data?.result) {
+          data = response.data.result;
+        } else {
+          data = response.data;
+        }
+        
+        return new SuccessResponse({
+          statusCode: 200,
+          message: "ok",
+          data: data,
+        });
+      } catch (error) {
+        console.error("Error fetching course hierarchy:", error.message);
+        console.error("Error response:", error.response?.data);
+        throw error;
+      }
     }
   }
 
