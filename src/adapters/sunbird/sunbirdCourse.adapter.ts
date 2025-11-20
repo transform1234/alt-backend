@@ -157,15 +157,51 @@ export class SunbirdCourseService implements IServicelocator {
     console.log("url", this.currentUrl)
     var axios = require("axios");
     if (type == "assessment") {
-      let assessmentUrl = this.currentUrl + `/learner/questionset/v1/hierarchy/${value}?orgdetails=orgName,email&licenseDetails=name,description,url`;
-      console.log("constructed assessment url", assessmentUrl);
+      // Check if currentUrl contains /interface/v1/action/content/v3, use that format
+      // Otherwise use the standard sunbird assessment endpoint
+      let url = this.currentUrl.trim();
+      
+      // Remove trailing slash if present
+      if (url.endsWith('/')) {
+        url = url.slice(0, -1);
+      }
+      
+      // Check if URL contains the interface API pattern
+      if (url.includes('/interface/v1/action/content/v3')) {
+        // If it already ends with /read, just append the content ID
+        if (url.endsWith('/read')) {
+          url = `${url}/${value}`;
+        } else {
+          // Otherwise, append /read/{contentId}
+          url = `${url}/read/${value}`;
+        }
+      } else {
+        // Use standard sunbird assessment endpoint
+        url = `${url}/learner/questionset/v1/hierarchy/${value}?orgdetails=orgName,email&licenseDetails=name,description,url`;
+      }
+      
+      console.log("constructed assessment url", url);
       let config = {
         method: "get",
-        url: assessmentUrl,
+        url: url,
       };
       try {
         const response = await axios(config);
-        const data = response?.data.result.questionSet;
+        console.log("assessment response status", response.status);
+        console.log("assessment response data keys", Object.keys(response.data || {}));
+        
+        // Handle different response structures for assessment
+        let data;
+        if (response?.data?.result?.questionSet) {
+          data = response.data.result.questionSet;
+        } else if (response?.data?.questionSet) {
+          data = response.data.questionSet;
+        } else if (response?.data?.result) {
+          data = response.data.result;
+        } else {
+          data = response.data;
+        }
+        
         return new SuccessResponse({
           statusCode: 200,
           message: "ok",
@@ -173,7 +209,7 @@ export class SunbirdCourseService implements IServicelocator {
         });
       } catch (error) {
         console.error("Error fetching assessment hierarchy:", error.message);
-        console.error("Error URL that failed:", assessmentUrl);
+        console.error("Error URL that failed:", url);
         console.error("Error status:", error.response?.status);
         console.error("Error response:", error.response?.data);
         throw error;
