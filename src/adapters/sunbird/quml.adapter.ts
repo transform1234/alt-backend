@@ -10,6 +10,7 @@ export const SunbirdQuestionToken = "SunbirdQuestion";
 export class QumlQuestionService implements IServicelocator {
   constructor(private httpService: HttpService) {}
   url = process.env.SUNBIRDURL;
+  updatedUrl = process.env.SUNBIRDUPDATEDURL;
   public async getAllQuestions(
     questionType: string,
     subject: [string],
@@ -511,10 +512,21 @@ export class QumlQuestionService implements IServicelocator {
   bulkImport(request: any, questionDto: [Object]) {}
   async getQuestionList(request: any, body: any, limit: string) {
     try {
+      console.log("[getQuestionList] Method called with params:", {
+        limit,
+        bodyKeys: body ? Object.keys(body) : null,
+        requestBody: JSON.stringify(body),
+      });
+
       var axios = require("axios");
+      
+      // Use SUNBIRDUPDATEDURL if available, otherwise fallback to hardcoded URL
+      const baseUrl = this.updatedUrl || "https://interface.tekdinext.com/interface/v1";
+      const questionListUrl = `${baseUrl}/api/question/v2/list`;
+      
       var config = {
         method: "post",
-        url: this.url + "/api/question/v1/list",
+        url: questionListUrl,
         headers: {
           "Content-Type": "application/json",
         },
@@ -522,10 +534,36 @@ export class QumlQuestionService implements IServicelocator {
         limit,
       };
 
+      console.log("[getQuestionList] Sending request to proxy URL:", config.url);
+      console.log("[getQuestionList] Request config:", {
+        method: config.method,
+        url: config.url,
+        hasData: !!config.data,
+        limit: config.limit,
+        baseUrl: baseUrl,
+      });
+
       const responseData = await axios(config);
+      
+      console.log("[getQuestionList] Response received:", {
+        status: responseData.status,
+        statusText: responseData.statusText,
+        hasData: !!responseData.data,
+        dataKeys: responseData.data ? Object.keys(responseData.data) : null,
+      });
+
       const data = responseData.data;
+      console.log("[getQuestionList] Returning data successfully");
       return data;
     } catch (error) {
+      console.error("[getQuestionList] Error occurred:", {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        stack: error?.stack,
+      });
+      
       return new ErrorResponse({
         errorCode: "500",
         errorMessage: "Error in fetching question list",
