@@ -762,13 +762,18 @@ export class ALTLessonTrackingService {
     repeatAttempt: boolean
   ) {
     const currentUrl = process.env.SUNBIRDURL;
+    const constructedUrl = currentUrl +
+      `/api/course/v1/hierarchy/${altLessonTrackingDto.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`;
 
     let config = {
       method: "get",
-      url:
-        currentUrl +
-        `/api/course/v1/hierarchy/${altLessonTrackingDto.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`,
+      url: constructedUrl,
     };
+
+    // Log curl equivalent command for debugging
+    const curlCommand = `curl --location '${constructedUrl}'`;
+    console.log("[lessonToModuleTracking] Equivalent curl command:");
+    console.log(curlCommand);
 
     const courseHierarchy = await this.axios(config);
     const data = courseHierarchy?.data.result.content;
@@ -988,10 +993,13 @@ export class ALTLessonTrackingService {
     }
 
     // Call checkLessonAndModuleExistInCourse with the found courseId
-    const checkLessonExist = await this.checkLessonAndModuleExistInCourse({
-      ...altLessonTrackingDto,
-      courseId,
-    });
+    const checkLessonExist = await this.checkLessonAndModuleExistInCourse(
+      request,
+      {
+        ...altLessonTrackingDto,
+        courseId,
+      }
+    );
     if (checkLessonExist instanceof ErrorResponse) {
       return response.status(422).json({
         // Return the error directly
@@ -1354,18 +1362,126 @@ export class ALTLessonTrackingService {
       data: result,
     });
   }
-  public async checkLessonAndModuleExistInCourse(altLessonTrackingDto: any) {
+  public async checkLessonAndModuleExistInCourse(request: any, altLessonTrackingDto: any) {
     console.log("caltourseId-->>", altLessonTrackingDto?.courseId?.courseId);
-    const currentUrl = process.env.SUNBIRDURL;
+    
+    // Use SUNBIRDUPDATEDURL if available, otherwise fallback to SUNBIRDURL
+    const baseUrl = process.env.SUNBIRDUPDATEDURL || process.env.SUNBIRDURL;
+    
+    // Construct URL based on whether we're using the updated URL format
+    let constructedUrl;
+    const isUsingUpdatedUrl = !!process.env.SUNBIRDUPDATEDURL;
+    
+    if (isUsingUpdatedUrl) {
+      // Use new interface API format
+      constructedUrl = `${baseUrl}/action/content/v3/hierarchy/${altLessonTrackingDto.courseId?.courseId}?mode=edit`;
+    } else {
+      // Use legacy format
+      constructedUrl = `${baseUrl}/api/course/v1/hierarchy/${altLessonTrackingDto.courseId?.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`;
+    }
+    
+    console.log("[checkLessonAndModuleExistInCourse] Constructed URL:", constructedUrl);
+    console.log("[checkLessonAndModuleExistInCourse] Using updated URL format:", isUsingUpdatedUrl);
+    
+    // Prepare headers
+    const headers: any = {
+      "Content-Type": "application/json",
+    };
+    
+    // Add Authorization header if available (required for interface API)
+    if (request.headers?.authorization) {
+      headers.Authorization = request.headers.authorization;
+      console.log("[checkLessonAndModuleExistInCourse] Added Authorization header");
+    }
+    
+    // Add tenantId header - REQUIRED for interface API
+    // Check both TENANT_ID and TENANTID environment variables
+    const tenantId = 
+      process.env.TENANT_ID || 
+      process.env.TENANTID ||
+      request.headers?.tenantId || 
+      request.headers?.tenantid ||
+      request.headers?.['tenant-id'] ||
+      request.headers?.['TENANT_ID'];
+    
+    if (isUsingUpdatedUrl && !tenantId) {
+      console.error("[checkLessonAndModuleExistInCourse] ERROR: tenantId is required for interface API but not found!");
+      return new ErrorResponse({
+        errorCode: "400",
+        errorMessage: "Tenant ID is required for interface API. Please set TENANT_ID environment variable or pass it in request headers.",
+      });
+    }
+    
+    if (tenantId) {
+      headers.tenantId = tenantId;
+      console.log("[checkLessonAndModuleExistInCourse] Using tenantId:", tenantId);
+    }
+    
     const config = {
       method: "get",
-      url: `${currentUrl}/api/course/v1/hierarchy/${altLessonTrackingDto.courseId?.courseId}?orgdetails=orgName,email&licenseDetails=name,description,url`,
+      url: constructedUrl,
+      headers: headers,
     };
 
-    // console.log("axiosherer-->>>", config.url);
-    const courseHierarchy = await this.axios(config);
-    const data = courseHierarchy?.data.result.content;
-    // console.log("axiosData-->>", data);
+    console.log("[checkLessonAndModuleExistInCourse] Request config:", {
+      method: config.method,
+      url: config.url,
+      headers: Object.keys(headers),
+      hasAuthorization: !!headers.Authorization,
+      hasTenantId: !!headers.tenantId,
+    });
+
+    // Log curl equivalent command for debugging
+    const curlHeaders = Object.entries(headers)
+      .map(([key, value]) => `--header '${key}: ${value}'`)
+      .join(' \\\n    ');
+    
+    const curlCommand = `curl --location '${constructedUrl}' \\\n    ${curlHeaders}`;
+    
+    console.log("[checkLessonAndModuleExistInCourse] Equivalent curl command:");
+    console.log(curlCommand);
+
+    let courseHierarchy;
+    try {
+      courseHierarchy = await this.axios(config);
+    } catch (error) {
+      console.error("[checkLessonAndModuleExistInCourse] Error calling API:", {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        url: constructedUrl,
+      });
+      return new ErrorResponse({
+        errorCode: error?.response?.status || "500",
+        errorMessage: error?.response?.data?.params?.err || error?.message || "Error fetching course hierarchy",
+      });
+    }
+    
+    // Handle different response structures
+    let data;
+    if (courseHierarchy?.data?.result?.content) {
+      data = courseHierarchy.data.result.content;
+    } else if (courseHierarchy?.data?.content) {
+      data = courseHierarchy.data.content;
+    } else if (courseHierarchy?.data?.result) {
+      data = courseHierarchy.data.result;
+    } else {
+      data = courseHierarchy?.data;
+    }
+    
+    console.log("[checkLessonAndModuleExistInCourse] Response data structure:", {
+      hasChildren: !!data?.children,
+      childrenCount: data?.children?.length || 0,
+      dataKeys: data ? Object.keys(data) : null,
+    });
+
+    if (!data || !data.children || !Array.isArray(data.children)) {
+      return new ErrorResponse({
+        errorCode: "500",
+        errorMessage: "Invalid response structure from course hierarchy API",
+      });
+    }
 
     let moduleId = null;
 
