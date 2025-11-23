@@ -215,13 +215,6 @@ export class SunbirdCourseService implements IServicelocator {
           data = data.content;
         }
         
-        // For assessment type, only return the first childNode
-        if (data && typeof data === 'object' && Array.isArray(data.childNodes) && data.childNodes.length > 0) {
-          console.log("[getCourseHierarchy] Original childNodes:", data.childNodes);
-          data.childNodes = [data.childNodes[0]];
-          console.log("[getCourseHierarchy] Modified childNodes to only first:", data.childNodes);
-        }
-        
         console.log("Final data keys:", Object.keys(data || {}));
         
         return new SuccessResponse({
