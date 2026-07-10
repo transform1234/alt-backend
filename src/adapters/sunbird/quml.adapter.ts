@@ -512,6 +512,7 @@ export class QumlQuestionService implements IServicelocator {
   bulkImport(request: any, questionDto: [Object]) {}
   async getQuestionList(request: any, body: any, limit: string) {
     let currentBody = JSON.parse(JSON.stringify(body));
+    const originalIds = body?.request?.search?.identifier || [];
     const baseUrl = this.updatedUrl || "https://interface.tekdinext.com/interface/v1";
     const questionListUrl = `${baseUrl}/api/question/v2/list`;
     const MAX_RETRIES = 5;
@@ -535,6 +536,41 @@ export class QumlQuestionService implements IServicelocator {
 
         const responseData = await axios(config);
         console.log(`[getQuestionList] Success on attempt ${attempt}`);
+        
+        // Inject dummy questions for any missing/invalid IDs to prevent QuML player from crashing
+        if (Array.isArray(originalIds) && responseData?.data?.result?.questions) {
+          const returnedIds = responseData.data.result.questions.map((q: any) => q.identifier);
+          const missingIds = originalIds.filter((id: string) => !returnedIds.includes(id));
+          
+          if (missingIds.length > 0) {
+            console.log(`[getQuestionList] Injecting dummy questions for missing IDs: ${missingIds.join(', ')}`);
+            missingIds.forEach((id: string) => {
+              responseData.data.result.questions.push({
+                identifier: id,
+                qType: "MCQ",
+                name: "Invalid Question",
+                body: "<div class='question-body'><p>This question is no longer available.</p></div><div data-choice-interaction='response1' class='mcq-vertical'></div>",
+                mimeType: "application/vnd.sunbird.question",
+                primaryCategory: "Multiple Choice Question",
+                editorState: {
+                  options: [{ answer: true, value: { body: "Skip", value: 0 } }],
+                  question: "<p>This question is no longer available.</p>"
+                },
+                interactions: {
+                  response1: { type: "choice", options: [{ label: "Skip", value: 0 }] }
+                },
+                responseDeclaration: {
+                  response1: { cardinality: "single", type: "integer", correctResponse: { value: 0 } }
+                },
+                outcomeDeclaration: {
+                  maxScore: { cardinality: "single", type: "integer", defaultValue: 1 }
+                }
+              });
+            });
+            responseData.data.result.count = responseData.data.result.questions.length;
+          }
+        }
+        
         return responseData.data;
       } catch (error) {
         attempt++;
@@ -555,7 +591,29 @@ export class QumlQuestionService implements IServicelocator {
               
               if (currentIds.length === 0) {
                 console.warn(`[getQuestionList] No valid IDs remaining. Returning empty result.`);
-                return { result: { questions: [], count: 0 } };
+                // We still need to return dummy questions for the originally requested IDs
+                const dummyQuestions = originalIds.map((id: string) => ({
+                  identifier: id,
+                  qType: "MCQ",
+                  name: "Invalid Question",
+                  body: "<div class='question-body'><p>This question is no longer available.</p></div><div data-choice-interaction='response1' class='mcq-vertical'></div>",
+                  mimeType: "application/vnd.sunbird.question",
+                  primaryCategory: "Multiple Choice Question",
+                  editorState: {
+                    options: [{ answer: true, value: { body: "Skip", value: 0 } }],
+                    question: "<p>This question is no longer available.</p>"
+                  },
+                  interactions: {
+                    response1: { type: "choice", options: [{ label: "Skip", value: 0 }] }
+                  },
+                  responseDeclaration: {
+                    response1: { cardinality: "single", type: "integer", correctResponse: { value: 0 } }
+                  },
+                  outcomeDeclaration: {
+                    maxScore: { cardinality: "single", type: "integer", defaultValue: 1 }
+                  }
+                }));
+                return { result: { questions: dummyQuestions, count: dummyQuestions.length } };
               }
               continue;
             }

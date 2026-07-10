@@ -111,21 +111,50 @@ export class SunbirdCourseService implements IServicelocator {
   public async getCourseContent(value: any) {
     var axios = require("axios");
 
+    let url = this.currentUrl.trim();
+    if (url.endsWith('/')) {
+      url = url.slice(0, -1);
+    }
+    
+    let fields = "?fields=transcripts,ageGroup,appIcon,artifactUrl,attributions,attributions,audience,author,badgeAssertions,board,body,channel,code,concepts,contentCredits,contentType,contributors,copyright,copyrightYear,createdBy,createdOn,creator,creators,description,displayScore,domain,editorState,flagReasons,flaggedBy,flags,framework,gradeLevel,identifier,itemSetPreviewUrl,keywords,language,languageCode,lastUpdatedOn,license,mediaType,medium,mimeType,name,originData,osId,owner,pkgVersion,publisher,questions,resourceType,scoreDisplayConfig,status,streamingUrl,subject,template,templateId,totalQuestions,totalScore,versionKey,visibility,year,primaryCategory,additionalCategories,interceptionPoints,interceptionType&licenseDetails=name,description,url";
+
+    if (url.includes('/interface/v1/action/content/v3')) {
+      if (url.endsWith('/read')) {
+        url = `${url}/${value}${fields}`;
+      } else {
+        url = `${url}/read/${value}${fields}`;
+      }
+    } else {
+      url = `${url}/api/content/v1/read/${value}${fields}`;
+    }
+
     let config = {
       method: "get",
-      url:
-        this.currentUrl +
-        `/api/content/v1/read/${value}?fields=transcripts,ageGroup,appIcon,artifactUrl,attributions,attributions,audience,author,badgeAssertions,board,body,channel,code,concepts,contentCredits,contentType,contributors,copyright,copyrightYear,createdBy,createdOn,creator,creators,description,displayScore,domain,editorState,flagReasons,flaggedBy,flags,framework,gradeLevel,identifier,itemSetPreviewUrl,keywords,language,languageCode,lastUpdatedOn,license,mediaType,medium,mimeType,name,originData,osId,owner,pkgVersion,publisher,questions,resourceType,scoreDisplayConfig,status,streamingUrl,subject,template,templateId,totalQuestions,totalScore,versionKey,visibility,year,primaryCategory,additionalCategories,interceptionPoints,interceptionType&licenseDetails=name,description,url`,
+      url: url,
     };
 
     console.log("config", config)
 
-    const response = await axios(config);
-    const data = response?.data;
-
-    const final = data.result.content;
-
-    return final;
+    try {
+      const response = await axios(config);
+      let data = response?.data;
+      
+      // The interface pattern wraps content inside `result.content` or just `content`.
+      let final = data;
+      if (data?.result?.content) {
+        final = data.result.content;
+      } else if (data?.content) {
+        final = data.content;
+      } else if (data?.result) {
+        final = data.result;
+      }
+      
+      return final;
+    } catch (error) {
+      console.error("Error fetching course content:", error.message);
+      console.error("Error URL:", url);
+      throw error;
+    }
   }
 
   public async getCoursesByIds(courseIds: [string], request: any) {
@@ -142,13 +171,20 @@ export class SunbirdCourseService implements IServicelocator {
   }
 
   public async getCourseDetail(courseId: string, request: any) {
-    let value = courseId;
-    let courseData = await this.getCourseContent(value);
-    return new SuccessResponse({
-      statusCode: 200,
-      message: "ok",
-      data: courseData,
-    });
+    try {
+      console.log("getCourseDetail called with:", courseId);
+      let value = courseId;
+      let courseData = await this.getCourseContent(value);
+      console.log("getCourseContent returned keys:", courseData ? Object.keys(courseData) : "null");
+      return new SuccessResponse({
+        statusCode: 200,
+        message: "ok",
+        data: courseData,
+      });
+    } catch (e) {
+      console.error("Error in getCourseDetail:", e.message);
+      throw e;
+    }
   }
 
   public async getCourseHierarchy(value: any, type: any) {
