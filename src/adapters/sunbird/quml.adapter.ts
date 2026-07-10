@@ -511,63 +511,74 @@ export class QumlQuestionService implements IServicelocator {
   ) {}
   bulkImport(request: any, questionDto: [Object]) {}
   async getQuestionList(request: any, body: any, limit: string) {
-    try {
-      console.log("[getQuestionList] Method called with params:", {
-        limit,
-        bodyKeys: body ? Object.keys(body) : null,
-        requestBody: JSON.stringify(body),
-      });
+    let currentBody = JSON.parse(JSON.stringify(body));
+    const baseUrl = this.updatedUrl || "https://interface.tekdinext.com/interface/v1";
+    const questionListUrl = `${baseUrl}/api/question/v2/list`;
+    const MAX_RETRIES = 5;
+    let attempt = 0;
 
-      var axios = require("axios");
-      
-      // Use SUNBIRDUPDATEDURL if available, otherwise fallback to hardcoded URL
-      const baseUrl = this.updatedUrl || "https://interface.tekdinext.com/interface/v1";
-      const questionListUrl = `${baseUrl}/api/question/v2/list`;
-      
-      var config = {
-        method: "post",
-        url: questionListUrl,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        data: body,
-        limit,
-      };
+    console.log(`[getQuestionList] Starting with IDs: ${JSON.stringify(currentBody?.request?.search?.identifier)}`);
 
-      console.log("[getQuestionList] Sending request to proxy URL:", config.url);
-      console.log("[getQuestionList] Request config:", {
-        method: config.method,
-        url: config.url,
-        hasData: !!config.data,
-        limit: config.limit,
-        baseUrl: baseUrl,
-      });
+    while (attempt < MAX_RETRIES) {
+      try {
+        var axios = require("axios");
+        
+        var config = {
+          method: "post",
+          url: questionListUrl,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          data: currentBody,
+          limit,
+        };
 
-      const responseData = await axios(config);
-      
-      console.log("[getQuestionList] Response received:", {
-        status: responseData.status,
-        statusText: responseData.statusText,
-        hasData: !!responseData.data,
-        dataKeys: responseData.data ? Object.keys(responseData.data) : null,
-      });
-
-      const data = responseData.data;
-      console.log("[getQuestionList] Returning data successfully");
-      return data;
-    } catch (error) {
-      console.error("[getQuestionList] Error occurred:", {
-        message: error?.message,
-        response: error?.response?.data,
-        status: error?.response?.status,
-        statusText: error?.response?.statusText,
-        stack: error?.stack,
-      });
-      
-      return new ErrorResponse({
-        errorCode: "500",
-        errorMessage: "Error in fetching question list",
-      });
+        const responseData = await axios(config);
+        console.log(`[getQuestionList] Success on attempt ${attempt}`);
+        return responseData.data;
+      } catch (error) {
+        attempt++;
+        const errmsg = error?.response?.data?.params?.errmsg;
+        console.warn(`[getQuestionList] Attempt ${attempt} failed - errmsg: ${errmsg}`);
+        
+        if (errmsg && errmsg.includes("Request contains invalid identifiers")) {
+          const match = errmsg.match(/\[(.*?)\]/);
+          if (match && match[1]) {
+            const invalidIds = match[1].split(',').map((id: string) => id.trim());
+            console.warn(`[getQuestionList] Filtering out invalid IDs: ${invalidIds.join(', ')}`);
+            
+            let currentIds = currentBody?.request?.search?.identifier || [];
+            if (Array.isArray(currentIds)) {
+              currentIds = currentIds.filter((id: string) => !invalidIds.includes(id));
+              currentBody.request.search.identifier = currentIds;
+              console.log(`[getQuestionList] Retrying with ${currentIds.length} remaining IDs`);
+              
+              if (currentIds.length === 0) {
+                console.warn(`[getQuestionList] No valid IDs remaining. Returning empty result.`);
+                return { result: { questions: [], count: 0 } };
+              }
+              continue;
+            }
+          }
+        }
+        
+        console.error("[getQuestionList] Non-recoverable error:", {
+          message: error?.message,
+          status: error?.response?.status,
+          data: error?.response?.data,
+        });
+        
+        return new ErrorResponse({
+          errorCode: "500",
+          errorMessage: "Error in fetching question list",
+        });
+      }
     }
+    
+    console.error(`[getQuestionList] Max retries (${MAX_RETRIES}) exceeded.`);
+    return new ErrorResponse({
+      errorCode: "500",
+      errorMessage: "Error in fetching question list: Max retries exceeded",
+    });
   }
 }
