@@ -442,7 +442,10 @@ export class ALTProgramAssociationService {
     const altUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
-    console.log("altUserId", altUserId);
+    console.log("====== contentSearch API Call Started ======");
+    console.log("altUserId:", altUserId);
+    console.log("contentSearch request body:", JSON.stringify(body, null, 2));
+    
     const programId = body.programId;
     const subjectCondition = body.subject
       ? `subject: {_eq: "${body.subject}"}, `
@@ -472,6 +475,9 @@ export class ALTProgramAssociationService {
       },
       data,
     };
+    console.log("-> Calling Hasura API for ProgramTermAssoc:");
+    console.log("Hasura URL:", process.env.ALTHASURA);
+    console.log("Hasura Payload:", JSON.stringify(data, null, 2));
 
     const response = await this.axios(configData);
 
@@ -483,6 +489,7 @@ export class ALTProgramAssociationService {
     }
 
     const rulesData = response.data.data.ProgramTermAssoc;
+    console.log("<- Received Hasura Response for ProgramTermAssoc. Records found:", rulesData);
 
     if (!rulesData || rulesData.length === 0) {
       return new ErrorResponse({
@@ -492,21 +499,26 @@ export class ALTProgramAssociationService {
     }
 
     const filteredProg = rulesData.flatMap((rule) => {
+      console.log(`Processing rules for programId: ${rule.programId}`);
       if (rule.rules) {
         try {
           const parsedRules = JSON.parse(rule.rules);
+          console.log(`Successfully parsed rules. Is prog an array? ${Array.isArray(parsedRules.prog)}`);
 
           if (Array.isArray(parsedRules.prog)) {
-            return parsedRules.prog
-              .filter((item) =>
-                item.name
-                  ?.toLowerCase()
-                  .includes(body.searchQuery.toLowerCase())
-              )
+            const filtered = parsedRules.prog
+              .filter((item) => {
+                const query = body.searchQuery?.toLowerCase() || "";
+                if (!query) return true;
+                return item.name?.toLowerCase().includes(query) || false;
+              })
               .map((item) => ({
                 ...item,
-                subject: rule.subject, // Include the subject from rulesData
+                subject: rule.subject,
               }));
+            
+            console.log(`After filter, ${filtered.length} items remain out of ${parsedRules.prog.length}`);
+            return filtered;
           }
         } catch (error) {
           console.error(
@@ -514,14 +526,18 @@ export class ALTProgramAssociationService {
             error
           );
         }
+      } else {
+        console.log(`No rules found for programId: ${rule.programId}`);
       }
       return [];
     });
+    console.log(`Total filteredProg items: ${filteredProg.length}`);
 
     const lessonIds = filteredProg.flatMap((item) => [
       item.contentId,
       item.lesson_questionset,
-    ]);
+    ]).filter(Boolean);
+    console.log("Extracted Lesson/Content IDs from rules for tracking:", lessonIds);
 
     const lessonStatusQuery = {
       query: `
@@ -547,6 +563,8 @@ export class ALTProgramAssociationService {
       },
       data: lessonStatusQuery,
     });
+    console.log("-> Calling Hasura API for LessonProgressTracking");
+    console.log("Hasura Payload:", JSON.stringify(lessonStatusQuery, null, 2));
 
     if (lessonStatusResponse?.data?.errors) {
       return new ErrorResponse({
@@ -587,6 +605,9 @@ export class ALTProgramAssociationService {
       currentPage: pageNumber,
       totalPages: Math.ceil(responseData.length / limit),
     };
+
+    console.log("====== contentSearch API Call Finished ======");
+    console.log("Returning total items:", responseData.length, "Paginated count:", paginatedData.length);
 
     return new SuccessResponse({
       statusCode: 200,
