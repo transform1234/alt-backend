@@ -177,7 +177,7 @@ export class ALTProgramAssociationController {
   @ApiOkResponse({ description: "ALT Rules" })
   @ApiForbiddenResponse({ description: "Forbidden" })
   async isContentLike(@Body() body: any, @Req() request: Request) {
-    const { programId, subject, contentId } = body;
+    const { programId, subject, contentId, userId } = body;
 
     if (!programId || !subject || !contentId) {
       return {
@@ -190,6 +190,7 @@ export class ALTProgramAssociationController {
       programId,
       subject,
       contentId,
+      userId,
     });
   }
 

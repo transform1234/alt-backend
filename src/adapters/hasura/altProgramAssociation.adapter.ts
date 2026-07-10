@@ -512,10 +512,17 @@ export class ALTProgramAssociationService {
                 if (!query) return true;
                 return item.name?.toLowerCase().includes(query) || false;
               })
-              .map((item) => ({
-                ...item,
-                subject: rule.subject,
-              }));
+              .map((item) => {
+                let source = item.contentSource || "sunbird";
+                if (source.toLowerCase() === "diksha") {
+                  source = "sunbird";
+                }
+                return {
+                  ...item,
+                  subject: rule.subject,
+                  contentSource: source,
+                };
+              });
             
             console.log(`After filter, ${filtered.length} items remain out of ${parsedRules.prog.length}`);
             return filtered;
@@ -932,22 +939,25 @@ export class ALTProgramAssociationService {
       programId: string;
       subject: string;
       contentId: string;
+      userId?: string;
     }
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
     const altUserId =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
-    console.log("altUserId", altUserId);
+    const effectiveUserId = data.userId || altUserId;
+    console.log("effectiveUserId", effectiveUserId);
 
     // First, check if the combination exists
     const checkGraphQLQuery = {
       query: `
-        query CheckLikeStatus($contentId: String!, $programId: String!, $subject: String!) {
+        query CheckLikeStatus($contentId: String!, $programId: String!, $subject: String!, $userId: String!) {
           GlaLikedContents(where: {
             contentId: { _eq: $contentId },
             programId: { _eq: $programId },
-            subject: { _eq: $subject }
+            subject: { _eq: $subject },
+            userId: { _eq: $userId }
           }) {
             id
             userId
@@ -962,6 +972,7 @@ export class ALTProgramAssociationService {
         contentId: data.contentId,
         programId: data.programId,
         subject: data.subject,
+        userId: effectiveUserId,
       },
     };
 
