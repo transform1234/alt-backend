@@ -53,14 +53,15 @@ export class ALTLessonTrackingService {
     moduleId?: string
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
+    const hasuraClaims = decoded?.["https://hasura.io/jwt/claims"];
     const altUserId =
-      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+      hasuraClaims?.["x-hasura-user-id"] || decoded?.sub;
+
+    const moduleCondition = moduleId ? `, moduleId: {_eq: $moduleId}` : "";
 
     const altLessonTrackingRecord = {
       query: `query GetLessonTrackingData ($userId:uuid!, $lessonId:String, $moduleId:String) {
-          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId},${
-            moduleId ? `, moduleId: {_eq: $moduleId}` : ""
-          }}) {
+          LessonProgressTracking(where: {userId: {_eq: $userId}, lessonId: {_eq: $lessonId}${moduleCondition}}) {
             userId
             moduleId
             lessonId
@@ -114,7 +115,9 @@ export class ALTLessonTrackingService {
     attemptNumber: number
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    const hasuraClaims = decoded?.["https://hasura.io/jwt/claims"];
+    const userId =
+      hasuraClaims?.["x-hasura-user-id"] || decoded?.sub;
     console.log(
       "getLastLessonTrackingRecord-->>",
       lessonId,
@@ -867,8 +870,17 @@ export class ALTLessonTrackingService {
     //  Decode the JWT token for user identification
 
     const decoded: any = jwt_decode(request.headers.authorization);
+    const hasuraClaims = decoded?.["https://hasura.io/jwt/claims"];
     altLessonTrackingDto.userId =
-      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+      hasuraClaims?.["x-hasura-user-id"] || decoded?.sub;
+    if (!altLessonTrackingDto.userId) {
+      return response.status(401).json(
+        new ErrorResponse({
+          errorCode: "401",
+          errorMessage: "Invalid or expired authorization token.",
+        })
+      );
+    }
     altLessonTrackingDto.createdBy = altLessonTrackingDto.userId;
     altLessonTrackingDto.updatedBy = altLessonTrackingDto.userId;
     altLessonTrackingDto.timeSpent =
@@ -1483,21 +1495,51 @@ export class ALTLessonTrackingService {
       });
     }
 
-    let moduleId = null;
+    let moduleId: string | null = null;
 
-    for (const module of data.children) {
-      if (module.children) {
-        // Search for the lesson in the nested `children` array
-        const foundLesson = module.children.find(
-          (lesson) => lesson.identifier === altLessonTrackingDto.lessonId
-        );
-
-        if (foundLesson) {
-          // Assign the `parent` of the lesson as `moduleId`
-          moduleId = foundLesson.parent;
-          break; // Exit the loop once the lesson is found
+    // Recursive search function to find a lesson at any depth in the hierarchy tree
+    function findLessonAndModule(
+      nodes: any[],
+      targetId: string,
+      parentContainerId: string | null = null
+    ): { found: boolean; moduleId: string | null } {
+      if (!Array.isArray(nodes)) return { found: false, moduleId: null };
+      for (const node of nodes) {
+        if (node.identifier === targetId) {
+          return {
+            found: true,
+            moduleId: node.parent || parentContainerId || node.identifier,
+          };
+        }
+        if (node.children && Array.isArray(node.children)) {
+          const result = findLessonAndModule(
+            node.children,
+            targetId,
+            node.identifier
+          );
+          if (result.found) {
+            return {
+              found: true,
+              moduleId: result.moduleId || node.identifier || parentContainerId,
+            };
+          }
         }
       }
+      return { found: false, moduleId: null };
+    }
+
+    const searchResult = findLessonAndModule(
+      data.children,
+      altLessonTrackingDto.lessonId
+    );
+    moduleId = searchResult.moduleId;
+
+    if (!moduleId && altLessonTrackingDto.moduleId) {
+      moduleId = altLessonTrackingDto.moduleId;
+    }
+
+    if (!moduleId && data.identifier) {
+      moduleId = data.identifier;
     }
 
     // Check if the lesson was found
