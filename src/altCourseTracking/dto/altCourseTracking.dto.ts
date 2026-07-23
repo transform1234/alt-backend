@@ -37,12 +37,11 @@ export class ALTCourseTrackingDto {
 
   @Expose()
   @IsNotEmpty()
-  @IsString()
   @ApiProperty({
     type: Number,
-    description: "Score of the course",
+    description: "Time spent on the course",
   })
-  calculatedScore: number;
+  timeSpent: number;
 
   @Expose()
   @IsNotEmpty()
@@ -52,6 +51,15 @@ export class ALTCourseTrackingDto {
     description: "Status of course",
   })
   status: string;
+
+  @Expose()
+  @IsNotEmpty()
+  @IsString()
+  @ApiProperty({
+    type: String,
+    description: "Status of course",
+  })
+  programId: string;
 
   @Expose()
   createdBy: string;

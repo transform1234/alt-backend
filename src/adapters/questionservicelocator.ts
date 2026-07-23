@@ -32,4 +32,5 @@ export interface IServicelocator {
   );
 
   bulkImport(request: any, questionDto: [Object]);
+  getQuestionList(request:any, body:any,limit:string)
 }

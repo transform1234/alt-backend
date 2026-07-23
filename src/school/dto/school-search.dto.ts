@@ -14,11 +14,11 @@ export class SchoolSearchDto {
   page: number;
 
   @ApiProperty({
-    type: SchoolDto,
+    type: Object,
     description: "Filters",
   })
   @ApiPropertyOptional()
-  filters: SchoolDto;
+  filters: object;
 
   constructor(partial: Partial<SchoolSearchDto>) {
     Object.assign(this, partial);

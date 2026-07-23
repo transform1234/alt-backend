@@ -3,8 +3,13 @@ import { HttpService } from "@nestjs/axios";
 import { SuccessResponse } from "src/success-response";
 import { ErrorResponse } from "src/error-response";
 import jwt_decode from "jwt-decode";
+import { getUserGroup, getUserRole } from "./adapter.utils";
+
 const resolvePath = require("object-resolve-path");
-import { GroupMembershipDto, GroupMembershipDtoById } from "src/groupMembership/dto/groupMembership.dto";
+import {
+  GroupMembershipDto,
+  GroupMembershipDtoById,
+} from "src/groupMembership/dto/groupMembership.dto";
 import { GroupMembershipSearchDto } from "src/groupMembership/dto/groupMembership-search.dto";
 
 @Injectable()
@@ -14,18 +19,21 @@ export class GroupMembershipService {
   url = `${process.env.BASEAPIURL}`;
 
   public async getGroupMembership(groupMembershipId: any, request: any) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     var data = {
       query: `query GetGroupMembership($groupMembershipId:uuid!) {
         GroupMembership_by_pk(groupMembershipId: $groupMembershipId) {
-            groupId
-            groupMembershipId
-            schoolId
-            role
-            userId
-            updatedBy
-            createdBy
-            updated_at
-            created_at
+          groupMembershipId
+          schoolUdise
+          userId
+          groupId
+          role
+          createdBy
+          updatedBy
+          createdAt
+          updatedAt
       }
     }`,
       variables: {
@@ -37,7 +45,9 @@ export class GroupMembershipService {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+
         "Content-Type": "application/json",
       },
       data: data,
@@ -68,11 +78,8 @@ export class GroupMembershipService {
     groupMembership: GroupMembershipDto
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    groupMembership.userId =
+    const altUserRoles =
       decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-
-    groupMembership.createdBy = groupMembership.userId;
-    groupMembership.updatedBy = groupMembership.userId;
 
     let query = "";
     Object.keys(groupMembership).forEach((e) => {
@@ -101,7 +108,8 @@ export class GroupMembershipService {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserGroup(altUserRoles),
         "Content-Type": "application/json",
       },
       data: data,
@@ -130,11 +138,11 @@ export class GroupMembershipService {
     groupMembership: GroupMembershipDtoById
   ) {
     const decoded: any = jwt_decode(request.headers.authorization);
-    // groupMembership.userId =
-    //   decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-
-    groupMembership.createdBy = groupMembership.userId;
-    groupMembership.updatedBy = groupMembership.userId;
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+    groupMembership.createdBy = userId;
+    groupMembership.updatedBy = userId;
 
     let query = "";
     Object.keys(groupMembership).forEach((e) => {
@@ -163,7 +171,8 @@ export class GroupMembershipService {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
         "Content-Type": "application/json",
       },
       data: data,
@@ -210,7 +219,7 @@ export class GroupMembershipService {
         }
       }
     });
-    
+
     const groupMembershipUpdate = {
       query: `mutation UpdateGroupMembership($groupMembershipId:uuid) {
           update_GroupMembership(where: { groupMembershipId: {_eq: $groupMembershipId}}, _set: {${query}}) {
@@ -226,7 +235,7 @@ export class GroupMembershipService {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
         "Content-Type": "application/json",
       },
       data: groupMembershipUpdate,
@@ -254,16 +263,15 @@ export class GroupMembershipService {
     request: any,
     groupMembershipSearchDto: GroupMembershipSearchDto
   ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
     let offset = 0;
     if (groupMembershipSearchDto.page > 1) {
       offset =
         parseInt(groupMembershipSearchDto.limit) *
         (groupMembershipSearchDto.page - 1);
     }
-
-    const decoded: any = jwt_decode(request.headers.authorization);
-    groupMembershipSearchDto.filters.userId =
-      decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
 
     let query = "";
     Object.keys(groupMembershipSearchDto.filters).forEach((e) => {
@@ -278,15 +286,19 @@ export class GroupMembershipService {
     var data = {
       query: `query SearchGroupMembership($limit:Int, $offset:Int) {
            GroupMembership(where:{${query}}, limit: $limit, offset: $offset,) {
-            created_at
-            groupId
             groupMembershipId
-            schoolId
-            role
-            updated_at
+            schoolUdise
             userId
+            groupId
+            role
             createdBy
             updatedBy
+            createdAt
+            updatedAt
+            Group {
+              groupId
+              name
+            }
             }
           }`,
       variables: {
@@ -298,7 +310,8 @@ export class GroupMembershipService {
       method: "post",
       url: process.env.REGISTRYHASURA,
       headers: {
-        "Authorization": request.headers.authorization,
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
         "Content-Type": "application/json",
       },
       data: data,
@@ -328,18 +341,117 @@ export class GroupMembershipService {
         groupMembershipId: obj?.groupMembershipId
           ? `${obj.groupMembershipId}`
           : "",
-        groupId: obj?.groupId ? `${obj.groupId}` : "",
+        schoolUdise: obj?.schoolUdise ? `${obj.schoolUdise}` : "",
         schoolId: obj?.schoolId ? `${obj.schoolId}` : "",
         userId: obj?.userId ? `${obj.userId}` : "",
+        groupId: obj?.groupId ? `${obj.groupId}` : "",
         role: obj?.role ? `${obj.role}` : "",
-        created_at: obj?.created_at ? `${obj.created_at}` : "",
-        updated_at: obj?.updated_at ? `${obj.updated_at}` : "",
+        createdAt: obj?.createdAt ? `${obj.createdAt}` : "",
+        updatedAt: obj?.updatedAt ? `${obj.updatedAt}` : "",
         createdBy: obj?.createdBy ? `${obj.createdBy}` : "",
         updatedBy: obj?.updatedBy ? `${obj.updatedBy}` : "",
+        groupName: obj?.Group.name ? `${obj.Group.name}` : "",
       };
-      return new GroupMembershipDto(groupMembershipMapping);
+      return new GroupMembershipDtoById(groupMembershipMapping);
     });
 
     return groupMembershipResponse;
+  }
+
+  public async modifyGroupMembership(
+    request: any,
+    groupMemberships: GroupMembershipDtoById[],
+    oldGroupIds: string[]
+  ) {
+    const decoded: any = jwt_decode(request.headers.authorization);
+    const altUserRoles =
+      decoded["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"];
+    const userId = decoded["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    const newGroupMembershipData = groupMemberships.map((groupMembership) => {
+      let query = "";
+      groupMembership.createdBy = userId;
+      groupMembership.updatedBy = userId;
+      Object.keys(groupMembership).forEach((e) => {
+        if (groupMembership[e] && groupMembership[e] != "") {
+          if (e === "role") {
+            query += `${e}: ${groupMembership[e]},`;
+          } else if (Array.isArray(groupMembership[e])) {
+            query += `${e}: ${JSON.stringify(groupMembership[e])}, `;
+          } else {
+            query += `${e}: "${groupMembership[e]}", `;
+          }
+        }
+      });
+      return "{" + query + "}";
+    });
+
+    // deactivate old one add new one
+
+    let data = {
+      query: `mutation ModifyGroupMembership ($userId: uuid!,$groupIds: [uuid!]) {
+        update_GroupMembership(where: {userId: {_eq: $userId}, groupId: {_in: $groupIds}}, _set: {status: false}) {
+          affected_rows
+          returning {
+            status
+            groupId
+            userId
+            updatedAt
+            updatedBy
+          }
+        }
+        insert_GroupMembership(objects: [${newGroupMembershipData}]) {
+          affected_rows
+          returning {
+            groupMembershipId
+            status
+            groupId
+            userId
+            Group {
+              grade
+              medium
+              name
+              board
+            }
+          }
+        }
+      }
+      `,
+      variables: {
+        userId: groupMemberships[0].userId,
+        groupIds: oldGroupIds,
+      },
+    };
+
+    const config = {
+      method: "post",
+      url: process.env.REGISTRYHASURA,
+      headers: {
+        Authorization: request.headers.authorization,
+        "x-hasura-role": getUserRole(altUserRoles),
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+
+    const response = await this.axios(config);
+
+    if (response?.data?.errors) {
+      return new ErrorResponse({
+        errorCode: response.data.errors[0].extensions,
+        errorMessage: response.data.errors[0].message,
+      });
+    }
+
+    const result = {
+      updation: response.data.data.update_GroupMembership,
+      insertion: response.data.data.insert_GroupMembership,
+    };
+
+    return new SuccessResponse({
+      statusCode: 200,
+      message: "Ok.",
+      data: result,
+    });
   }
 }

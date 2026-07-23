@@ -24,7 +24,9 @@ import {
 import { TemplateService } from "src/adapters/sunbirdrc/template.adapter";
 import { TemplateProcessDto } from "./dto/template-process.dto";
 import { TemplateCreateDto } from "./dto/template-create.dto";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Template")
 @Controller("template")
 export class TemplateController {

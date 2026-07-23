@@ -31,7 +31,10 @@ import {
 } from "src/adapters/esamwad/announcements.adapter";
 import { AnnouncementsFilterDto } from "./dto/announcements-filter.dto";
 import { AnnouncementsDto } from "./dto/announcements.dto";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+
+@UseInterceptors(SentryInterceptor)
 @Controller("announcements")
 export class AnnouncementsController {
   constructor(

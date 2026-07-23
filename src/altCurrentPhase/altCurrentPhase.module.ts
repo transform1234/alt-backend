@@ -5,9 +5,10 @@ import { ALTProgramAssociationService } from "../adapters/hasura/altProgramAssoc
 import { ALTCurrentPhaseController } from "./altCurrentPhase.controller";
 import { ALTCourseTrackingService } from "src/adapters/hasura/altCourseTracking.adapter";
 import { ALTCurrentPhaseService } from "src/adapters/hasura/altCurrentPhase.adapter";
-import { HasuraUserService } from "src/adapters/hasura/user.adapter";
-const ttl = process.env.TTL as never;
+// import { HasuraUserService } from "src/adapters/hasura/user.adapter";
+import { ALTHasuraUserService } from "src/adapters/hasura/altUser.adapter";
 
+const ttl = process.env.TTL as never;
 @Module({
   imports: [
     HttpModule,
@@ -21,7 +22,7 @@ const ttl = process.env.TTL as never;
     ALTProgramAssociationService,
     ALTCourseTrackingService,
     ALTCurrentPhaseService,
-    HasuraUserService,
+    ALTHasuraUserService,
   ],
 })
 export class ALTCurrentPhaseModule {}

@@ -1,3 +1,4 @@
+import { BMtoGroupDto } from "src/group/dto/bmtogroup.dto";
 import { GroupSearchDto } from "src/group/dto/group-search.dto";
 import { GroupDto } from "src/group/dto/group.dto";
 
@@ -9,4 +10,5 @@ export interface IServicelocatorgroup {
   findMembersOfGroup(id, role, request);
   findGroupsByUserId(id, role, request);
   findMembersOfChildGroup(groupId: string, role: string, request: any);
+  getGroupList(bmtogroup: BMtoGroupDto, request: any);
 }

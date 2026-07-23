@@ -39,6 +39,8 @@ import {
 } from "src/adapters/esamwad/student.adapter";
 import { IServicelocator } from "src/adapters/studentservicelocator";
 import { StudentAdapter } from "./studentadapter";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Student")
 @Controller("student")
 export class StudentController {

@@ -35,6 +35,10 @@ export class StudentDto {
 
   @ApiProperty()
   @Expose()
+  studentEnrollId: string;
+
+  @ApiProperty()
+  @Expose()
   studentPhoneNumber: Number;
 
   @ApiPropertyOptional()

@@ -23,7 +23,9 @@ import {
 import { AssessmentSetSearchDto } from "./dto/assessmentset-search-dto";
 import { AssessmentsetDto } from "./dto/assessmentset.dto";
 import { AssessmentsetService } from "src/adapters/hasura/assessmentset.adapter";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Assessmentset")
 @Controller("assessmentset")
 export class AssessmentsetController {

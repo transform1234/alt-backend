@@ -39,16 +39,94 @@ export class UserDto {
     description: "The contact number of the user",
   })
   @Expose()
-  mobileNumber: string;
+  mobile: string;
+
+  @ApiProperty({
+    type: String,
+    description: "The gender of the user",
+  })
+  @Expose()
+  gender: string;
 
   @ApiProperty({
     type: String,
     description: "The birthDate of the user",
   })
   @Expose()
-  birthDate: string;
+  dateOfBirth: string;
 
   @ApiProperty({
+    type: String,
+    description: "role of user",
+  })
+  @Expose()
+  role: string;
+
+  @ApiProperty({
+    type: String,
+    description: "The school of the user",
+  })
+  @Expose()
+  schoolUdise: string;
+
+  @ApiProperty({
+    type: String,
+    description: "Password",
+  })
+  @Expose()
+  password: string;
+
+  @ApiProperty({
+    type: Boolean,
+    description: "Status",
+  })
+  @Expose()
+  status: boolean;
+
+  @Expose()
+  createdAt: string;
+
+  @Expose()
+  updatedAt: string;
+
+  @Expose()
+  createdBy: string;
+
+  @Expose()
+  updatedBy: string;
+
+  constructor(obj: any) {
+    this.userId = obj?.userId ? `${obj.userId}` : "";
+    this.name = obj?.name ? `${obj.name}` : "";
+    this.username = obj?.username ? `${obj.username}` : "";
+    this.schoolUdise = obj?.schoolUdise ? `${obj.schoolUdise}` : "";
+    this.email = obj?.email ? `${obj.email}` : "";
+    this.mobile = obj?.mobile ? obj.mobile : "";
+    this.gender = obj?.gender ? `${obj.gender}` : "";
+    this.dateOfBirth = obj?.dateOfBirth ? `${obj.dateOfBirth}` : "";
+    this.status = obj?.status ? obj.status : false;
+    this.role = obj?.role ? `${obj.role}` : "";
+    this.password = obj?.password ? `${obj.password}` : "";
+    // this.createdAt = obj?.createdAt ? `${obj.createdAt}` : "";
+    // this.updatedAt = obj?.updatedAt ? `${obj.updatedAt}` : "";
+    this.createdBy = obj?.createdBy ? `${obj.createdBy}` : "";
+    this.updatedBy = obj?.updatedBy ? `${obj.updatedBy}` : "";
+  }
+}
+
+/* 
+   @ApiProperty({
+    type: String,
+    description: "the user medium",
+  })
+  @Expose()
+  medium: string;
+
+  @ApiPropertyOptional()
+  @Expose()
+  grade: string;
+
+    @ApiProperty({
     type: String,
     description: "The father's name of the user",
   })
@@ -85,10 +163,11 @@ export class UserDto {
 
   @ApiProperty({
     type: String,
-    description: "Password",
+    description: "The school of the user",
   })
   @Expose()
-  password: string;
+  school: string;
+ 
 
   @ApiProperty({
     type: String,
@@ -117,45 +196,6 @@ export class UserDto {
 
   @ApiProperty({
     type: String,
-    description: "The school of the user",
-  })
-  @Expose()
-  school: string;
-
-  @ApiProperty({
-    type: String,
-    description: "the user board",
-  })
-  @Expose()
-  board: string;
-
-  @ApiProperty({
-    type: String,
-    description: "the user medium",
-  })
-  @Expose()
-  medium: string;
-
-  @ApiPropertyOptional()
-  @Expose()
-  grade: string;
-
-  @ApiProperty({
-    type: String,
-    description: "roleId of user, teacher, mentor,monitor",
-  })
-  @Expose()
-  role: string;
-
-  @ApiProperty({
-    type: String,
-    description: "The gender of the user",
-  })
-  @Expose()
-  gender: string;
-
-  @ApiProperty({
-    type: String,
     description: "The bloodGroup of the user",
   })
   @Expose()
@@ -175,19 +215,5 @@ export class UserDto {
   @Expose()
   image: string;
 
-  @Expose()
-  createdAt: string;
 
-  @Expose()
-  updatedAt: string;
-
-  @Expose()
-  createdBy: string;
-
-  @Expose()
-  updatedBy: string;
-
-  constructor(obj: any) {
-    Object.assign(this, obj);
-  }
-}
+  */

@@ -26,6 +26,8 @@ import { Request } from "@nestjs/common";
 import { LikeDto } from "./dto/like.dto";
 import { LikeSearchDto } from "./dto/like-search.dto";
 import { LikeAdapter } from "./likeadapter";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Like")
 @Controller("like")
 export class LikeController {

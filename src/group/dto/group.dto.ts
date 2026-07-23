@@ -5,19 +5,37 @@ import {
   IsEmail,
   IsString,
   IsNumber,
+  IsNumberString,
+  IsOptional,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class GroupDto {
   @Expose()
+  @IsOptional()
   groupId: string;
 
   @ApiPropertyOptional({
     type: String,
-    description: "The schoolId of the group",
+    description: "The schoolUdise of the group",
   })
   @Expose()
-  schoolId: string;
+  schoolUdise: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    description: "The medium of the group",
+  })
+  @Expose()
+  medium: string;
+
+
+  @ApiPropertyOptional({
+    type: String,
+    description: "The grade of the group",
+  })
+  @Expose()
+  grade: string;
 
   @ApiPropertyOptional({
     type: String,
@@ -49,46 +67,24 @@ export class GroupDto {
 
   @ApiPropertyOptional({
     type: String,
-    description: "Teacher Id of Group",
+    description: "The board of the group",
   })
   @Expose()
-  teacherId: string;
+  board: string;
 
   @ApiPropertyOptional({
     type: String,
-    description: "Parent Id of Group",
+    description: "The Academic Year",
   })
   @Expose()
-  parentGroupId: string;
+  @IsNumberString()
+  academicYear: string;
 
-  @ApiPropertyOptional()
   @Expose()
-  deactivationReason: string;
+  createdBy: string;
 
-  @ApiPropertyOptional({
-    type: String,
-    description: "The mediumOfInstruction of the group",
-  })
   @Expose()
-  mediumOfInstruction: string;
-
-  @ApiPropertyOptional({ type: "string", format: "binary" })
-  @Expose()
-  image: string;
-
-  @ApiPropertyOptional()
-  @Expose()
-  metaData: [string];
-
-  @ApiPropertyOptional()
-  @Expose()
-  option: [string];
-
-  @ApiPropertyOptional({
-    description: "Grade against group",
-  })
-  @Expose()
-  gradeLevel: string;
+  updatedBy: string;
 
   @Expose()
   createdAt: string;

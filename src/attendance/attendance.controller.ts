@@ -31,7 +31,9 @@ import { editFileName, imageFileFilter } from "./utils/file-upload.utils";
 import { AttendanceSearchDto } from "./dto/attendance-search.dto";
 import { AttendanceHasuraService } from "src/adapters/hasura/attendance.adapter";
 import { AttendaceAdapter } from "./attendanceadapter";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
 
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Attendance")
 @Controller("attendance")
 export class AttendanceController {

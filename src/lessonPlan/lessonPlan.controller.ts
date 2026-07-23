@@ -23,6 +23,8 @@ import { Request } from "@nestjs/common";
 import { LessonPlanDto } from "./dto/lessonPlan.dto";
 import { LessonPlanSearchDto } from "./dto/lessonPlan.search.dto";
 import { LessonPlanService } from "src/adapters/sunbirdrc/lessonPlan.adapter";
+import { SentryInterceptor } from "src/common/sentry.interceptor";
+@UseInterceptors(SentryInterceptor)
 @ApiTags("Lesson Plan")
 @Controller("lessonPlan")
 export class LessonPlanController {
