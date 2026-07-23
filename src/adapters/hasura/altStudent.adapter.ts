@@ -1312,8 +1312,8 @@ export class ALTStudentService {
     programId: any,
     body?: any
   ) {
-    const subjectCondition = body.subject
-      ? `subject: {_eq: "${body.subject}"}, `
+    const subjectCondition = body?.subject
+      ? `, subject: {_eq: "${body.subject}"}`
       : "";
 
     //Decoding JWT to extract roles and it's permissions
@@ -1324,9 +1324,7 @@ export class ALTStudentService {
 
     const data = {
       query: `query MyQuery($programId: uuid) {
-                  ProgramTermAssoc(where: {programId: {_eq: $programId},
-                  ${subjectCondition}
-                  }) {
+                  ProgramTermAssoc(where: {programId: {_eq: $programId}${subjectCondition}}) {
                     rules
                     board
                     grade
@@ -1419,7 +1417,18 @@ export class ALTStudentService {
     let totalLessonsCount = 0; // Total number of lessons
     let completedContentCount = 0; // Count of matched content
     for (const programTerm of programData) {
-      const rules = JSON.parse(programTerm.rules).prog || [];
+      let rulesObj: any = {};
+      try {
+        if (programTerm?.rules) {
+          rulesObj =
+            typeof programTerm.rules === "string"
+              ? JSON.parse(programTerm.rules)
+              : programTerm.rules;
+        }
+      } catch (e) {
+        console.error("Error parsing programTerm.rules:", e);
+      }
+      const rules = rulesObj?.prog || [];
 
       // Iterate over rules and find matched content based on lessonId and contentId
       for (const rule of rules) {
